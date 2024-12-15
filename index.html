@@ -19,7 +19,7 @@
 </head>
 
 <body class="body">
-    <div data-collapse="small" data-animation="default" data-duration="400" data-easing="ease" data-easing2="ease"
+   <!-- <div data-collapse="small" data-animation="default" data-duration="400" data-easing="ease" data-easing2="ease"
         role="banner" class="nav-bar w-nav">
         <div class="nav-container w-container">
             <div class="logo-div"><a href="/" aria-current="page" class="nav-logo w-inline-block w--current"><img
@@ -41,6 +41,9 @@
                     class="menu-icon" /></div>
         </div>
     </div>
+    -->
+    <div id="navbar"></div>
+
     <div class="page-wrapper">
         <div class="section light-color-gradient">
             <div class="container">
@@ -148,6 +151,7 @@
             </div>
         </div>
     </div>
+   <!-- 
     <div class="footer">
         <div class="footer-container w-container">
             <div class="w-layout-grid footer-grid">
@@ -165,6 +169,9 @@
             </div>
         </div>
     </div>
+    -->
+
+    <di id="footer"></div>
     <div data-animation="default" data-collapse="none" data-duration="400" data-easing="ease" data-easing2="ease"
         role="banner" class="navbar w-nav"><a href="./public/sample-open-doc.html" class="brand w-nav-brand"></a>
         <nav role="navigation" class="nav-menu-2 w-nav-menu">
@@ -182,6 +189,19 @@
             <div class="w-icon-nav-menu"></div>
         </div>
     </div>
+
+    <script>
+        function loadHTML(id, file) {
+            fetch(file)
+                .then(response => response.text())
+                .then(data => document.getElementById(id).innerHTML = data)
+                .catch(err => console.error("Error loading file:", err));
+        }
+
+        loadHTML('navbar', '../components/navbar.html');
+        loadHTML('footer', '../components/footer.html');
+    </script>
+
     <script src="js/jquery.js" type="text/javascript"></script>
     <script src="js/webflow-script.js" type="text/javascript"></script>
 </body>
