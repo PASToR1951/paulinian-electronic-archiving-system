@@ -31,4 +31,4 @@ PeAS is a digital repository developed for St. Paul University Dumaguete (SPUD).
 
 1. Clone the repository:
    ```bash
-   git clone [https://github.com/PASToR/paulinian-electronic-archiving-system.git](https://github.com/PASToR1951/paulinian-electronic-archiving-system)
+   git clone https://github.com/PASToR1951/paulinian-electronic-archiving-system
