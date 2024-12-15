@@ -1,5 +1,4 @@
-# Paulinian electronic Archiving System (PeAS)
-![CC BY-NC 4.0](https://licensebuttons.net/l/by-nc/4.0/88x31.png)
+# Paulinian electronic Archiving System (PeAS) ![CC BY-NC 4.0](https://licensebuttons.net/l/by-nc/4.0/88x31.png)
 
 PeAS is a digital repository developed for St. Paul University Dumaguete (SPUD). It centralizes the storage and accessibility of academic works, including theses, dissertations, confluences, and synergies, produced by the university's undergraduate and postgraduate students.
 
