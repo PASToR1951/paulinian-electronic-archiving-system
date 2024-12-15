@@ -1,5 +1,10 @@
+
 body {
-    background-color: lightblue;
+    background-color: rgb(255, 255, 255);
+    border-style: dotted;
+    height: 100vh;
+    width: auto;
+    
   }
   
   h1 {
@@ -10,4 +15,26 @@ body {
   p {
     font-family: verdana;
     font-size: 20px;
+  }
+
+  .sidebar {
+    background-color: rgb(224, 211, 211);
+    width: 80px;
+    height: 100vh;
+    display: block;
+    text-align: center;
+    
+  }
+  .sidebar .image-text img{
+    width: 50px;
+    padding: 10px;
+
+  }
+  .Contents {
+  border-style: dotted;
+  display: block;
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+  width: 40%;
   }
