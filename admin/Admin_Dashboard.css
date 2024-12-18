@@ -1,14 +1,19 @@
 
 body {
-    background-color: rgb(255, 255, 255);
+    background-color: rgb(197, 167, 167);
     border-style: dotted;
+    box-sizing: border-box;
     height: 100vh;
-    width: auto;
+    width: 100%;
+    
     
   }
   
   h1 {
     color: white;
+    text-align: center;
+    width: auto;
+    display: flexbox;
     text-align: center;
   }
   
@@ -17,19 +22,6 @@ body {
     font-size: 20px;
   }
 
-  .sidebar {
-    background-color: rgb(224, 211, 211);
-    width: 80px;
-    height: 100vh;
-    display: block;
-    text-align: center;
-    
-  }
-  .sidebar .image-text img{
-    width: 50px;
-    padding: 10px;
-
-  }
   .Contents {
   border-style: dotted;
   display: block;
@@ -37,4 +29,16 @@ body {
   margin-left: auto;
   margin-right: auto;
   width: 40%;
+ 
   }
+
+  .main-contents{
+    display: flexbox;
+  }
+/* ---iframes---*/
+  .sidebar-iframe {
+    width: 20%; /* Adjust to fit the container */
+    height: 100vh; /* Full height of the viewport */
+    border: none; /* Removes border */
+    overflow: hidden; /* Prevents scrollbars */
+}
