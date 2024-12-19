@@ -15,3 +15,10 @@
 .container svg{
     margin-left: 10px;
 }
+
+
+.modal-content .image-card img{
+    border-radius: 6px;
+    width: 50%;
+    height: 100%;
+}
