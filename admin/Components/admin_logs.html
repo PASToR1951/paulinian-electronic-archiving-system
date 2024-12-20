@@ -1,11 +1,75 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Logs</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logs Page</title>
+    <link rel="stylesheet" href="css/admin_logs.css">
 </head>
 <body>
-  
+<h1>Logs</h1>
+<div class="container">
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>Level</th>
+                <th>Message</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>2024-12-20 10:00:00</td>
+                <td>
+                    <select>
+                        <option value="info" selected>Info</option>
+                        <option value="debug">Debug</option>
+                        <option value="warning">Warning</option>
+                        <option value="error">Error</option>
+                    </select>
+                </td>
+                <td>System started successfully.</td>
+            </tr>
+            <tr>
+                <td>2024-12-20 10:05:00</td>
+                <td>
+                    <select>
+                        <option value="info">Info</option>
+                        <option value="debug" selected>Debug</option>
+                        <option value="warning">Warning</option>
+                        <option value="error">Error</option>
+                    </select>
+                </td>
+                <td>Debugging issue with network connection.</td>
+            </tr>
+            <tr>
+                <td>2024-12-20 10:10:00</td>
+                <td>
+                    <select>
+                        <option value="info">Info</option>
+                        <option value="debug">Debug</option>
+                        <option value="warning" selected>Warning</option>
+                        <option value="error">Error</option>
+                    </select>
+                </td>
+                <td>Connection is unstable, retrying.</td>
+            </tr>
+            <tr>
+                <td>2024-12-20 10:15:00</td>
+                <td>
+                    <select>
+                        <option value="info">Info</option>
+                        <option value="debug">Debug</option>
+                        <option value="warning">Warning</option>
+                        <option value="error" selected>Error</option>
+                    </select>
+                </td>
+                <td>Network connection failed, error code 404.</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
 </body>
 </html>
