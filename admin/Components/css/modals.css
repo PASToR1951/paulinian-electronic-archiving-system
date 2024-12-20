@@ -1,0 +1,56 @@
+/*Success.html*/
+
+.container{
+    background-color: rgba(0, 0, 0, 0.63);
+    display: flex; /* Enable flexbox */
+    align-items: center; /* Vertically align items */
+    border-radius: 12px;
+    width:fit-content
+
+}
+
+.container h2{
+    color: white;
+    margin-right: 10px;
+    padding:20px 5px;
+}
+.container svg{
+    margin-left: 10px;
+}
+
+
+.modal-content .image-card img{
+    border-radius: 6px;
+    width: 50%;
+    height: 100%;
+}
+
+/*upload receipt*/
+
+.modal-content{
+    border-style: dashed;
+    width: 50%;
+    max-height: 30%;
+    align-items: center;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+.modal-body{
+    background-color: rgb(23, 114, 114);
+}
+.modal-content .modal-body .image-cover{
+    display: inline-block; /* Ensures the div only wraps the content inside */
+    width: 30%; /* Adjusts the width to match the image's size */
+    height: 50%; /* Adjusts the height to match the image's size */
+    
+    background-color: aqua;
+}
+.modal-content .modal-body .image-cover img{
+    width: auto;
+    height: auto;
+    background-color: aqua;
+}
+.modal-footer{
+    background-color: blue;
+}
