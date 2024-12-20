@@ -2,8 +2,8 @@
 
 .container{
     background-color: rgba(0, 0, 0, 0.63);
-    display: flex; /* Enable flexbox */
-    align-items: center; /* Vertically align items */
+    display: flex;
+    align-items: center;
     border-radius: 12px;
     width:fit-content
 
