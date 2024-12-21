@@ -1,4 +1,5 @@
 submit button = upload-receipt.html -> show success.html
+delete button = alert.html -> 
 attach file button = ?
 upload photo button = ?
 bookmark button = ?
