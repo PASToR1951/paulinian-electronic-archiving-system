@@ -1,0 +1,87 @@
+/* General styles for the header */
+.page-header {
+    background-color: #fff; /* White background */
+    padding: 20px; /* Add some padding around the header */
+    border-bottom: 1px solid #eee; /* Optional: Add a subtle bottom border */
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between; 
+    align-items: center; 
+    max-width: 1200px; 
+    margin: 0 auto; 
+}
+
+/* Left section layout */
+.left-section {
+    display: flex;
+    flex-direction: column; /* Stack items vertically */
+    align-items: flex-start; /* Align to the left */
+}
+
+.dashboard-title {
+    font-size: 24px; 
+    margin: 0;
+    margin-bottom: 5px; /* Add spacing between the title and the date */
+}
+
+.date-label {
+    font-size: 14px;
+    color: #777; 
+    margin: 0;
+}
+
+/* Right section layout */
+.right-section {
+    display: flex;
+    gap: 10px; /* Space between buttons */
+}
+
+.edit-button,
+.upload-document {
+    padding: 8px 16px;
+    font-size: 1em;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.edit-button {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    color: #333;
+}
+
+.edit-button:hover {
+    background-color: #eee;
+}
+
+.upload-document {
+    background-color: #007bff;
+    color: white;
+    border: none;
+}
+
+.upload-document:hover {
+    background-color: #0056b3;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column; /* Stack elements vertically */
+        align-items: flex-start;
+    }
+
+    .right-section {
+        margin-top: 10px; /* Add spacing between buttons and the title */
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .edit-button,
+    .upload-document {
+        width: 100%;
+    }
+}
