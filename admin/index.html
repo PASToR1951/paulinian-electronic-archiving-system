@@ -6,17 +6,30 @@
   <title>Document</title>
   <link rel="stylesheet" href="Components/css/index.css">
   <link rel="stylesheet" href="Components/css/page_header.css">
+  <link rel="stylesheet" href="Components/css/navbar.css">
+  <link rel="stylesheet" href="Components/css/navbar_header.css">
+  <link rel="stylesheet" href="./Components/css/dark_mode.css" disabled id="dark-mode-style">
+
 </head>
 <body>
+  
   <div class="container">
 
+  <div id="navbar-header"> 
   
+  </div>
+
+  <div id="nav-bar"> 
+  
+  </div>
+
   <div id="page-header">
     
     <svg> </svg>
     <svg> </svg>
     <h1> </h1>
   </div>
+
   <div class="row">
     <div class="column">
       <h2>column 1</h2>
@@ -63,6 +76,26 @@
       })
       .catch(error => console.error('Error loading header:', error));
   </script>
+
+  <script>
+    fetch('./components/navbar.html')
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById('nav-bar').innerHTML = data;
+      })
+      .catch(error => console.error('Error loading header:', error));
+  </script>
+
+  <script>
+    fetch('./components/navbar_header.html')
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById('navbar-header').innerHTML = data;
+      })
+      .catch(error => console.error('Error loading header:', error));
+  </script>
+
+<script src="./Components/js/navbar.js"></script>
 
   </div>
 </body>

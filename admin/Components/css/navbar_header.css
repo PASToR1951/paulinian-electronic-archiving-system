@@ -1,0 +1,61 @@
+/* style.css */
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    font-family: sans-serif;
+    background-color: white; /* Default light mode background */
+    color: black; /* Default light mode text color */
+    transition: background-color 0.3s ease, color 0.3s ease; /* Smooth transition */
+}
+
+body.dark-mode .header {
+    background-color: #333; /* Dark mode background */
+    color: white; /* Dark mode text color */
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+}
+
+.logo-icon {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+    border-radius: 50%;
+    background-color: #007bff;
+}
+
+.logo-text {
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+}
+
+.notifications, .theme-toggle { /* Style both notifications and theme toggle */
+    margin-right: 20px;
+    cursor: pointer; /* Make them look clickable */
+}
+.theme-icon{
+    width: 20px;
+    height: 20px;
+}
+
+.user-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid gray;
+}
+
+.notifications-icon {
+    width: 20px;
+    height: 20px;
+}

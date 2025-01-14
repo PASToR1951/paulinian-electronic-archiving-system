@@ -1,0 +1,59 @@
+/* style.css (Light Mode) */
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    font-family: sans-serif;
+    background-color: white;
+    color: black;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    border: 1px solid gray;
+}
+
+/* ... (rest of light mode styles) */
+.logo {
+    display: flex;
+    align-items: center;
+}
+
+.logo-icon {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+    border-radius: 50%;
+    background-color: #007bff;
+}
+
+.logo-text {
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+}
+
+.notifications, .theme-toggle {
+    margin-right: 20px;
+    cursor: pointer;
+}
+
+.theme-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.user-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid gray;
+}
+
+.notifications-icon {
+    width: 20px;
+    height: 20px;
+}
