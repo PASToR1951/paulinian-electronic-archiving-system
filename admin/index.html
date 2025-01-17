@@ -12,7 +12,7 @@
 
 </head>
 <body>
-  
+
   <div class="container">
 
   <div id="navbar-header"> 
@@ -30,43 +30,80 @@
     <h1> </h1>
   </div>
 
-  <div class="row">
-    <div class="column">
-      <h2>column 1</h2>
-    </div>
-    
-    <div class="column">
-      <h2>column 2</h2>
-    </div>
-
-    <div class="column">
-      <h2>column 3</h2>
-    </div>
-
-    <div class="column">
-        <h2>column 4</h2>
-    </div>
-    
-  </div>
-
-  <div class="row">
-    <div class="column">
-      <h2>column 1</h2>
-    </div>
-
-    <div class="column">
-      <h2>column 2</h2>
-    </div>
-
-    <div class="column">
-      <h2>column 3</h2>
-    </div>
+  <div class="row"><!---row Mark-->
+   
+      <div class="counter-container">
+        <div class="total-visits">
+            <div class="total-visits-number">12,321</div>
+            <div>Total Visits</div>
+        </div>
+        <div class="visits-row">
+            <div>
+                <div class="visit-count">10,653</div>
+                <div class="visit-label">Guest Visits</div>
+            </div>
+            <div>
+                <div class="visit-count">1,668</div>
+                <div class="visit-label">User Visits</div>
+            </div>
+        </div>
       
-    <div class="column">
-        <h2>column 4</h2>
-    </div>
+    </div><!--Mark-->
     
+    
+    
+    <div class="top-authors-container">
+      <h2>Top Authors</h2>
+      <div class="authors-list">
+          <div class="author">
+            <div class="author-image" style="background-image: url('./Components/img/samp_pfp.jpg');"></div>
+              <div class="author-name">Yalwa Smith</div>
+              <div class="author-visits">521 visits</div>
+          </div>
+          <div class="author">
+              <div class="author-image" style="background-image: url('./Components/img/samp_pfp.jpg');"></div>
+              <div class="author-name">Charilaos James</div>
+              <div class="author-visits">470 visits</div>
+          </div>
+          <div class="author">
+              <div class="author-image" style="background-image: url('./Components/img/samp_pfp.jpg');"></div>
+              <div class="author-name">Gunnarr Stuart</div>
+              <div class="author-visits">455 visits</div>
+          </div>
+          <div class="author">
+              <div class="author-image" style="background-image: url('./Components/img/samp_pfp.jpg');"></div>
+              <div class="author-name">Anna Burkhard</div>
+              <div class="author-visits">400 visits</div>
+          </div>
+          <div class="author">
+              <div class="author-image" style="background-image: url('./Components/img/samp_pfp.jpg');"></div>
+              <div class="author-name">Kay Ashlyn</div>
+              <div class="author-visits">399 visits</div>
+          </div>
+      </div>
   </div>
+   
+    
+  </div><!--row close Mark-->
+
+  <div class="row"><!--row Open Mark-->
+    <div class="column"><!--Mark-->
+      <h2>column 1</h2>
+    </div><!--Mark-->
+
+    <div class="column"><!--Mark-->
+      <h2>column 2</h2>
+    </div><!--Mark-->
+
+    <div class="column"><!--Mark-->
+      <h2>column 3</h2>
+    </div><!--Mark-->
+      
+    <div class="column"><!--Mark-->
+        <h2>column 4</h2>
+    </div><!--Mark-->
+    
+  </div><!--row close Mark-->
   
   <script>
     fetch('./components/page_header.html')

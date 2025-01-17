@@ -17,10 +17,107 @@ body {
   margin: 20px 0
 }
 
-
 .column {
   flex: 1;
   padding: 10px; 
   border: 1px solid #ddd; 
   box-sizing: border-box; 
+}
+/*For Chart container*/
+.counter-container {
+  padding: 30px;
+  border-radius: 15px;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  flex: 1;
+  padding: 10px; 
+  border: 1px solid #ddd; 
+  box-sizing: border-box; 
+}
+
+.total-visits {
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.total-visits-number {
+  font-size: 3em;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.visits-row {
+  display: flex;
+  justify-content: space-around;
+  gap: 20px;
+}
+
+.visit-count {
+  font-size: 2em;
+  font-weight: bold;
+}
+
+.visit-label {
+  font-size: 1em;
+  color: #555;
+}
+/*for Top Authors*/
+.top-authors-container {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: center; 
+  flex: 1;
+  padding: 10px; 
+  border: 1px solid #ddd; 
+  box-sizing: border-box;
+}
+
+.top-authors-container h2 {
+  margin-bottom: 20px; 
+}
+
+.authors-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around; 
+  gap: 20px; 
+}
+
+.author {
+  border: 1px solid #ddd; 
+  padding: 15px;
+  border-radius: 5px;
+  text-align: center;
+  flex: 1 0 150px; 
+  box-sizing: border-box; 
+  min-width: 0; 
+}
+.author-image {
+  width: 100px; /* or desired size */
+  height: 100px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 50%; /* Optional */
+}
+.author-name {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.author-visits {
+  color: #777; /* Darker gray for visits */
+  font-size: 0.9em;
+}
+
+@media (max-width: 768px) {
+  .authors-list {
+      flex-direction: column; /* Stack authors vertically on smaller screens */
+      align-items: center; /* Center the authors */
+  }
+  .author{
+      width: 80%;
+  }
 }
