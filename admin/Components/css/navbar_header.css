@@ -3,11 +3,10 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 20px;
     font-family: sans-serif;
-    background-color: white; /* Default light mode background */
-    color: black; /* Default light mode text color */
-    transition: background-color 0.3s ease, color 0.3s ease; /* Smooth transition */
+    background-color: white;
+    color: black;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 body.dark-mode .header {
@@ -18,11 +17,12 @@ body.dark-mode .header {
 .logo {
     display: flex;
     align-items: center;
+    
 }
 
 .logo-icon {
-    width: 50px; 
-    height: 50px; 
+    width: 80px; 
+    height: 80px; 
     background-size: contain; 
     background-repeat: no-repeat;
     background-position: center; 
@@ -32,7 +32,17 @@ body.dark-mode .header {
     font-size: 1.2em;
     font-weight: bold;
 }
-
+.content {
+    display: flex;
+    flex-direction: column; 
+    margin: 0 10px;
+    
+}
+.content p {
+    font-size: 0.9em; /* Adjust as needed */
+    margin: 0; /* Remove default margins */
+    white-space: nowrap; /* Prevent text wrapping */
+}
 .user-info {
     display: flex;
     align-items: center;
@@ -52,8 +62,8 @@ body.dark-mode .header {
 }
 
 .user-avatar {
-    width: 40px;
-    height: 40px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     background-size: cover;
     background-position: center;
