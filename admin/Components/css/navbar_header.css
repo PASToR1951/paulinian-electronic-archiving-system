@@ -1,4 +1,4 @@
-/* style.css */
+
 .header {
     display: flex;
     align-items: center;
@@ -21,11 +21,11 @@ body.dark-mode .header {
 }
 
 .logo-icon {
-    width: 30px;
-    height: 30px;
-    margin-right: 10px;
-    border-radius: 50%;
-    background-color: #007bff;
+    width: 50px; 
+    height: 50px; 
+    background-size: contain; 
+    background-repeat: no-repeat;
+    background-position: center; 
 }
 
 .logo-text {
@@ -38,23 +38,55 @@ body.dark-mode .header {
     align-items: center;
 }
 
-.notifications, .theme-toggle { /* Style both notifications and theme toggle */
+.notifications, .theme-toggle { 
     margin-right: 20px;
-    cursor: pointer; /* Make them look clickable */
+    cursor: pointer; 
 }
 .theme-icon{
     width: 20px;
     height: 20px;
 }
-
-.user-avatar {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 1px solid gray;
+.user-dropdown {
+    position: relative; 
+    display: inline-block; 
 }
 
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    cursor: pointer; 
+}
+
+.dropdown-content {
+    display: none; 
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1; 
+    border-radius: 5px;
+    right: 0; 
+}
+
+.dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+}
+
+.dropdown-content a:hover {
+    background-color: #ddd;
+}
+
+
+.user-dropdown:hover .dropdown-content {
+    display: block;
+}
 .notifications-icon {
     width: 20px;
     height: 20px;
