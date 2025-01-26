@@ -1,0 +1,66 @@
+/* styles.css */
+body {
+    margin: 0; /* Important: Remove default body margin */
+    display: flex; /* Use flexbox for layout */
+}
+
+.sidebar {
+    width: 100px; /* Adjust as needed */
+    height: 100vh; /* Full viewport height */
+    background-color: #f0f0f0; /* Example background color */
+    position: fixed; /* This is the key for fixed positioning */
+    top: 0;
+    left: 0;
+    overflow-y: auto; /* Add scroll if sidebar content overflows */
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+}
+.sidebar-content{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+.logo{
+    width: 50px;
+    margin-bottom: 20px;
+}
+
+.main-content {
+    flex: 1; /* Take up remaining space */
+    padding: 20px;
+    margin-left: 100px; /* Match sidebar width */
+}
+
+/* Rest of the CSS for icons (from previous responses) */
+.icon-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px; /* Space between icons */
+}
+
+.icon-wrapper {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: green; /* Green background for the circle */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.icon {
+    width: 30px;
+    height: 30px;
+    background-color: white; /* White background for the icon shape */
+    -webkit-mask-size: cover; /* For Safari */
+    mask-size: cover;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+
+}

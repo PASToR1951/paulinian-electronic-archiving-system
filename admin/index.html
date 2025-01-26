@@ -12,16 +12,16 @@
 
 </head>
 <body>
-
+  <div id="side-bar"> 
+  
+  </div>
   <div class="container">
 
   <div id="navbar-header"> 
   
   </div>
 
-  <div id="nav-bar"> 
   
-  </div>
 
   <div id="page-header">
     
@@ -203,10 +203,10 @@
   </script>
 
   <script>
-    fetch('./components/navbar.html')
+    fetch('./components/side_bar.html')
       .then(response => response.text())
       .then(data => {
-        document.getElementById('nav-bar').innerHTML = data;
+        document.getElementById('side-bar').innerHTML = data;
       })
       .catch(error => console.error('Error loading header:', error));
   </script>
