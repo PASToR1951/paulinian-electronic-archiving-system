@@ -6,7 +6,7 @@ fetch('./components/navbar_header.html')
         return response.text();
     })
     .then(html => {
-        document.getElementById('navbar-container').innerHTML = html;
+        document.getElementById('navbar-header').innerHTML = html;
 
         const themeToggle = document.querySelector('.theme-toggle');
         const darkModeStyle = document.getElementById('dark-mode-style');
@@ -30,5 +30,5 @@ fetch('./components/navbar_header.html')
     })
     .catch(error => {
         console.error('Error fetching navbar:', error);
-        document.getElementById('navbar-container').innerHTML = "<p>Failed to load navbar.</p>";
+        document.getElementById('navbar-header').innerHTML = "<p>Failed to load navbar.</p>";
     });
