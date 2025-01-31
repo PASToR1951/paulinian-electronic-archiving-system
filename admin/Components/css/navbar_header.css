@@ -1,22 +1,29 @@
 
+body {
+    max-width: 1200px;
+    font-family: sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    margin: 0 auto; 
+    
+  }
+
 .header {
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd; 
+    margin: 0 auto; 
     display: flex;
     align-items: center;
     justify-content: space-between;
     font-family: sans-serif;
-    background-color: white;
+    
     color: black;
     transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-body.dark-mode .header {
-    background-color: #333; /* Dark mode background */
-    color: white; /* Dark mode text color */
 }
 
 .logo {
     display: flex;
     align-items: center;
+    
     
 }
 
@@ -46,6 +53,7 @@ body.dark-mode .header {
 .user-info {
     display: flex;
     align-items: center;
+    
 }
 
 .notifications, .theme-toggle { 

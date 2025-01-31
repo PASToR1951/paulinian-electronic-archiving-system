@@ -1,5 +1,6 @@
 /* side_bar.css */
 .side-bar {
+    padding-left: 15px;
     width: 60px; /* Adjust as needed */
     height: 100vh; /* Or a specific height */
     background-color: #f0f0f0; /* Example background color */
@@ -18,8 +19,8 @@
     flex-direction: column;
     gap: 20px; /* Spacing between icons */
 }.icon-wrapper {
-    width: 40px; /* Adjust icon size */
-    height: 40px; /* Adjust icon size */
+    width: 50px; /* Adjust icon size */
+    height: 50px; /* Adjust icon size */
     border-radius: 50%; /* Make icons circular (optional) */
     background-color: #04a12b; /* Example icon background */
     display: flex;

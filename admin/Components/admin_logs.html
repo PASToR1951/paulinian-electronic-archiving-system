@@ -5,14 +5,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Logs Page</title>
     <link rel="stylesheet" href="css/admin_logs.css">
+    <link rel="stylesheet" href="css/side_bar.css">
+    <link rel="stylesheet" href="css/navbar_header.css">
 </head>
 <body>
-<h1>Logs</h1>
-<div class="container">
+    <div id="side-bar"> 
+  
+    </div>
+  
+
+<div class="logs-container">
+    <div id="navbar-header"> 
     
+    </div>
+    
+    
+    <div class="logs-header">
+        <div>
+            <h1 class="logs-title">System Logs</h1>
+            <p class="logs-count">1-12 of 241 logs</p>
+        </div>
+        <div class="header-controls">
+            <div class="search-box">
+                <input type="text" placeholder="Search Logs...">
+                <button>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M14.712 13.361L10.722 9.371a6.5 6.5 0 11-9.19 9.19 6.5 6.5 0 019.19-9.19l3.99 3.99a1 1 0 01-1.414 1.414zM6.5 11.5a5 5 0 100-10 5 5 0 000 10z" fill="currentColor"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="filter-box">
+                <button class="filter-icon">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 7H17V9H3V7ZM5 13H15V11H5V13ZM10 16L14 12H6L10 16Z" fill="currentColor"/>
+                    </svg>
+                </button>
+                <div class="filter-dropdown">
+                    <select>
+                        <option value="all">All</option>
+                        <option value="errors">Errors</option>
+                        <option value="warnings">Warnings</option>
+                        <option value="info">Info</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <table>
         <thead>
             <tr>
+                <th>No</th>
                 <th>Timestamp</th>
                 <th>Level</th>
                 <th>Message</th>
@@ -20,6 +63,7 @@
         </thead>
         <tbody>
             <tr>
+                <td>1</td>
                 <td>2024-12-20 10:00:00</td>
                 <td>
                     <select>
@@ -32,6 +76,7 @@
                 <td>System started successfully.</td>
             </tr>
             <tr>
+                <td>2</td>
                 <td>2024-12-20 10:05:00</td>
                 <td>
                     <select>
@@ -44,6 +89,7 @@
                 <td>Debugging issue with network connection.</td>
             </tr>
             <tr>
+                <td>3</td>
                 <td>2024-12-20 10:10:00</td>
                 <td>
                     <select>
@@ -56,6 +102,7 @@
                 <td>Connection is unstable, retrying.</td>
             </tr>
             <tr>
+                <td>4</td>
                 <td>2024-12-20 10:15:00</td>
                 <td>
                     <select>
@@ -67,9 +114,92 @@
                 </td>
                 <td>Network connection failed, error code 404.</td>
             </tr>
+            <tr>
+                <td>5</td>
+                <td>2024-12-20 10:00:00</td>
+                <td>
+                    <select>
+                        <option value="info" selected>Info</option>
+                        <option value="debug">Debug</option>
+                        <option value="warning">Warning</option>
+                        <option value="error">Error</option>
+                    </select>
+                </td>
+                <td>System started successfully.</td>
+            </tr>
+            <tr>
+                <td>6</td>
+                <td>2024-12-20 10:00:00</td>
+                <td>
+                    <select>
+                        <option value="info" selected>Info</option>
+                        <option value="debug">Debug</option>
+                        <option value="warning">Warning</option>
+                        <option value="error">Error</option>
+                    </select>
+                </td>
+                <td>System started successfully.</td>
+            </tr>
+            <tr>
+                <td>7</td>
+                <td>2024-12-20 10:00:00</td>
+                <td>
+                    <select>
+                        <option value="info" selected>Info</option>
+                        <option value="debug">Debug</option>
+                        <option value="warning">Warning</option>
+                        <option value="error">Error</option>
+                    </select>
+                </td>
+                <td>System started successfully.</td>
+            </tr>
+            <tr>
+                <td>8</td>
+                <td>2024-12-20 10:00:00</td>
+                <td>
+                    <select>
+                        <option value="info" selected>Info</option>
+                        <option value="debug">Debug</option>
+                        <option value="warning">Warning</option>
+                        <option value="error">Error</option>
+                    </select>
+                </td>
+                <td>System started successfully.</td>
+            </tr>
         </tbody>
+        
     </table>
+    <div class="pagination">
+        <div class="entries-info">
+            Showing 1 to 8 of 16 entries
+        </div>
+        <div class="page-links">
+            <button class="prev-button" disabled>&lt; prev</button>
+            <a href="#" class="page-number active">1</a>
+            <a href="#" class="page-number">2</a>
+            <a href="#" class="page-number">3</a>
+            <a href="#" class="page-number">4</a>
+            <a href="#" class="page-number">5</a>
+            <button class="next-button">&gt; next</button>
+        </div>
+    </div>
 </div>
+<script>
+    fetch('./side_bar.html')
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById('side-bar').innerHTML = data;
+      })
+      .catch(error => console.error('Error loading header:', error));
+  </script>
 
+  <script>
+    fetch('./navbar_header.html')
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById('navbar-header').innerHTML = data;
+      })
+      .catch(error => console.error('Error loading header:', error));
+  </script>
 </body>
 </html>
