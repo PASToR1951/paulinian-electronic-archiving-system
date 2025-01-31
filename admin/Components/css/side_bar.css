@@ -1,44 +1,94 @@
 /* side_bar.css */
 .side-bar {
-    padding-left: 15px;
-    width: 60px; /* Adjust as needed */
-    height: 100vh; /* Or a specific height */
-    background-color: #f0f0f0; /* Example background color */
-    position: fixed; /* Stays in place during scroll */
-    left: 0; /* Position on the left */
-    top: 0; /* Position at the top */
-    display: flex;
-    flex-direction: column; /* Arrange icons vertically */
-    align-items: center; /* Center icons horizontally */
-    padding-top: 20px; /* Add some top padding */
-    /* box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2); Optional shadow */
-    z-index: 100; /* Ensure it's above other content */
-    justify-content: center; /* Vertically center content */
-}.icon-container {
+    width: 60px;
+    height: 100vh;
+    background-color: #f0f0f0;
+    position: fixed;
+    left: 0;
+    top: 0;
     display: flex;
     flex-direction: column;
-    gap: 20px; /* Spacing between icons */
-}.icon-wrapper {
-    width: 50px; /* Adjust icon size */
-    height: 50px; /* Adjust icon size */
-    border-radius: 50%; /* Make icons circular (optional) */
-    background-color: #04a12b; /* Example icon background */
-    display: flex;
-    justify-content: center; /* Center icon content horizontally */
-    align-items: center; /* Center icon content vertically */
-    cursor: pointer; /* Indicate interactivity */
-    transition: background-color 0.3s ease; /* Smooth background transition */
-}.icon-wrapper:hover {
-    background-color: #66e96d; /* Slightly darker background on hover */
+    align-items: center;
+    padding-top: 20px;
+    z-index: 100;
+    justify-content: flex-start;
+    overflow: hidden;
+    transition: width 0.3s ease-in-out;
+    justify-content: center;
 }
+
+.icon-container {
+    position: relative;
+    height: 50px; /* Initial height */
+    transition: height 0.3s ease-in-out;
+}
+
+.side-bar:hover .icon-container {
+    height: 150px; /* Adjust as needed */
+}
+
+.icon-wrapper {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #04a12b;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, top 0.3s ease-in-out;
+    opacity: 1; /* Initially visible */
+}
+.icon-wrapper:hover{
+    background-color: #66e96d;
+    
+}
+
+.icon-wrapper:nth-child(1) {
+    top: 0;
+    z-index: 2; /* Ensure it's on top */
+}
+
+.icon-wrapper:nth-child(2) {
+    top: 0; /* Initially behind the first icon */
+    opacity: 0;
+    transform: translateX(-50%) translateY(-25%); /* Position off-center */
+    z-index: 1; /* Behind the first icon */
+}
+
+.icon-wrapper:nth-child(3) {
+    top: 0; /* Initially behind the first icon */
+    opacity: 0;
+    transform: translateX(-50%) translateY(-25%); /* Position off-center */
+    z-index: 0; /* Furthest behind */
+}
+
+.side-bar:hover .icon-wrapper:nth-child(2) {
+    opacity: 1;
+    transform: translateX(-50%) translateY(60px); /* Slide down */
+}
+
+.side-bar:hover .icon-wrapper:nth-child(3) {
+    opacity: 1;
+    transform: translateX(-50%) translateY(120px); /* Slide down further */
+}
+
 .icon {
-    width: 20px; /* Adjust icon size */
-    height: 20px; /* Adjust icon size */
-    /* Use background-image to set your icons */
-    background-size: cover; /* or contain, depending on your icons */
+    width: 20px;
+    height: 20px;
+    background-size: cover;
     background-repeat: no-repeat;
     background-position: center;
-}.grid-icon {
+    filter: grayscale(100%); /* Initially grayscale */
+    transition: filter 0.3s ease-in-out; /* Transition for the filter property */
+}
+.icon-wrapper:hover .icon {
+    filter: grayscale(0%); /* Remove grayscale on hover */
+}
+.grid-icon {
     background-image: url('./images/grid_icon.png'); /* Path to your grid icon */
 }.file-icon {
     background-image: url('./images/file_icon.png'); /* Path to your file icon */
