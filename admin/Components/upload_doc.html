@@ -49,15 +49,23 @@
 
                 <label for="abstract">Abstract / Summary</label><br>
                 <textarea id="abstract" name="abstract" rows="4" required></textarea><br><br>
-
-                <label for="file">Attach File</label><br>
-                <input type="file" id="file" name="file"><br><br>
-                <label for="file">Uplaod Cover</label><br>
-                <input type="file" id="cover" name="cover"><br><br>
-
+                
+            <div class="upload-icons-container">
+                <label for="file" class="upload-icon">
+                    <div class="upload-box">  <img src="upload_icon.png" alt="Attach File" width="40">  <p>Attach File</p>  </div>
+                    <input type="file" id="file" name="file" style="display: none;">
+                </label>
+                
+                <label for="cover" class="upload-icon">
+                    <div class="upload-box">  <img src="cover_upload_icon.png" alt="Upload Cover Photo" width="40">  <p>Upload Cover Photo</p>  </div>
+                    <input type="file" id="cover" name="cover" style="display: none;">
+                </label>
+            </div>
+            <div class="submit-container">
                 <button type="submit">SUBMIT</button>
+            </div>
             </form>
-        </div>
+        </div>  
         <div class="right-panel">
             <div class="preview-header">
                 <h2>Preview</h2>

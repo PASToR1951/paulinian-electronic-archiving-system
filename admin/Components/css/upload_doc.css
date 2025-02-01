@@ -87,3 +87,53 @@ body {
     border-top: 1px solid #ddd;
     padding-top: 10px;
 }
+.upload-icon {
+    cursor: pointer;
+    display: inline-block; /* Needed for proper spacing */
+    margin-right: 20px; /* Space between the boxes */
+    vertical-align: middle; /* Align vertically */
+}
+
+.upload-box {
+    width: 150px;
+    height: 100px;
+    border: 1px dashed #ccc;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: #777;
+    background-color: #f9f9f9;
+}
+.upload-box img {
+    width: 40px; /* Adjust icon size if needed */
+    margin-bottom: 10px; /* Space between icon and text */
+   
+}
+
+.upload-box p {
+    margin: 0; /* Remove default paragraph margins */
+    font-size: 14px; /* Adjust font size */
+}
+
+.submit-container {  /* New container for the button */
+    display: flex;
+    justify-content: center; /* Center horizontally */
+    width: 100%; /* Or a specific width if needed */
+    margin-top: 20px; /* Add some top margin */
+}
+
+button[type="submit"] {
+    /* ... your other submit button styles ... */
+    /* Remove any margin or positioning that might interfere with centering */
+    margin: 0;  /* Important: Reset margins */
+    display: block; /* Important: Make it a block element */
+}
+.upload-icons-container {
+    display: flex;
+    justify-content: center; /* Center horizontally */
+    align-items: center; /* Center vertically */
+    width: 100%; /* or a specific width if needed */
+}
