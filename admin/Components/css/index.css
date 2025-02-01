@@ -4,7 +4,7 @@
 }
 body {
   margin: 0;
-  padding: 20px;
+  padding: 0px;
   font-family: sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
