@@ -1,0 +1,91 @@
+body {
+    font-family: sans-serif;
+    
+    
+    min-height: 100vh;
+    margin: 0;
+    background-color: #f4f4f4;
+}
+
+.container {
+    display: flex;
+    width: 100%;
+    max-width: 1200px;
+    background-color: white;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden; /* Prevents image from overflowing */
+}
+
+.left-panel {
+    flex: 1;
+    padding: 20px;
+    border-right: 1px solid #ddd;
+}
+
+.left-panel h2 {
+    margin-bottom: 20px;
+}
+
+.left-panel label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.left-panel input[type="text"],
+.left-panel input[type="number"],
+.left-panel select,
+.left-panel textarea {
+    width: calc(100% - 10px); /* Account for padding */
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.left-panel textarea {
+    resize: vertical;
+}
+
+.left-panel button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+
+.right-panel {
+    flex: 1;
+    padding: 20px;
+}
+
+.preview-header {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.preview-content {
+    border: 1px solid #ddd;
+    padding: 20px;
+    border-radius: 4px;
+}
+
+.document-icon {
+    display: block;
+    margin: 0 auto 20px;
+    max-width: 100px; /* Adjust as needed */
+}
+
+.preview-content p {
+    margin-bottom: 5px;
+}
+
+.abstract-preview {
+    margin-top: 20px;
+    border-top: 1px solid #ddd;
+    padding-top: 10px;
+}

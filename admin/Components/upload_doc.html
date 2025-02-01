@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Submission Form</title>
+    <link rel="stylesheet" href="./css/upload_doc.css">
+    
+</head>
+<body>
+    <div id="side-bar"> 
+  
+    </div>
+    <div id="navbar-header"> 
+  
+    </div>
+
+    <div class="container">
+        
+        <div class="left-panel">
+            <h2>Add New Document</h2>
+            <form action="#" method="post">
+                <label for="title">Title</label><br>
+                <input type="text" id="title" name="title" required><br><br>
+
+                <label for="author">Author</label><br>
+                <input type="text" id="author" name="author" required><br><br>
+
+                <label for="year">Year Published</label><br>
+                <input type="number" id="year" name="year" value="2024" required><br><br>
+
+                <label for="category">Category</label><br>
+                <select id="category" name="category" required>
+                    <option value="thesis">Thesis</option>
+                    <option value="dissertation">Dissertation</option>
+                    <option value="report">Report</option>
+                    <option value="other">Other</option>
+                </select><br><br>
+
+                <label for="language">Language</label><br>
+                <select id="language" name="language" required>
+                    <option value="english">English</option>
+                    <option value="spanish">Spanish</option>
+                    <option value="french">French</option>
+                </select><br><br>
+
+                <label for="topic">Topic</label><br>
+                <input type="text" id="topic" name="topic" value="Nursing" required><br><br>
+
+                <label for="abstract">Abstract / Summary</label><br>
+                <textarea id="abstract" name="abstract" rows="4" required></textarea><br><br>
+
+                <label for="file">Attach File</label><br>
+                <input type="file" id="file" name="file"><br><br>
+
+                <button type="submit">SUBMIT</button>
+            </form>
+        </div>
+        <div class="right-panel">
+            <div class="preview-header">
+                <h2>Preview</h2>
+            </div>
+            <div class="preview-content">
+                <img src="document_icon.png" alt="Document Icon" class="document-icon">
+                <p><strong>ABOLITION, AFRICANS, AND ABSTRACTION: THE INFLUENCE OF THE 'NOBLE SAVAGE' ON BRITISH AND FRENCH ANTISLAVERY THOUGHT, 1787-1807</strong></p>
+                <p>by Suchait Kahlon</p>
+                <p>Publishing Date: 2021</p>
+                <p>Topics: History</p>
+                <p>Language: English</p>
+                <p>Pages: 140</p>
+                <p>Added Date: January 15, 2021</p>
+
+                <div class="abstract-preview">
+                    <p><strong>Abstract</strong></p>
+                    <p>This vision of a Black Spartacus, imagined by the French Enlightenment thinker Denis Diderot in the 1770 Histoire des Deux indes, is often considered prophetic of Toussaint Louverture's leadership in the Haitian Revolution. While Diderot's antislavery polemic highlights the gap between the western European Enlightenment's promotion of 'liberty' and the reality of chattel slavery in the Atlantic world, this brief excerpt also foreshadows a growing trend that exploded among British and French antislavery advocates in the late eighteenth and early nineteenth centuries. Namely, those early campaigners for the abolition of the slave trade increasingly relied on abstract and humanitarian arguments which alluded to romantic representations of "primitive" people and the state of nature more broadly. In Diderot's case, these themes shine through: not only does he suggest that justice is based on principles inherent to nature, but he implies that these conceptions would motivate an African, forced in shackles, to rise up against his supposedly 'civilized' oppressors.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        fetch('side_bar.html')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById('side-bar').innerHTML = data;
+          })
+          .catch(error => console.error('Error loading header:', error));
+      </script>
+    <script>
+        fetch('navbar_header.html')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById('navbar-header').innerHTML = data;
+          })
+          .catch(error => console.error('Error loading header:', error));
+      </script>
+</body>
+</html>
