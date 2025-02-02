@@ -133,7 +133,7 @@ body {
 /* most visited work secton*/
 .most-visited-works {
   background-color: #f0f0f0;
-  padding: 20px;
+  padding: 0px;
   border-radius: 10px;
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
   margin: 20px auto; 
@@ -142,6 +142,7 @@ body {
 
 .most-visited-works h3 {
   margin-bottom: 15px;
+  padding-left: 15px;
   color: #333; 
 }
 
@@ -220,6 +221,8 @@ body {
   background-color: #f0f0f0; 
   padding: 20px;
   border-radius: 10px;
+  border: 1px solid #ddd; 
+  box-sizing: border-box; 
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
   margin: 20px auto;
   max-width: 900px;
@@ -296,7 +299,7 @@ body {
 /* Trending Topics Section */
 .trending-topics {
   background-color: #f8f8f8; 
-  padding: 20px;
+  padding: 0px;
   border-radius: 10px;
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
   margin: 20px auto;
@@ -304,6 +307,7 @@ body {
 }
 
 .trending-topics h3 {
+  padding-left: 15px;
   margin-bottom: 15px;
   color: #333;
 }
