@@ -1,7 +1,7 @@
 
 .page-header {
     background-color: #fff;
-    padding: 20px; 
+    padding-top: 20px; 
     border-bottom: 1px solid #eee; 
 }
 
@@ -37,7 +37,10 @@
     display: flex;
     gap: 10px; 
 }
-
+.edit-button{
+    transform: translate3d(0px, 0%, 0px);
+    transition-delay: .6s
+}
 .edit-button,
 .upload-document {
     padding: 8px 16px;
@@ -54,17 +57,18 @@
 }
 
 .edit-button:hover {
-    background-color: #eee;
+    background-color: #31923D;;
+    color: white;
 }
 
 .upload-document {
-    background-color: #007bff;
+    background-color: #31923D;
     color: white;
     border: none;
 }
 
 .upload-document:hover {
-    background-color: #0056b3;
+    background-color: #47d157;
 }
 
 /* Responsive adjustments */

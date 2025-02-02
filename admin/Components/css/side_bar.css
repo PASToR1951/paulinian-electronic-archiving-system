@@ -1,8 +1,9 @@
 /* side_bar.css */
+
 .side-bar {
     width: 60px;
     height: 100vh;
-    background-color: #f0f0f0;
+    background-color: #ffffff;
     position: fixed;
     left: 0;
     top: 0;
@@ -14,7 +15,7 @@
     justify-content: flex-start;
     overflow: hidden;
     transition: width 0.3s ease-in-out;
-    justify-content: center;
+    justify-content: center; /* Vertically center content */
 }
 
 .icon-container {
@@ -31,7 +32,7 @@
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background-color: #04a12b;
+    background-color: #ffffff;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -41,11 +42,27 @@
     transform: translateX(-50%);
     transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, top 0.3s ease-in-out;
     opacity: 1; /* Initially visible */
+    overflow: hidden; /* Hide span initially */
 }
-.icon-wrapper:hover{
+
+.icon-wrapper:hover {
     background-color: #66e96d;
-    
 }
+
+.icon-wrapper span {
+    position: absolute;
+    left: 70px; /* Adjust as needed */
+    opacity: 0;
+    white-space: nowrap;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    transform: translateX(-10px);
+}
+
+.icon-wrapper:hover span {
+    opacity: 1;
+    transform: translateX(0);
+}
+
 
 .icon-wrapper:nth-child(1) {
     top: 0;
@@ -68,7 +85,7 @@
 
 .side-bar:hover .icon-wrapper:nth-child(2) {
     opacity: 1;
-    transform: translateX(-50%) translateY(80px); /* Slide down yawa kang icon ka*/ 
+    transform: translateX(-50%) translateY(80px); /* Slide down */ 
 }
 
 .side-bar:hover .icon-wrapper:nth-child(3) {
@@ -85,14 +102,20 @@
     filter: grayscale(100%); /* Initially grayscale */
     transition: filter 0.3s ease-in-out; /* Transition for the filter property */
 }
+
 .icon-wrapper:hover .icon {
     filter: grayscale(0%); /* Remove grayscale on hover */
 }
+
 .grid-icon {
     background-image: url('./images/grid_icon.png'); /* Path to your grid icon */
-}.file-icon {
+}
+
+.file-icon {
     background-image: url('./images/file_icon.png'); /* Path to your file icon */
-}.settings-icon {
+}
+
+.settings-icon {
     background-image: url('./images/settings_icon.png'); /* Path to your settings icon */
 }
 
@@ -103,7 +126,7 @@ body {
 
 /* Optional: Styles for larger screens, if needed */
 @media (min-width: 768px) {
-  .side-bar {
+    .side-bar {
         width: 80px; /* Example width adjustment */
     }
 }
