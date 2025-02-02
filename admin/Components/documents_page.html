@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logs Page</title>
+    <link rel="stylesheet" href="css/documents_page.css">
+    <link rel="stylesheet" href="css/side_bar.css">
+    <link rel="stylesheet" href="css/navbar_header.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+        integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+</head>
+
+<body>
+    <div id="side-bar"> </div>
+    <div id="navbar-header"> </div>
+
+    <div class="docs-container">
+        <div class="docs-header">
+            <div>
+                <h1 class="docs-title">Documents Lists</h1>
+                <p class="docs-count">1-12 of 241 Documents</p>
+            </div>
+            <div class="header-controls">
+                <div class="search-box">
+                    <input type="text" placeholder="Search Logs...">
+                    <button>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M14.712 13.361L10.722 9.371a6.5 6.5 0 11-9.19 9.19 6.5 6.5 0 019.19-9.19l3.99 3.99a1 1 0 01-1.414 1.414zM6.5 11.5a5 5 0 100-10 5 5 0 000 10z"
+                                fill="currentColor" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="filter-box">
+                    <button class="filter-icon">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M3 7H17V9H3V7ZM5 13H15V11H5V13ZM10 16L14 12H6L10 16Z"
+                                fill="currentColor" />
+                        </svg>
+                    </button>
+                    <div class="filter-dropdown">
+                        <select>
+                            <option value="all">All</option>
+                            <option value="errors">Author</option>
+                            <option value="warnings">Date Published</option>
+                            <option value="info">Title</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <table id="logs-table">
+            <thead>
+                <tr>
+                    <th>Cover</th>
+                    <th>Book Title</th>
+                    <th>Author</th>
+                    <th>Year Published</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><img src="placeholder.png" alt="Cover 1" width="50" height="75"></td>
+                    <td>The Lord of the Rings</td>
+                    <td>J.R.R. Tolkien</td>
+                    <td>1954</td>
+                    <td class="actions">
+                        <a href="#" class="edit-icon"> <i class="fas fa-edit"></i></a>
+                        <a href="#" class="delete-icon"> <i class="fas fa-trash-alt"></i></a>
+                    </td>
+                </tr>
+                <tr>
+                    <td><img src="placeholder.png" alt="Cover 2" width="50" height="75"></td>
+                    <td>Pride and Prejudice</td>
+                    <td>Jane Austen</td>
+                    <td>1813</td>
+                    <td class="actions">
+                        <a href="#" class="edit-icon"> <i class="fas fa-edit"></i></a>
+                        <a href="#" class="delete-icon"> <i class="fas fa-trash-alt"></i></a>
+                    </td>
+                </tr>
+                <tr>
+                    <td><img src="placeholder.png" alt="Cover 3" width="50" height="75"></td>
+                    <td>1984</td>
+                    <td>George Orwell</td>
+                    <td>1949</td>
+                    <td class="actions">
+                        <a href="#" class="edit-icon"> <i class="fas fa-edit"></i></a>
+                        <a href="#" class="delete-icon"> <i class="fas fa-trash-alt"></i></a>
+                    </td>
+                </tr>
+
+            </tbody>
+
+        </table>
+        <div class="pagination">
+            <div class="entries-info">
+                Showing 1 to 3 of 3 entries
+            </div>
+            <div class="page-links">
+                <button class="prev-button" disabled>&lt; prev</button>
+                <a href="#" class="page-number active">1</a>
+                <button class="next-button" disabled>&gt; next</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        fetch('./side_bar.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('side-bar').innerHTML = data;
+            })
+            .catch(error => console.error('Error loading header:', error));
+    </script>
+
+    <script>
+        fetch('./navbar_header.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('navbar-header').innerHTML = data;
+            })
+            .catch(error => console.error('Error loading header:', error));
+    </script>
+
+</body>
+
+</html>

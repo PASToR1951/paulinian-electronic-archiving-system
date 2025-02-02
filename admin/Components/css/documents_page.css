@@ -1,0 +1,227 @@
+/* css/admin_logs.css */
+
+/* Global Styles */
+body {
+    margin: 0;
+    padding: 0px;
+    font-family: sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.docs-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.docs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 20px;
+    background-color: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.docs-title {
+    font-size: 2.5em;
+    margin: 0;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 5px 10px;
+    margin-right: 10px;
+}
+
+.search-box input[type="text"] {
+    border: none;
+    outline: none;
+    flex-grow: 1;
+    padding: 5px;
+}
+
+.search-box button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.filter-box {
+    position: relative;
+}
+
+.filter-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.filter-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    display: none;
+}
+
+.filter-box:hover .filter-dropdown {
+    display: block;
+}
+
+.filter-dropdown select {
+    border: none;
+    padding: 5px 10px;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background: url("data:image/svg+xml;utf8,<svg fill='black' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24h-24z' fill='none'/></svg>") no-repeat right 10px center;
+    padding-right: 30px;
+    cursor: pointer;
+}
+
+.docs-count {
+    color: #00000073;
+}
+
+h1 {
+    text-align: center;
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #ddd;
+    box-sizing: border-box;
+    box-shadow: #333;
+}
+
+th,
+td {
+    padding: 20px; /* Increased padding */ 
+    vertical-align: middle; /* Vertical alignment */
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+
+}
+.td{
+    height: 100px;
+    vertical-align: middle;
+}
+
+th {
+    background-color: #008035;
+    color: white;
+}
+
+select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    font-family: sans-serif;
+}
+
+.entries-info {
+    color: #555;
+}
+
+.page-links {
+    display: flex;
+    align-items: center;
+}
+
+.page-number,
+.prev-button,
+.next-button {
+    display: inline-block;
+    padding: 8px 12px;
+    margin: 0 5px;
+    border: 1px solid #ccc;
+    text-decoration: none;
+    color: #333;
+    background-color: #fff;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.page-number:hover,
+.prev-button:hover,
+.next-button:hover {
+    background-color: #f0f0f0;
+}
+
+.page-number.active {
+    background-color: #007bff;
+    color: #fff;
+    border-color: #007bff;
+}
+
+.prev-button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* Style for the action icons */
+.actions {
+    height: 100px;
+    display: flex; /* Enable flexbox for actions container */
+    gap: 10px;      /* Space between the action icons */
+    justify-content: center; /* Center the icons horizontally */
+    align-items: center;    /* Center the icons vertically */
+}
+
+.actions a {
+    text-decoration: none; /* Remove underlines from links */
+    color: inherit;       /* Inherit color from parent */
+    display: inline-flex; /* Use flexbox for icon centering within <a> */
+    align-items: center;  /* Vertically center icon within <a> */
+    justify-content: center; /* Horizontally center icon within <a> */
+}
+
+.actions i {
+    font-size: 1.5rem; /* Increased icon size */
+    cursor: pointer;   /* Make cursor a pointer on hover */
+}
+
+.actions a.edit-icon {
+    color: #007bff; /* Blue for edit */
+}
+
+.actions a.delete-icon {
+    color: #dc3545; /* Red for delete */
+}
+
+/* Adjust image size if necessary */
+td img {
+    max-width: 75px; /* Limit image width */
+    max-height: 100px; /* Limit image height */
+    display: block; /* Prevents image from affecting cell height */
+    margin: 0 auto; /* Center the image horizontally */
+}
