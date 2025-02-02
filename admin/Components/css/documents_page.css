@@ -105,7 +105,8 @@ h1 {
 
 table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     border: 1px solid #ddd;
     box-sizing: border-box;
     box-shadow: #333;
@@ -113,22 +114,30 @@ table {
 
 th,
 td {
-    padding: 20px; /* Increased padding */ 
+    
+    text-align: center;      /* Centers text horizontally */
     vertical-align: middle; /* Vertical alignment */
-    text-align: left;
-    border-bottom: 1px solid #ddd;
+    border: none;
+   border-bottom: 1px solid;
 
 }
 .td{
-    height: 100px;
+    border-collapse: separate;
+    border-spacing: 10px;
+    height: 500px;
     vertical-align: middle;
 }
 
 th {
+    padding: 20px; /* Increased padding */ 
     background-color: #008035;
     color: white;
 }
-
+tr {
+    border: 1px solid #ddd; /* Border for each row */
+    
+    
+}
 select {
     width: 100%;
     padding: 0.5rem;
@@ -190,7 +199,7 @@ tr:nth-child(even) {
 
 /* Style for the action icons */
 .actions {
-    height: 100px;
+    height: 130px;
     display: flex; /* Enable flexbox for actions container */
     gap: 10px;      /* Space between the action icons */
     justify-content: center; /* Center the icons horizontally */
@@ -220,8 +229,12 @@ tr:nth-child(even) {
 
 /* Adjust image size if necessary */
 td img {
-    max-width: 75px; /* Limit image width */
-    max-height: 100px; /* Limit image height */
-    display: block; /* Prevents image from affecting cell height */
-    margin: 0 auto; /* Center the image horizontally */
+    border: 1px solid;
+    border-radius: 6px;
+    width: 80px;
+    height: 110px;
+    display: block; /* Key for centering */
+    margin: 0 auto; /* Centers horizontally */
+    padding: 0;
+    
 }

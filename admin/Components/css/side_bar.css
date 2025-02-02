@@ -29,6 +29,8 @@
 }
 
 .icon-wrapper {
+    
+    border-color: black;
     width: 60px;
     height: 60px;
     border-radius: 50%;
@@ -47,6 +49,8 @@
 
 .icon-wrapper:hover {
     background-color: #66e96d;
+    
+
 }
 
 .icon-wrapper span {
