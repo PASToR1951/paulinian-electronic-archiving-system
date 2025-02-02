@@ -1,16 +1,11 @@
-/* Global Styles */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: Arial, sans-serif;
-}
 
 /* Body and Page Layout */
 body {
     text-align: center;
-    background-color: #f4f4f4;
-    transition: background-color 0.3s, color 0.3s;
+    margin: 0;
+  padding: 0px;
+  font-family: sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 h1 {
@@ -25,19 +20,17 @@ h1 {
     display: flex;
     justify-content: center; 
     align-items: flex-start;  
-    min-height: 100vh;
+    max-height: 100vh;
+    max-height: 1200px;
 }
 
 /* Page Wrapper */
 .page-wrapper {
-    width: 100%;
-    max-width: 1200px;
-    padding: 2rem;
+    width: 1200px;
+    
+    padding: 0rem;
     background-color: #fff;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    border-left: 4px solid #007bff;
-    border-right: 4px solid #007bff;
-    border-radius: 8px;
     text-align: left;
 }
 
@@ -51,12 +44,7 @@ h1 {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-.section h2 {
-    font-size: 1.8rem;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 1rem;
-}
+
 
 /* Add margin-bottom for spacing between sections */
 #appearance-settings {
@@ -83,7 +71,7 @@ h1 {
     justify-content: flex-start; 
 }
 
-.icon {
+.section-header .icon {
     margin-right: 10px; 
     width: 30px;          
     height: 30px;        
@@ -91,7 +79,7 @@ h1 {
 
 /* Ensure text size and icon size are aligned */
 .section-header h2 {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
     font-weight: 600;
     color: #333;
     margin: 0;            

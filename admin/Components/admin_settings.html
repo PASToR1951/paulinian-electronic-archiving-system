@@ -7,6 +7,12 @@
     <link rel="stylesheet" href="./css/settings.css">
 </head>
 <body>
+    <div id="side-bar"> 
+  
+    </div>
+    <div id="navbar-header"> 
+  
+    </div>
     <h1>Settings</h1>
     <div class="page">
         <div class="page-wrapper">
@@ -69,7 +75,14 @@
 
         </div>
     </div>
-
+    <script>
+        fetch('side_bar.html')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById('side-bar').innerHTML = data;
+          })
+          .catch(error => console.error('Error loading header:', error));
+      </script>
     <script>
         const switchElement = document.getElementById('dark-mode-switch');
         switchElement.addEventListener('click', function () {
@@ -78,5 +91,13 @@
             switchElement.classList.toggle('active', !isActive);
         });
     </script>
+    <script>
+        fetch('navbar_header.html')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById('navbar-header').innerHTML = data;
+          })
+          .catch(error => console.error('Error loading header:', error));
+      </script>
 </body>
 </html>
