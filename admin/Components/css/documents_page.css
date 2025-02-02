@@ -118,7 +118,7 @@ td {
     text-align: center;      /* Centers text horizontally */
     vertical-align: middle; /* Vertical alignment */
     border: none;
-   border-bottom: 1px solid;
+   
 
 }
 .td{
@@ -133,11 +133,7 @@ th {
     background-color: #008035;
     color: white;
 }
-tr {
-    border: 1px solid #ddd; /* Border for each row */
-    
-    
-}
+
 select {
     width: 100%;
     padding: 0.5rem;
