@@ -115,7 +115,7 @@ table {
 th,
 td {
     
-    text-align: center;      /* Centers text horizontally */
+    text-align: left;      /* Centers text horizontally */
     vertical-align: middle; /* Vertical alignment */
     border: none;
    
@@ -124,12 +124,13 @@ td {
 .td{
     border-collapse: separate;
     border-spacing: 10px;
-    height: 500px;
+    
     vertical-align: middle;
 }
 
 th {
-    padding: 20px; /* Increased padding */ 
+  
+    display: none;
     background-color: #008035;
     color: white;
 }
@@ -195,7 +196,7 @@ tr:nth-child(even) {
 
 /* Style for the action icons */
 .actions {
-    height: 130px;
+    height: 90px;
     display: flex; /* Enable flexbox for actions container */
     gap: 10px;      /* Space between the action icons */
     justify-content: center; /* Center the icons horizontally */
@@ -227,10 +228,112 @@ tr:nth-child(even) {
 td img {
     border: 1px solid;
     border-radius: 6px;
-    width: 80px;
-    height: 110px;
+    width: 50px;
+    height: 70px;
     display: block; /* Key for centering */
     margin: 0 auto; /* Centers horizontally */
     padding: 0;
     
 }
+/*folders section*/
+.folders-container {
+    display: flex;
+    flex-direction: column;
+    max-width: 1200px; /* Or whatever width you want the *container* to be */
+    height: 100px;
+    margin-bottom: 20px ;
+    border: 1px solid #ccc;
+    padding: 20px;
+    border-radius: 10px;
+  }
+  
+  .folders-header {
+    display: flex;
+    justify-content: space-between; /* View All to the right */
+    align-items: center;
+    width: 100%; /* Occupy full width of container */
+    margin-bottom: 10px;
+  }
+  
+  .label {
+    font-size: 20px;
+    font-weight: bold;
+  }
+  
+  .view-all {
+    padding: 5px 10px; /* Adjust padding for size */
+    
+    color: rgb(0, 0, 0);
+    text-decoration: underline;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap; /* Prevent button text from wrapping */
+  }
+  
+  .folders-inner {
+    display: flex;
+    justify-content: left;
+    gap: 90px;
+    width: auto;
+    
+  }
+  
+  .folder {
+    display: flex; /* Use flexbox for icon and details */
+    align-items: center; /* Vertically align icon and details */
+    gap: 10px; /* Spacing between icon and details */
+    cursor: pointer; /* Make the folder a pointer on hover */
+    transition: transform 0.3s ease, text-decoration 0.3s ease; /* Smooth transitions for scale and underline */
+    position: relative; /* For positioning the underline */
+  }
+  .folder:hover{
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    
+  }
+  .folder::after { /* Create the underline effect */
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -2px; /* Adjust distance from text */
+    width: 0; /* Initially no width */
+    height: 2px;
+    background-color: blue; /* Underline color */
+    transition: width 0.3s ease; /* Smooth transition for width */
+  }
+  
+  .folder:hover::after {
+    width: 100%; /* Full width on hover */
+  }
+  .folder-icon {
+    width: 60px;
+    height: 60px;
+    background-image: url("/admin/Components/icons/open-folder.png"); /* Path to your icon */
+    background-size: cover; /* Or contain, depending on your needs */
+    background-position: center; /* Adjust as needed */
+  }
+  
+  .folder-details {
+    display: flex;
+    flex-direction: column; /* Stack name and count vertically */
+    gap: 5px; /* Spacing between name and count */
+  }
+  
+  .folder-name {
+    font-size: 16px;  /* Adjust as needed */
+    transition: color 0.3s ease;
+  }
+  .folder:hover .folder-name {
+    color: #007bff; /* Change color on hover */
+  }
+  .folder-file-count {
+    font-size: 12px;
+    color: #777; /* Grey color */
+    transition: color 0.3s ease;
+  }
+  .folder:hover .folder-file-count {
+    color: #0056b3; /* slightly different color on hover */
+  }
+  .hidden {
+    display: none; /* Hide extra folders */
+  }
