@@ -17,27 +17,9 @@
 </head>
 
 <body>
-    <div data-collapse="small" data-animation="default" data-duration="400" data-easing="ease" data-easing2="ease"
-        role="banner" class="nav-bar w-nav">
-        <div class="nav-container w-container">
-            <div class="logo-div"><a href="/" class="nav-logo w-inline-block"><img width="250" height="80" alt=""
-                        src="images/office-20of-20research-20-26-20publications.png" id="logo" class="logo" /></a></div>
-            <nav role="navigation" class="nav-content w-nav-menu">
-                <div class="search-banner">
-                    <div class="search-section">
-                        <form action="/search" class="search w-form"><input class="search-bar w-input" maxlength="256"
-                                name="query" placeholder="Search resources"
-                                data-w-id="a10f4556-bb24-1d24-1295-4815da5256d3" type="search" id="search"
-                                required="" /><input type="submit" class="hidden w-button" value="Search" /></form>
-                    </div>
-                </div>
-                <div class="nav-cta-button-container"><a href="/log-in" class="nav-link loginbtn w-nav-link">Login</a>
-                </div>
-            </nav>
-            <div class="menu-button w-nav-button"><img width="24" loading="lazy" alt="" src="images/menu-20icon.svg"
-                    class="menu-icon" /></div>
-        </div>
-    </div>
+    
+    <div id="navbar"></div>
+
     <div class="section black-gradient">
         <div class="container w-container"></div>
     </div>
@@ -99,21 +81,21 @@
             </div>
         </div>
     </div>
-    <div class="footer">
-        <div class="footer-container w-container">
-            <div class="w-layout-grid footer-grid">
-                <div id="w-node-b8d7be4a-ce45-83ab-5947-02d204c8bff0-cf3fcb86" class="footer-logo-block"><a
-                        data-ix="logo" href="/" class="footer-logo w-nav-brand"><img
-                            src="images/office-20of-20research-20-26-20publications-1-.png" width="230" alt="" /></a>
-                    <div class="paragraph small">© 2024 Glyph. All Rights Reserved.</div>
-                </div>
-                <div class="footer-links-container"><a href="/" class="footer-link">Home</a><a href="/news"
-                        class="footer-link">News</a><a href="/contact" class="footer-link">Contact</a><a
-                        href="/terms-conditions" aria-current="page" class="footer-link w--current">Terms &amp;
-                        Conditions</a><a href="/privacy-policy" class="footer-link">Privacy Policy</a></div>
-            </div>
-        </div>
-    </div>
+
+    <div id="footer"></div>
+
+    <script>
+        function loadHTML(id, file) {
+            fetch(file)
+                .then(response => response.text())
+                .then(data => document.getElementById(id).innerHTML = data)
+                .catch(err => console.error("Error loading file:", err));
+        }
+
+        loadHTML('navbar', '../components/navbar.html');
+        loadHTML('footer', '../components/footer.html');
+    </script>
+
     <script src="js/jquery.js" type="text/javascript"></script>
     <script src="js/webflow-script.js" type="text/javascript"></script>
 </body>
