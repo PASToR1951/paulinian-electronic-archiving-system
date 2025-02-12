@@ -1,38 +1,62 @@
 /* side_bar.css */
 
 .side-bar {
-    width: 60px;
+    width: 80px;
     height: 100vh;
-    background-color: #ffffff;
     position: fixed;
     left: 0;
     top: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center; /* Center vertically using flexbox */
+    padding: 0; /* Remove all padding */
     padding-left: 10px;
     z-index: 100;
-    justify-content: flex-start;
     overflow: hidden;
     transition: width 0.3s ease-in-out;
-    justify-content: center; /* Vertically center content */
+}
+
+.side-bar:hover {
+    /* No changes needed here */
+}
+
+.side-bar .icon-background {
+    width: 70px;
+    height: 70px; /* Initial height to cover the first icon */
+    border-radius: 50%;
+    background-color: rgb(0, 248, 21);
+    position: relative; /* Back in the document flow */
+    left: 0;
+    top: 0; /* Reset top */
+    transform: translateY(0); /* Reset transform */
+    transition: background-color 0.3s ease-in-out, height 0.3s ease-in-out, border-radius 0.3s ease-in-out;
+    z-index: -1;
+}
+
+.side-bar:hover .icon-background {
+    height: 210px; /* Height to cover all icons on hover with margins */
+    background-color: rgb(0, 248, 21);
+    border-radius: 50px;
 }
 
 .icon-container {
-    position: relative;
-    height: 50px; /* Initial height */
+    position: relative; /* Back in the document flow */
+    width: 70px;
+    height: 60px; /* Initial height */
+    top: 0; /* Reset top */
+    transform: translateY(0); /* Reset transform */
     transition: height 0.3s ease-in-out;
 }
 
 .side-bar:hover .icon-container {
-    height: 150px; /* Adjust as needed */
+    height: 210px; /* Height to contain all icons with margins */
 }
 
 .icon-wrapper {
-    
-    border-color: black;
     width: 60px;
     height: 60px;
+    position: relative;
     border-radius: 50%;
     background-color: #ffffff;
     display: flex;
@@ -43,58 +67,62 @@
     left: 50%;
     transform: translateX(-50%);
     transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, top 0.3s ease-in-out;
-    opacity: 1; /* Initially visible */
-    overflow: hidden; /* Hide span initially */
+    opacity: 1;
+    overflow: hidden;
+    margin:5px 0px 0px 0px; /* Add top and bottom margins for spacing */
 }
 
 .icon-wrapper:hover {
     background-color: #66e96d;
     
-
+    /* Removed margin change on hover */
 }
 
 .icon-wrapper span {
     position: absolute;
     left: 70px; /* Adjust as needed */
-    opacity: 0;
-    white-space: nowrap;
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    transform: translateX(-10px);
+    top: 50%;
+    transform: translateY(-50%); /* Vertically center the text */
+    opacity: 0; /* Initially hidden */
+    white-space: nowrap; /* Prevent text from wrapping */
+    transition: opacity 0.3s ease, transform 0.3s ease; /* Smooth transition */
+    background-color: white; /* Add background color */
+    padding: 5px; /* Add padding */
+    border-radius: 5px; /* Add rounded corners */
 }
 
 .icon-wrapper:hover span {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(-50%) translateX(10px); 
 }
 
-
 .icon-wrapper:nth-child(1) {
-    top: 0;
-    z-index: 2; /* Ensure it's on top */
+    top: 1; /* No top margin for the first icon */
+    z-index: 2;
 }
 
 .icon-wrapper:nth-child(2) {
-    top: 0; /* Initially behind the first icon */
+    top: 0; /* Align with first icon initially */
     opacity: 0;
-    transform: translateX(-50%) translateY(-25%); /* Position off-center */
-    z-index: 1; /* Behind the first icon */
+    transform: translateX(-50%);
+    z-index: 1;
 }
 
 .icon-wrapper:nth-child(3) {
-    top: 0; /* Initially behind the first icon */
+    top: 0; /* Align with first icon initially */
     opacity: 0;
-    transform: translateX(-50%) translateY(-25%); /* Position off-center */
-    z-index: 0; /* Furthest behind */
+    transform: translateX(-50%);
+    z-index: 0;
 }
 
 .side-bar:hover .icon-wrapper:nth-child(2) {
     opacity: 1;
-    transform: translateX(-50%) translateY(80px); /* Slide down */ 
+    transform: translateX(-50%) translateY(70px); /* Increased spacing */
 }
 
 .side-bar:hover .icon-wrapper:nth-child(3) {
     opacity: 1;
-    transform: translateX(-50%) translateY(160px); /* Slide down further */
+    transform: translateX(-50%) translateY(140px); /* Increased spacing */
 }
 
 .icon {
@@ -103,34 +131,20 @@
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;
-    filter: grayscale(100%); /* Initially grayscale */
-    transition: filter 0.3s ease-in-out; /* Transition for the filter property */
+    filter: grayscale(100%);
+    transition: filter 0.3s ease-in-out;
 }
 
 .icon-wrapper:hover .icon {
-    filter: grayscale(0%); /* Remove grayscale on hover */
+    filter: grayscale(0%);
 }
 
-.grid-icon {
-    background-image: url('./images/grid_icon.png'); /* Path to your grid icon */
-}
-
-.file-icon {
-    background-image: url('./images/file_icon.png'); /* Path to your file icon */
-}
-
-.settings-icon {
-    background-image: url('./images/settings_icon.png'); /* Path to your settings icon */
-}
-
-/* Optional: Add a small margin to the body to prevent content from being hidden under the sidebar */
 body {
-    margin-left: 60px; /* Adjust to the width of your sidebar */
+    margin-left: 60px;
 }
 
-/* Optional: Styles for larger screens, if needed */
 @media (min-width: 768px) {
     .side-bar {
-        width: 80px; /* Example width adjustment */
+        width: 80px;
     }
 }
