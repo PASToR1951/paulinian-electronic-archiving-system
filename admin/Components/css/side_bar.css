@@ -17,9 +17,7 @@
     transition: width 0.3s ease-in-out;
 }
 
-.side-bar:hover {
-    /* No changes needed here */
-}
+
 
 .side-bar .icon-background {
     width: 70px;
@@ -81,6 +79,7 @@
 .icon-wrapper span {
     position: absolute;
     left: 70px; /* Adjust as needed */
+    color:black;
     top: 50%;
     transform: translateY(-50%); /* Vertically center the text */
     opacity: 0; /* Initially hidden */
@@ -89,6 +88,7 @@
     background-color: white; /* Add background color */
     padding: 5px; /* Add padding */
     border-radius: 5px; /* Add rounded corners */
+    z-index: 10; 
 }
 
 .icon-wrapper:hover span {
