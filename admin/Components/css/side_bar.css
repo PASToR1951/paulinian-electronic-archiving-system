@@ -1,150 +1,187 @@
 /* side_bar.css */
 
 .side-bar {
-    width: 80px;
-    height: 100vh;
+    width: 25vh;
+    height: 90vh;
     position: fixed;
     left: 0;
     top: 0;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center; /* Center vertically using flexbox */
-    padding: 0; /* Remove all padding */
-    padding-left: 10px;
+    padding: 10px 0;
     z-index: 100;
-    overflow: hidden;
-    transition: width 0.3s ease-in-out;
+    background-color: #f7f7f7;
+    
 }
 
-
-
-.side-bar .icon-background {
-    width: 70px;
-    height: 70px; /* Initial height to cover the first icon */
-    border-radius: 50%;
-    background-color: rgb(0, 248, 21);
-    position: relative; /* Back in the document flow */
-    left: 0;
-    top: 0; /* Reset top */
-    transform: translateY(0); /* Reset transform */
-    transition: background-color 0.3s ease-in-out, height 0.3s ease-in-out, border-radius 0.3s ease-in-out;
-    z-index: -1;
-}
-
-.side-bar:hover .icon-background {
-    height: 210px; /* Height to cover all icons on hover with margins */
-    background-color: rgb(0, 248, 21);
-    border-radius: 50px;
-}
 
 .icon-container {
-    position: relative; /* Back in the document flow */
-    width: 70px;
-    height: 60px; /* Initial height */
-    top: 0; /* Reset top */
-    transform: translateY(0); /* Reset transform */
-    transition: height 0.3s ease-in-out;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
 }
 
-.side-bar:hover .icon-container {
-    height: 210px; /* Height to contain all icons with margins */
+.group-label {
+    padding-left: 30px;
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    width: 90%; /* Existing width */
+    text-align: left;
+    color: #000000;
+    border-bottom: 1px solid #ddd;
+    box-sizing: border-box; /* Include padding and border in width */
+    margin-left: auto; /* Center horizontally */
+    margin-right: auto; /* Center horizontally */
+
+}
+
+.top-group {
+    display: flex; /* Keep flexbox for horizontal arrangement */
+    align-items: center; /* Vertically center items */
+    width: auto;
+    padding: 10px;
+    margin-left: 20px;
+    margin-bottom: auto;
+    border-bottom: 1px solid #ddd; 
+    
+}
+.middle-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.bottom-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin-top: auto;
 }
 
 .icon-wrapper {
-    width: 60px;
-    height: 60px;
-    position: relative;
-    border-radius: 50%;
-    background-color: #ffffff;
+    width: 90%;
+    height: 50px;
     display: flex;
-    justify-content: center;
     align-items: center;
     cursor: pointer;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, top 0.3s ease-in-out;
-    opacity: 1;
-    overflow: hidden;
-    margin:5px 0px 0px 0px; /* Add top and bottom margins for spacing */
+    transition: background-color 0.3s ease-in-out;
+    text-decoration: none;
+    color: black;
+    position: relative;
+    padding: 0 15px;
+    box-sizing: border-box;
+    background-color: #ffffff;  /* Background color added here */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
 }
 
 .icon-wrapper:hover {
     background-color: #66e96d;
-    
-    /* Removed margin change on hover */
-}
-
-.icon-wrapper span {
-    position: absolute;
-    left: 70px; /* Adjust as needed */
-    color:black;
-    top: 50%;
-    transform: translateY(-50%); /* Vertically center the text */
-    opacity: 0; /* Initially hidden */
-    white-space: nowrap; /* Prevent text from wrapping */
-    transition: opacity 0.3s ease, transform 0.3s ease; /* Smooth transition */
-    background-color: white; /* Add background color */
-    padding: 5px; /* Add padding */
-    border-radius: 5px; /* Add rounded corners */
-    z-index: 10; 
-}
-
-.icon-wrapper:hover span {
-    opacity: 1;
-    transform: translateY(-50%) translateX(10px); 
-}
-
-.icon-wrapper:nth-child(1) {
-    top: 1; /* No top margin for the first icon */
-    z-index: 2;
-}
-
-.icon-wrapper:nth-child(2) {
-    top: 0; /* Align with first icon initially */
-    opacity: 0;
-    transform: translateX(-50%);
-    z-index: 1;
-}
-
-.icon-wrapper:nth-child(3) {
-    top: 0; /* Align with first icon initially */
-    opacity: 0;
-    transform: translateX(-50%);
-    z-index: 0;
-}
-
-.side-bar:hover .icon-wrapper:nth-child(2) {
-    opacity: 1;
-    transform: translateX(-50%) translateY(70px); /* Increased spacing */
-}
-
-.side-bar:hover .icon-wrapper:nth-child(3) {
-    opacity: 1;
-    transform: translateX(-50%) translateY(140px); /* Increased spacing */
 }
 
 .icon {
-    width: 20px;
-    height: 20px;
-    background-size: cover;
-    background-repeat: no-repeat;
-    background-position: center;
-    filter: grayscale(100%);
-    transition: filter 0.3s ease-in-out;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
 }
 
-.icon-wrapper:hover .icon {
-    filter: grayscale(0%);
+.icon svg {
+    width: 100%;
+    height: 100%;
 }
 
-body {
-    margin-left: 60px;
+.logo-icon {
+    width: 90px;
+    height: 60px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
 }
 
-@media (min-width: 768px) {
-    .side-bar {
-        width: 80px;
-    }
+.top-group span {
+    font-size: 16px;
 }
+
+.icon-text {
+    font-size: 16px;
+    white-space: nowrap;
+}
+
+.logo-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit:fill;
+}
+
+.user-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.user-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.content {
+    margin-left: 20vh; /* Match sidebar width */
+    padding: 20px;
+}
+
+.top-group .icon-wrapper,
+.middle-group .icon-wrapper,
+.bottom-group .icon-wrapper {
+    margin: 3px 0;
+}
+
+
+/* User profile styles (from previous responses) */
+.user-profile {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    width: 100%;
+    padding: 0 10px;
+    box-sizing: border-box;
+}
+
+.user-avatar-link {
+    display: flex;
+    align-items: center;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    margin-left: 10px;
+}
+
+.user-name {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.user-control {
+    font-size: 12px;
+    color: #777;
+}   
