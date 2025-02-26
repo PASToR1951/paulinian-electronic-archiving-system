@@ -10,16 +10,20 @@
     <header class="page-header">
         <div class="header-content">
             <div class="left-section">
-                
-                <span class="date-label">November 21, 2024</span>
-            </div>
-            <div class="right-section">
-                <a href="/admin/Components/upload_doc.html" class="upload-document">  <span class="button-content">
-                    <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-file-upload"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><path d="M12 11v6" /><path d="M9.5 13.5l2.5 -2.5l2.5 2.5" /></svg>
 
-                    <span>Upload Document</span>
-                </span>
-            </a>
+            <label for="period-select">Select Period:</label>
+
+                <select id="period-select" onchange="updateDashboard(this.value)">
+                    <option value="7">Last 7 Days</option>
+                    <option value="30">Last 30 Days</option>
+                    <option value="month">This Month</option>
+                    <option value="custom">Custom Range</option>
+                </select>
+            </div>
+            
+            <div class="right-section">
+
+                
             </div>
         </div>
     </header>
