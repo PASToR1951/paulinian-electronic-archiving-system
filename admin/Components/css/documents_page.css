@@ -235,8 +235,8 @@ td img {
     padding: 0;
     
 }
-/*folders section*/
-.folders-container {
+/*category section*/
+.category-container {
     display: flex;
     flex-direction: column;
     max-width: 1200px; /* Or whatever width you want the *container* to be */
@@ -247,7 +247,7 @@ td img {
     border-radius: 10px;
   }
   
-  .folders-header {
+  .category-header {
     display: flex;
     justify-content: space-between; /* View All to the right */
     align-items: center;
@@ -270,15 +270,15 @@ td img {
     white-space: nowrap; /* Prevent button text from wrapping */
   }
   
-  .folders-inner {
+  .category-inner {
     display: flex;
-    justify-content: left;
+    justify-content: center;
     gap: 90px;
     width: auto;
     
   }
   
-  .folder {
+  .category{
     display: flex; /* Use flexbox for icon and details */
     align-items: center; /* Vertically align icon and details */
     gap: 10px; /* Spacing between icon and details */
@@ -286,12 +286,12 @@ td img {
     transition: transform 0.3s ease, text-decoration 0.3s ease; /* Smooth transitions for scale and underline */
     position: relative; /* For positioning the underline */
   }
-  .folder:hover{
+  .category:hover{
     transform: scale(1.05);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     
   }
-  .folder::after { /* Create the underline effect */
+  .category::after { /* Create the underline effect */
     content: "";
     position: absolute;
     left: 0;
@@ -302,36 +302,35 @@ td img {
     transition: width 0.3s ease; /* Smooth transition for width */
   }
   
-  .folder:hover::after {
+  .category:hover::after {
     width: 100%; /* Full width on hover */
   }
-  .folder-icon {
+  .category-icon img{
     width: 60px;
     height: 60px;
-    background-image: url("/admin/Components/icons/open-folder.png"); /* Path to your icon */
     background-size: cover; /* Or contain, depending on your needs */
     background-position: center; /* Adjust as needed */
   }
   
-  .folder-details {
+  .category-details {
     display: flex;
     flex-direction: column; /* Stack name and count vertically */
     gap: 5px; /* Spacing between name and count */
   }
   
-  .folder-name {
+  .category-name {
     font-size: 16px;  /* Adjust as needed */
     transition: color 0.3s ease;
   }
-  .folder:hover .folder-name {
+  .category:hover .category-name {
     color: #007bff; /* Change color on hover */
   }
-  .folder-file-count {
+  .category-file-count {
     font-size: 12px;
     color: #777; /* Grey color */
     transition: color 0.3s ease;
   }
-  .folder:hover .folder-file-count {
+  .category:hover .category-file-count {
     color: #0056b3; /* slightly different color on hover */
   }
   .hidden {
