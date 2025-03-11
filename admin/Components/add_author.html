@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Author</title>
+    <link rel="stylesheet" href="css/add_author.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Add Author</h1>
+        <form id="authorForm">
+            <div class="form-group">
+                <label for="firstName">First Name:</label>
+                <input type="text" id="firstName" name="firstName" placeholder="Enter first name" required>
+            </div>
+            <div class="form-group">
+                <label for="middleName">Middle Name:</label>
+                <input type="text" id="middleName" name="middleName" placeholder="Enter middle name">
+            </div>
+            <div class="form-group">
+                <label for="lastName">Last Name:</label>
+                <input type="text" id="lastName" name="lastName" placeholder="Enter last name" required>
+            </div>
+            <div class="form-group">
+                <label for="authorPicture">Author Picture:</label>
+                <input type="file" id="authorPicture" name="authorPicture" accept="image/*">
+            </div>
+            <button type="button" id="submitButton">Submit</button>
+        </form>
+    </div>
+
+    <script type="module">
+        document.getElementById('submitButton').addEventListener('click', async () => {
+            const firstName = document.getElementById('firstName').value;
+            const middleName = document.getElementById('middleName').value;
+            const lastName = document.getElementById('lastName').value;
+            const authorPicture = document.getElementById('authorPicture').files[0];
+
+            const formData = new FormData();
+            formData.append('firstname', firstName); // Modified to match your Deno backend
+            formData.append('middlename', middleName); // Modified to match your Deno backend
+            formData.append('lastname', lastName); // Modified to match your Deno backend
+            if (authorPicture) {
+                formData.append('authorpfp', authorPicture); // Modified to match your Deno backend
+            }
+
+            try {
+                const response = await fetch('/admin/add-author', { // Modified to match your Deno server endpoint
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    alert('Author added successfully!');
+                    document.getElementById('authorForm').reset();
+                } else {
+                    const errorData = await response.json();
+                    alert(`Error adding author: ${errorData.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                alert('An unexpected error occurred.');
+            }
+        });
+    </script>
+</body>
+</html>
