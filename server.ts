@@ -24,13 +24,16 @@ app.use(async (context, next) => {
   try {
     await next();
     if (context.response.status === 404) {
+      console.log(`Serving static file: ${context.request.url.pathname}`);
       await send(context, context.request.url.pathname, {
         root: `${Deno.cwd()}/public`,
         index: "index.html",
       });
     }
   } catch (err) {
-    console.error(err);
+    const error = err as Error;
+    console.error("Error occurred while serving static file:", error.message);
+    console.error("Stack trace:", error.stack);
     context.response.status = 500;
     context.response.body = "Internal Server Error";
   }
