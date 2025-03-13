@@ -19,11 +19,12 @@
                 src="../images/spud_logo_s.png" loading="lazy" alt=""
                 class="form-page-logo" /></a>
         <div class="w-users-userloginformwrapper admin-form-card">
-            <form id="login-form" method="post" action="/login">
+            <form id="login-form" method="post" action="/login" onsubmit="return false;">
                 <div class="w-users-userformheader form-card-header">
                     <h2 class="heading h3">Log in</h2>
                     <p class="paragraph small">Fill in your log in details below.</p>
                 </div>
+                
                 <input maxlength="256" placeholder="Your school ID" name="school_id" id="wf-log-in-id"
                     class="text-field w-input" type="text" autoComplete="username" required />
                 <input maxlength="256" placeholder="Your password" name="Password" id="wf-log-in-password"

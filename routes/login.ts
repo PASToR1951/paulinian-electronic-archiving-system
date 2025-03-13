@@ -39,12 +39,13 @@ async function handleLoginRequest(req: Request): Promise<Response> {
               { status: 401, headers: { "Content-Type": "application/json" } }
           );
       }
+      console.log(`🔎 Database Query Result: ${JSON.stringify(user)}`);
 
       let redirectUrl = "/index.html";
       if (user.role === "Isadmin") {
-          redirectUrl = "/admin/dashboard.html";
+          redirectUrl = "../admin/dashboard.html";
       }
-
+      console.log(`🔀 Redirecting User with Role (${user.role}) to: ${redirectUrl}`);
       console.log(` Login successful! Redirecting to: ${redirectUrl}`);
       return new Response(
           JSON.stringify({ message: "Login successful", redirect: redirectUrl }),
