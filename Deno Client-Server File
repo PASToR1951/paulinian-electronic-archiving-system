@@ -1,0 +1,89 @@
+// login-server.js
+import { Router } from "https://deno.land/x/oak@v10.5.1/mod.ts";
+import { findUser } from "../../auth/userStore.ts";
+
+const router = new Router();
+
+router.post("/login", async (context) => {
+  console.log("Received login request");
+
+  try {
+    const body = await context.request.body({ type: "json" }).value;
+    console.log("Request body:", body);
+
+    const { ID, Password } = body;
+    console.log("ID:", ID, "Password:", Password);
+
+    const user = await findUser(ID, Password);
+    console.log("User found:", user);
+
+    if (user) {
+      const redirectUrl = user.role === "Isadmin" ? "/admin/dashboard.html" : "/public/index.html";
+      console.log("Redirecting to:", redirectUrl);
+      context.response.status = 200;
+      context.response.body = { message: "Login successful", redirect: redirectUrl };
+    } else {
+      console.log("Invalid credentials");
+      context.response.status = 401;
+      context.response.body = { message: "Invalid credentials" };
+    }
+  } catch (error) {
+    console.error("Error during login process:", error);
+    context.response.status = 500;
+    context.response.body = { message: "Internal Server Error", error: error.message };
+  }
+});
+
+export default router;
+
+
+-----
+
+
+
+
+// login.js (client side)
+document.addEventListener('DOMContentLoaded', () => {
+    const loginForm = document.querySelector('.login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (event) => {
+            event.preventDefault(); // Prevent the default form submission behavior
+            const form = event.target;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error("Login failed:", errorData.message);
+                    alert("Login failed: " + errorData.message);
+                    return;
+                }
+
+                const result = await response.json();
+                console.log("Login successful:", result.message);
+                window.location.href = result.redirect;
+            } catch (error) {
+                console.error("Error during login request:", error);
+                alert("An error occurred during login. Please try again.");
+            }
+        });
+    } else {
+        console.error("Login form not found");
+    }
+});
+
+
+
+-------
+
+
+
