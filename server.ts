@@ -1,46 +1,56 @@
-import { Application, send } from "https://deno.land/x/oak@v17.1.4/mod.ts";
-import { Client } from "https://deno.land/x/postgres@v0.17.0/mod.ts";
-import { config } from "https://deno.land/x/dotenv@v3.2.2/mod.ts";
-import { router } from "./routes/index.ts";
+import { serve } from "https://deno.land/std@0.218.2/http/server.ts";
+import { load } from "https://deno.land/std@0.218.2/dotenv/mod.ts";
+import { serveFile } from "https://deno.land/std@0.218.2/http/file_server.ts";
+import { handleLoginRequest } from "./routes/login.ts";
+import { client } from "./data/denopost_conn.ts";
 
-// Load .env from the current directory
-const env = config({ path: ".env" });
+const env = await load({ envPath: "./.env" });
+console.log("Loaded Environment Variables:", env);
 
-console.log("Loaded ENV:", env); // Debugging
+const PORT = 8000;
 
-const client = new Client({
-  user: env.PGUSER,
-  database: env.PGDATABASE,
-  hostname: env.PGHOST,
-  password: env.PGPASSWORD,
-  port: Number(env.PGPORT),
-});
+async function handler(req: Request): Promise<Response> {
+  const url = new URL(req.url);
 
-await client.connect();
-
-const app = new Application();
-
-app.use(async (context, next) => {
-  try {
-    await next();
-    if (context.response.status === 404) {
-      console.log(`Serving static file: ${context.request.url.pathname}`);
-      await send(context, context.request.url.pathname, {
-        root: `${Deno.cwd()}/public`,
-        index: "index.html",
-      });
-    }
-  } catch (err) {
-    const error = err as Error;
-    console.error("Error occurred while serving static file:", error.message);
-    console.error("Stack trace:", error.stack);
-    context.response.status = 500;
-    context.response.body = "Internal Server Error";
+  if (url.pathname === "/login" && req.method === "POST") {
+    return await handleLoginRequest(req);
   }
-});
 
-app.use(router.routes());
-app.use(router.allowedMethods());
+  // ✅ Serve files from `public/` and `admin/`
+  if (req.method === "GET") {
+    try {
+      let filePath = url.pathname;
 
-console.log("Server running on http://localhost:8000");
-await app.listen({ port: 8000 });
+      // ✅ Correct file paths for both `public/` and `admin/`
+      if (filePath === "/") {
+        filePath = "/public/index.html"; 
+      } else if (filePath.startsWith("/admin/")) {
+        filePath = filePath.replace("/admin", "/admin"); // ✅ Serves `admin/`
+      } else {
+        filePath = `/public${filePath}`; // ✅ Serves `public/`
+      }
+
+      return await serveFile(req, `${Deno.cwd()}${filePath}`);
+    } catch {
+      return new Response("File not found", { status: 404 });
+    }
+  }
+
+  return new Response("Not Found", { status: 404 });
+}
+
+async function startServer() {
+  console.log("Attempting to connect to the database...");
+  try {
+    await client.connect();
+    console.log("Database connected successfully.");
+  } catch (error) {
+    console.error("Failed to connect to the database:", error);
+    Deno.exit(1);
+  }
+
+  console.log(`Server running on http://localhost:${PORT}`);
+  serve(handler, { port: PORT });
+}
+
+startServer();

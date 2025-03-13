@@ -19,29 +19,31 @@
                 src="../images/spud_logo_s.png" loading="lazy" alt=""
                 class="form-page-logo" /></a>
         <div class="w-users-userloginformwrapper admin-form-card">
-            <form data-wf-user-form-type="login" data-wf-user-form-redirect="/news" method="post">
+            <form id="login-form" method="post" action="/login">
                 <div class="w-users-userformheader form-card-header">
                     <h2 class="heading h3">Log in</h2>
                     <p class="paragraph small">Fill in your log in details below.</p>
-                </div><input maxlength="256" placeholder="Your email" name="Email" id="wf-log-in-email"
-                    class="text-field w-input" type="email" autoComplete="username" required=""
-                    data-wf-user-form-input-type="email" /><input maxlength="256" placeholder="Your password"
-                    name="Password" id="wf-log-in-password" class="text-field w-input" type="password" required=""
-                    data-wf-user-form-input-type="password" /><input type="submit" data-wait="Please wait..."
-                    class="w-users-userformbutton button w-button" value="Log In" />
+                </div>
+                <input maxlength="256" placeholder="Your school ID" name="school_id" id="wf-log-in-id"
+                    class="text-field w-input" type="text" autoComplete="username" required />
+                <input maxlength="256" placeholder="Your password" name="Password" id="wf-log-in-password"
+                    class="text-field w-input" type="password" required />
+                <input type="submit" data-wait="Please wait..." class="w-users-userformbutton button w-button"
+                    value="Log In" />
             </form>
             <div style="display:none" data-wf-user-form-error="true"
                 class="w-users-userformerrorstate form-error w-form-fail">
                 <div class="user-form-error-msg"
-                    wf-login-form-general-error-error="We&#x27;re having trouble logging you in. Please try again, or contact us if you continue to have problems."
-                    wf-login-form-invalid-email_or_password-error="Invalid email or password. Please try again.">
-                    We&#x27;re having trouble logging you in. Please try again, or contact us if you continue to have
+                    wf-login-form-general-error-error="We're having trouble logging you in. Please try again, or contact us if you continue to have problems."
+                    wf-login-form-invalid-email_or_password-error="Invalid school ID or password. Please try again.">
+                    We're having trouble logging you in. Please try again, or contact us if you continue to have
                     problems.</div>
             </div>
         </div>
     </div>
     <script src="js/jquery.js" type="text/javascript"></script>
     <script src="js/webflow-script.js" type="text/javascript"></script>
+    <script src="/js/login.js"></script> 
 </body>
 
 </html>
