@@ -17,4 +17,4 @@ const client = new Client({
 
 await client.connect();
 
-export { client }; // ✅ Export persistent client
+export { client }; 

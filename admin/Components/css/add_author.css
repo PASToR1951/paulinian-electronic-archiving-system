@@ -1,56 +1,136 @@
-/* add_author.css */
-
 body {
     font-family: sans-serif;
-    background-color: #f4f4f4;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
     margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #bcd88e;
 }
 
-.container {
-    background-color: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    width: 400px;
-}
-
-h1 {
+h2 {
     text-align: center;
     margin-bottom: 20px;
 }
 
-.form-group {
-    margin-bottom: 15px;
+.container {
+    width: 1200px;
+    margin: 20px auto;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #9c8080;
+    box-sizing: border-box;
 }
 
-label {
+#page-header {
+    width: 100%;
+    text-align: center;
+}
+
+.add-author {
+    width: 100%;
+    margin-bottom: 20px;
+    height: auto;
+    box-sizing: border-box;
+}
+
+.add-author .author-details {
+    display: flex;
+    align-items: flex-start;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.add-author .image-upload {
+    margin-right: 20px;
+    text-align: center;
+    flex-shrink: 0;
+    display: flex; /* Added to make image-upload a flex container */
+    flex-direction: column; /* Stack image and label vertically */
+    align-items: center; /* Center image and label horizontally */
+    box-sizing: border-box;
+}
+
+.add-author .image-upload img {
+    width: 100px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+}
+
+.add-author .upload-button {
+    background-color: #ffc107;
+    color: #000;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.add-author .author-form {
+    flex-grow: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    box-sizing: border-box;
+}
+
+.add-author .author-form .form-group {
+    margin-bottom: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.add-author .author-form label {
     display: block;
     margin-bottom: 5px;
+    box-sizing: border-box;
 }
 
-input[type="text"],
-input[type="file"] {
-    width: calc(100% - 12px); /* Adjust for padding and border */
-    padding: 8px;
+.add-author .author-form input[type="text"] {
+    width: calc(100% - 12px);
+    padding: 6px;
     border: 1px solid #ccc;
     border-radius: 4px;
     box-sizing: border-box;
 }
 
-button {
-    background-color: #007bff;
+.add-author .add-button {
+    background-color: #4caf50;
     color: white;
     padding: 10px 15px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    width: 100%;
+    margin-left: auto;
+    box-sizing: border-box;
 }
 
-button:hover {
-    background-color: #0056b3;
+.author-list table {
+    width: 100%;
+    border-collapse: collapse;
+    box-sizing: border-box;
+}
+
+.author-list th, .author-list td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+    box-sizing: border-box;
+}
+
+.author-list th {
+    background-color: #f2f2f2;
+    box-sizing: border-box;
+}
+
+.author-list td:first-child {
+    text-align: center;
+    width: 80px;
+    box-sizing: border-box;
 }

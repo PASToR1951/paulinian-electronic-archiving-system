@@ -1,32 +1,29 @@
-
 body {
-    max-width: 1200px;
+    max-width: 100%;
     font-family: sans-serif;
     transition: background-color 0.3s ease, color 0.3s ease;
     margin: 0 auto; 
-    
-  }
+}
 
 .header {
     padding: 10px;
-    border-bottom: 1px solid #ddd; 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     margin: 0 auto; 
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center; /* Center content horizontally */
     font-family: sans-serif;
-    
     color: black;
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .logo {
+    width: 1200px;
     display: flex;
     align-items: center;
-    
 }
 
-.logo-spud{
+.logo-spud {
     width: 80px; 
     height: 80px; 
     background-size: contain; 
@@ -38,13 +35,14 @@ body {
     font-size: 1.2em;
     font-weight: bold;
 }
+
 .content {
     display: flex;
     flex-direction: column; 
     margin: 0 10px;
     padding: 0 0px;
-    
 }
+
 .content p {
     font-size: 0.9em; /* Adjust as needed */
     margin: 0; /* Remove default margins */

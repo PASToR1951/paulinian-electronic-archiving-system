@@ -1,63 +1,56 @@
 import { findUser } from "../auth/userStore.ts";
+import { createSessionToken } from "../auth/session.ts";
 
 async function handleLoginRequest(req: Request): Promise<Response> {
-  console.log(" Received /login request");
-  console.log(" Checking request headers:", req.headers);
+    console.log("Received /login request");
 
-  try {
-      const contentType = req.headers.get("content-type")?.toLowerCase() || "";
-      if (!contentType.includes("application/json")) {
-          console.error(" Request body is not JSON!");
-          return new Response(
-              JSON.stringify({ message: "Invalid request format" }),
-              { status: 400, headers: { "Content-Type": "application/json" } }
-          );
-      }
+    try {
+        // Validate request content type
+        const contentType = req.headers.get("content-type")?.toLowerCase() || "";
+        if (!contentType.includes("application/json")) {
+            console.error("Request body is not JSON!");
+            return jsonResponse("Invalid request format", 400);
+        }
 
-      console.log("🔄 Parsing JSON request...");
-      const body = await req.json();
-      console.log(" Request body received:", body);
+        // Parse request body
+        const { ID, Password } = await req.json();
+        console.log("Received Login Data:", { ID, Password });
 
-      const { ID, Password } = body;
+        if (!ID || !Password) {
+            console.error("Missing ID or Password!");
+            return jsonResponse("Missing ID or Password", 400);
+        }
 
-      if (!ID || !Password) {
-          console.error(" Missing ID or Password in request!");
-          return new Response(
-              JSON.stringify({ message: "Missing ID or Password" }),
-              { status: 400, headers: { "Content-Type": "application/json" } }
-          );
-      }
+        // Authenticate user
+        const user = await findUser(ID, Password);
+        if (!user) {
+            console.error("Invalid credentials for ID:", ID);
+            return jsonResponse("Invalid credentials", 401);
+        }
 
-      console.log(`🔍 Checking user in database for ID: ${ID}`);
-      const user = await findUser(ID, Password);
-      console.log("🔎 Database Query Result:", user);
+        console.log(`User authenticated: ${JSON.stringify(user)}`);
 
-      if (!user) {
-          console.error(" Invalid credentials for ID:", ID);
-          return new Response(
-              JSON.stringify({ message: "Invalid credentials" }),
-              { status: 401, headers: { "Content-Type": "application/json" } }
-          );
-      }
-      console.log(`🔎 Database Query Result: ${JSON.stringify(user)}`);
+        // Generate session token
+        const token = await createSessionToken(user.school_id, user.role);
+        console.log(`Generated session token: ${token}`);
 
-      let redirectUrl = "/index.html";
-      if (user.role === "Isadmin") {
-          redirectUrl = "../admin/dashboard.html";
-      }
-      console.log(`🔀 Redirecting User with Role (${user.role}) to: ${redirectUrl}`);
-      console.log(` Login successful! Redirecting to: ${redirectUrl}`);
-      return new Response(
-          JSON.stringify({ message: "Login successful", redirect: redirectUrl }),
-          { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-  } catch (error) {
-      console.error(" Unexpected error in handleLoginRequest:", error);
-      return new Response(
-          JSON.stringify({ message: "Internal Server Error" }),
-          { status: 500, headers: { "Content-Type": "application/json" } }
-      );
-  }
+        // Redirect based on role
+        const redirectUrl = user.role === "Isadmin" ? "/admin/dashboard.html" : "/index.html";
+        console.log(`Redirecting User (${user.role}) to: ${redirectUrl}`);
+
+        return jsonResponse({ message: "Login successful", token, redirect: redirectUrl }, 200);
+    } catch (error) {
+        console.error("Unexpected error in handleLoginRequest:", error);
+        return jsonResponse("Internal Server Error", 500);
+    }
+}
+
+//  Utility function to send JSON responses
+function jsonResponse(message: string | object, status: number): Response {
+    return new Response(
+        JSON.stringify(typeof message === "string" ? { message } : message),
+        { status, headers: { "Content-Type": "application/json" } }
+    );
 }
 
 export { handleLoginRequest };

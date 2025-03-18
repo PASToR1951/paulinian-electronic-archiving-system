@@ -1,20 +1,29 @@
+/* General Styling */
 body {
     font-family: sans-serif;
     min-height: 100vh;
     margin: 0;
     background-color: #f4f4f4;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Centers vertically */
+    align-items: stretch; /* Uses full width */
 }
 
+/* Main Container */
 .container {
+    margin-top: 20px;
     display: flex;
-    width: 100%;
-    max-width: 1200px;
+    width: 1200px; /* Makes it take full width */
+    max-width: 100%; /* Ensures no unwanted restrictions */
     background-color: white;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     border-radius: 8px;
-    overflow: hidden; /* Prevents image from overflowing */
+    overflow: hidden;
+    align-self: center; /* Ensures it's centered within the body */
 }
 
+/* Left Panel */
 .left-panel {
     flex: 1;
     padding: 20px;
@@ -30,11 +39,12 @@ body {
     margin-bottom: 5px;
 }
 
+/* Input Fields */
 .left-panel input[type="text"],
 .left-panel input[type="number"],
 .left-panel select,
 .left-panel textarea {
-    width: calc(100% - 10px); /* Account for padding */
+    width: calc(100% - 10px);
     padding: 8px;
     margin-bottom: 10px;
     border: 1px solid #ccc;
@@ -46,16 +56,28 @@ body {
     resize: vertical;
 }
 
-.left-panel button {
+/* Submit Button */
+.submit-container {
+    display: flex;
+    justify-content: center; /* Centers the button horizontally */
+    margin-top: 20px; /* Adds spacing from above elements */
+}
+
+.submit-container button {
+    padding: 10px 20px;
+    font-size: 16px;
     background-color: #4CAF50;
     color: white;
-    padding: 10px 15px;
     border: none;
-    border-radius: 4px;
+    border-radius: 5px;
     cursor: pointer;
 }
 
+.submit-container button:hover {
+    background-color: #45a049;
+}
 
+/* Right Panel */
 .right-panel {
     flex: 1;
     padding: 20px;
@@ -70,70 +92,144 @@ body {
     border: 1px solid #ddd;
     padding: 20px;
     border-radius: 4px;
+    min-height: 70%;
+    max-height: 85%;
+    
 }
 
-.document-icon {
-    display: block;
-    margin: 0 auto 20px;
-    max-width: 100px; /* Adjust as needed */
-}
-
-.preview-content p {
-    margin-bottom: 5px;
-}
-
-.abstract-preview {
-    margin-top: 20px;
-    border-top: 1px solid #ddd;
-    padding-top: 10px;
-}
-.upload-icon {
-    cursor: pointer;
-    display: inline-block; /* Needed for proper spacing */
-    margin-right: 20px; /* Space between the boxes */
-    vertical-align: middle; /* Align vertically */
+/* File Upload Icons */
+.upload-icons-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
 }
 
 .upload-box {
-    width: 150px;
-    height: 100px;
-    border: 1px dashed #ccc;
-    border-radius: 8px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
     align-items: center;
-    text-align: center;
-    color: #777;
-    background-color: #f9f9f9;
+    justify-content: center;
+    width: 150px;
+    height: 100px;
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    transition: all 0.3s ease-in-out;
+    cursor: pointer;
 }
-.upload-box img {
-    width: 40px; /* Adjust icon size if needed */
-    margin-bottom: 10px; /* Space between icon and text */
-   
+
+.upload-box svg {
+    width: 40px;
+    height: 40px;
+    stroke: #555; /* Default color */
+    transition: stroke 0.3s ease-in-out;
 }
 
 .upload-box p {
-    margin: 0; /* Remove default paragraph margins */
-    font-size: 14px; /* Adjust font size */
+    margin: 5px 0 0;
+    font-size: 14px;
+    color: #555;
+    transition: color 0.3s ease-in-out;
+}
+.upload-box:hover {
+    background-color: #f4f4f4;
+    border-color: #4CAF50;
 }
 
-.submit-container {  /* New container for the button */
-    display: flex;
-    justify-content: center; /* Center horizontally */
-    width: 100%; /* Or a specific width if needed */
-    margin-top: 20px; /* Add some top margin */
+.upload-box:hover svg {
+    stroke: #4CAF50;
 }
 
-button[type="submit"] {
-    /* ... your other submit button styles ... */
-    /* Remove any margin or positioning that might interfere with centering */
-    margin: 0;  /* Important: Reset margins */
-    display: block; /* Important: Make it a block element */
+.upload-box:hover p {
+    color: #4CAF50;
 }
-.upload-icons-container {
+
+/* Dropdown Styling */
+.dropdown-container {
     display: flex;
-    justify-content: center; /* Center horizontally */
-    align-items: center; /* Center vertically */
-    width: 100%; /* or a specific width if needed */
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+/* Align Volume and Department in One Row */
+.dropdown-group {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
+.dropdown-group div {
+    flex: 1;
+}
+
+/* Category Full Width Below */
+.category {
+    width: 100%;
+}
+
+/* Fix for Author and Topic Inputs */
+.select-container {
+    width: 100%; /* Ensure full width */
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 10px;
+    background-color: transparent; /* Removed red background */
+}
+
+.dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.dropdown input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.selected-authors, .selected-topics {
+    width: 80%;
+    display: flex;
+    flex-wrap: wrap;
+  
+    min-height: 30px; /* Ensures space for selected items */
+    background-color: #ffffff;
+}
+
+/* Selected Items */
+.author, .topic {
+    background-color: #f0f0f0;
+    padding: 5px 10px;
+    margin: 2px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+/* Dropdown List */
+.dropdown-list {
+    position: absolute;
+    width: 100%;
+    border: 1px solid #ccc;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+    background: white;
+    z-index: 10;
+}
+
+.dropdown-list.show {
+    display: block;
+}
+
+.dropdown-item {
+    padding: 5px;
+    cursor: pointer;
+}
+
+.dropdown-item:hover {
+    background-color: #f0f0f0;
 }

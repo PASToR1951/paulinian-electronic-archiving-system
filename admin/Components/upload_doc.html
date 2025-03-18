@@ -5,98 +5,172 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document Submission Form</title>
     <link rel="stylesheet" href="./css/upload_doc.css">
-    
-</head>
+    </head>
 <body>
-    <div id="side-bar"> 
-  
-    </div>
-    <div id="navbar-header"> 
-  
-    </div>
+    <div id="side-bar"></div>
+    <div id="navbar-header"></div>
 
     <div class="container">
-        
         <div class="left-panel">
             <h2>Add New Document</h2>
-            <form action="#" method="post">
-                <label for="title">Title</label><br>
+            <form action="/submit-document" method="POST" enctype="multipart/form-data">
+
+                <label for="title">Title</label>
                 <input type="text" id="title" name="title" required><br><br>
 
-                <label for="author">Author</label><br>
-                <input type="text" id="author" name="author" required><br><br>
+                <label for="author">Author</label>
+                
+                    <div class="dropdown">
+                        <input type="text" id="authorInput" placeholder="Type to search authors...">
+                        <div class="dropdown-list" id="authorList"></div>
+                    </div>
+                    <div class="select-container"> <div class="selected-authors" id="selectedAuthors"></div>
+                </div><br><br>
 
-                <label for="year">Year Published</label><br>
+                <label for="year">Year Published</label>
                 <input type="number" id="year" name="year" value="2024" required><br><br>
 
-                <label for="category">Category</label><br>
-                <select id="category" name="category" required>
-                    <option value="thesis">Thesis</option>
-                    <option value="dissertation">Dissertation</option>
-                    <option value="report">Report</option>
-                    <option value="other">Other</option>
-                </select><br><br>
+                <div class="dropdown-container">
+                    <div class="dropdown-group">
+                        <div>
+                            <label for="volume">Volume</label>
+                            <select id="volume-no" name="volume-no" required>
+                                <option value="none"></option>
+                                <option value="Volume-1">1</option>
+                                <option value="Volume-2">2</option>
+                                <option value="Volume-3">3</option>
+                                <option value="Volume-4">4</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="department">Department</label>
+                            <select id="department" name="Department" required>
+                                
+                                <option value="cbit">College of Business and Information Technology</option>
+                                <option value="cons">College of Nursing</option>
+                                <option value="casee">College of Arts and Science Education</option>
+                                <option value="baed">Basic Education</option>
+                                <option value="faculty">Faculty</option>
+                                <option value="staff">Staff</option>
+                                <option value="grad_school">Grade School</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="category">
+                        <label for="category">Category</label>
+                        <select id="category" name="category" required>
+                            <option value="thesis">Thesis</option>
+                            <option value="dissertation">Dissertation</option>
+                            <option value="report">Confluence</option>
+                            <option value="other">Synthesis</option>
+                        </select>
+                    </div>
+                </div>
 
-                
-
-                <label for="topic">Topic</label><br>
-                <input type="text" id="topic" name="topic" value="Nursing" required><br><br>
-
-                <label for="abstract">Abstract / Summary</label><br>
+                <label for="topic">Topic</label>
+                <div class="select-container">
+                <div class="dropdown">
+                <input type="text" id="topicInput" placeholder="Type or search topics...">
+                <div class="dropdown-list" id="topicList"></div>
+                </div>
+            <div class="selected-topics" id="selectedTopics"></div>
+        </div>
+                <label for="abstract">Abstract / Summary</label>
                 <textarea id="abstract" name="abstract" rows="4" required></textarea><br><br>
-                
-            <div class="upload-icons-container">
-                <label for="file" class="upload-file">
-                    <div class="upload-box">  <img src="upload_file" alt="Attach File" width="40">  <p>Attach File</p>  </div>
-                    <input type="file" id="file" name="file" style="display: none;">
-                </label>
-                
-                <label for="cover" class="upload-cover">
-                    <div class="upload-box">  <img src="cover_upload_icon.png" alt="Upload Cover Photo" width="40">  <p>Upload Cover Photo</p>  </div>
-                    <input type="file" id="cover" name="cover" style="display: none;">
-                </label>
-            </div>
-            <div class="submit-container">
-                <button type="submit">SUBMIT</button>
-            </div>
+
+                <div class="upload-icons-container">
+                    <label for="file" class="upload-file">
+                        <div class="upload-box">
+                            <!-- SVG for File Upload -->
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-paperclip"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 7l-6.5 6.5a1.5 1.5 0 0 0 3 3l6.5 -6.5a3 3 0 0 0 -6 -6l-6.5 6.5a4.5 4.5 0 0 0 9 9l6.5 -6.5" /></svg>
+                            <p>Attach File</p>
+                        </div>
+                        <input type="file" id="file" name="file" style="display: none;">
+                    </label>
+                    
+                    <label for="cover" class="upload-cover">
+                        <div class="upload-box">
+                            <!-- SVG for Cover Upload -->
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-photo-scan"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 8h.01" /><path d="M6 13l2.644 -2.644a1.21 1.21 0 0 1 1.712 0l3.644 3.644" /><path d="M13 13l1.644 -1.644a1.21 1.21 0 0 1 1.712 0l1.644 1.644" /><path d="M4 8v-2a2 2 0 0 1 2 -2h2" /><path d="M4 16v2a2 2 0 0 0 2 2h2" /><path d="M16 4h2a2 2 0 0 1 2 2v2" /><path d="M16 20h2a2 2 0 0 0 2 -2v-2" /></svg>
+                            <p>Upload Cover Photo</p>
+                        </div>
+                        <input type="file" id="cover" name="cover" style="display: none;">
+                    </label>
+                    
+                </div>
+                <div class="submit-container">
+                    <button type="submit">SUBMIT</button>
+                </div>
             </form>
-        </div>  
+        </div>
         <div class="right-panel">
             <div class="preview-header">
                 <h2>Preview</h2>
             </div>
             <div class="preview-content">
-                <img src="document_icon.png" alt="Document Icon" class="document-icon">
-                <p><strong>ABOLITION, AFRICANS, AND ABSTRACTION: THE INFLUENCE OF THE 'NOBLE SAVAGE' ON BRITISH AND FRENCH ANTISLAVERY THOUGHT, 1787-1807</strong></p>
-                <p>by Suchait Kahlon</p>
-                <p>Publishing Date: 2021</p>
-                <p>Topics: History</p>
-                <p>Language: English</p>
-                <p>Pages: 140</p>
-                <p>Added Date: January 15, 2021</p>
-
+                
+                <img id="category-icon" src="default_category_icon.png" alt="Category Icon" class="category-icon">
+                <p><strong id="preview-title">Title of Document</strong></p>
+                <p id="preview-author">Author Name</p>
+                <p id="preview-year">Publishing Date: 2021</p>
+                <p id="preview-topic">Topics: History</p>
+                <p id="preview-language">Language: English</p>
+                <p id="preview-pages">Pages: 140</p>
+                <p id="preview-added-date">Added Date: January 15, 2021</p>
                 <div class="abstract-preview">
                     <p><strong>Abstract</strong></p>
-                    <p>This vision of a Black Spartacus, imagined by the French Enlightenment thinker Denis Diderot in the 1770 Histoire des Deux indes, is often considered prophetic of Toussaint Louverture's leadership in the Haitian Revolution. While Diderot's antislavery polemic highlights the gap between the western European Enlightenment's promotion of 'liberty' and the reality of chattel slavery in the Atlantic world, this brief excerpt also foreshadows a growing trend that exploded among British and French antislavery advocates in the late eighteenth and early nineteenth centuries. Namely, those early campaigners for the abolition of the slave trade increasingly relied on abstract and humanitarian arguments which alluded to romantic representations of "primitive" people and the state of nature more broadly. In Diderot's case, these themes shine through: not only does he suggest that justice is based on principles inherent to nature, but he implies that these conceptions would motivate an African, forced in shackles, to rise up against his supposedly 'civilized' oppressors.</p>
+                    <p id="preview-abstract">This is the default abstract text...</p>
                 </div>
             </div>
+</div>
         </div>
     </div>
-    <script>
-        fetch('side_bar.html')
-          .then(response => response.text())
-          .then(data => {
-            document.getElementById('side-bar').innerHTML = data;
-          })
-          .catch(error => console.error('Error loading header:', error));
-      </script>
+
+
+    <!-- Success Popup Modal -->
+<div id="success-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+            <path fill="#4caf50" d="M44,24c0,11.045-8.955,20-20,20S4,35.045,4,24S12.955,4,24,4S44,12.955,44,24z"></path>
+            <path fill="#ccff90" d="M34.602,14.602L21,28.199l-5.602-5.598l-2.797,2.797L21,33.801l16.398-16.402L34.602,14.602z"></path>
+        </svg>
+        <h2>Uploaded successfully!</h2>
+        <p>Your document has been uploaded successfully.</p>
+    </div>
+</div>
+
+<!-- Receipt Popup Modal -->
+<div id="receipt-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <h2>Upload Receipt</h2>
+        <div class="receipt-body">
+            <img id="receipt-cover" src="../img/Samp_cover.jpg" alt="Document Cover">
+            <div class="text-body">
+                <p><strong>Title:</strong> <span id="receipt-title"></span></p>
+                <p><strong>Author:</strong> <span id="receipt-author"></span></p>
+                <p><strong>Category:</strong> <span id="receipt-category"></span></p>
+                <p><strong>Summary:</strong> <span id="receipt-summary"></span></p>
+            </div>
+        </div>
+        <button id="close-receipt">Close</button>
+    </div>
+</div>
+
+
+
+    
     <script>
         fetch('navbar_header.html')
-          .then(response => response.text())
-          .then(data => {
-            document.getElementById('navbar-header').innerHTML = data;
-          })
-          .catch(error => console.error('Error loading header:', error));
-      </script>
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('navbar-header').innerHTML = data;
+            })
+            .catch(error => console.error('Error loading header:', error));
+    </script>
+    <script src="/admin/components/js/getauthor.js"></script>
+    <script src="/admin/components/js/side_bar.js"></script>
+    <script src="/admin/components/js/topic.js"></script>
+    <script src="/admin/components/js/upload.js"></script>
+    <script src="/admin/components/js/getauthor.js"></script>
 </body>
 </html>

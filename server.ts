@@ -3,6 +3,9 @@ import { load } from "https://deno.land/std@0.218.2/dotenv/mod.ts";
 import { serveFile } from "https://deno.land/std@0.218.2/http/file_server.ts";
 import { handleLoginRequest } from "./routes/login.ts";
 import { client } from "./data/denopost_conn.ts";
+import { handleDocumentSubmission } from "./routes/upload-documents.ts";
+import { getAuthors } from "./routes/author.ts";
+
 
 const env = await load({ envPath: "./.env" });
 console.log("Loaded Environment Variables:", env);
@@ -15,19 +18,30 @@ async function handler(req: Request): Promise<Response> {
   if (url.pathname === "/login" && req.method === "POST") {
     return await handleLoginRequest(req);
   }
+  
+  if (req.method === "GET" && url.pathname === "/authors") {
+    return await getAuthors(req);
+}
+  if (url.pathname === "/submit-document" && req.method === "POST") {
+    return await handleDocumentSubmission(req); // Call the function for document submission
+  }
 
-  // ✅ Serve files from `public/` and `admin/`
+  if (url.pathname.startsWith("/uploads/pdf/")) {
+    return await serveFile(req, `.${url.pathname}`);
+}
+
+  //Serve files from `public/` and `admin/`
   if (req.method === "GET") {
     try {
       let filePath = url.pathname;
 
-      // ✅ Correct file paths for both `public/` and `admin/`
+      // Correct file paths for both `public/` and `admin/`
       if (filePath === "/") {
         filePath = "/public/index.html"; 
       } else if (filePath.startsWith("/admin/")) {
-        filePath = filePath.replace("/admin", "/admin"); // ✅ Serves `admin/`
+        filePath = filePath.replace("/admin", "/admin"); //Serves `admin/`
       } else {
-        filePath = `/public${filePath}`; // ✅ Serves `public/`
+        filePath = `/public${filePath}`; // Serves `public/`
       }
 
       return await serveFile(req, `${Deno.cwd()}${filePath}`);

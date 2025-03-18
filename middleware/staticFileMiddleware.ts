@@ -22,4 +22,5 @@ export async function staticFileMiddleware(context: Context, next: () => Promise
   } else {
     await next();
   }
+  
 }

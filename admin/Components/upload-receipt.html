@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Successful</title>
+    <link rel="stylesheet" href="/admin/components/css/upload-receipt.css">
+</head>
+<body>
+    <!-- Success Message -->
+    <div class="container">
+        <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="48" height="48" viewBox="0 0 48 48">
+            <path fill="#4caf50" d="M44,24c0,11.045-8.955,20-20,20S4,35.045,4,24S12.955,4,24,4S44,12.955,44,24z"></path>
+            <path fill="#ccff90" d="M34.602,14.602L21,28.199l-5.602-5.598l-2.797,2.797L21,33.801l16.398-16.402L34.602,14.602z"></path>
+        </svg>
+        <h2>Uploaded Successfully</h2>
+        <button onclick="showReceipt()">View Receipt</button>
+    </div>
+
+    <!-- Receipt Modal -->
+    <div class="receipt-modal" id="receipt-modal" style="display: none;">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <!-- Modal Body -->
+                <div class="modal-body">
+                    <!-- Image Section -->
+                    <div class="image-card">
+                        <img id="receipt-cover" src="../img/default_cover.jpg" alt="Document Image">
+                    </div>
+
+                    <!-- Text Content Section -->
+                    <div class="text-body">
+                        <div class="doc-title"><strong>Title:</strong> <span id="receipt-title"></span></div>
+                        <div class="author"><strong>Author:</strong> <span id="receipt-author"></span></div>
+                        <div class="category"><strong>Category:</strong> <span id="receipt-category"></span></div>
+                        <div class="summary-tags"><strong>Abstract:</strong> <span id="receipt-abstract"></span></div>
+                    </div>
+                </div>
+
+                <!-- Footer with Buttons -->
+                <div class="modal-footer">
+                    <button type="button" class="btn me-auto" onclick="window.close()">Close</button>
+                    <button type="button" class="btn btn-primary">Save Receipt</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/admin/components/js/receipt.js"></script>
+</body>
+</html>

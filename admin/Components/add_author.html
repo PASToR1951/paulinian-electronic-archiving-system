@@ -5,64 +5,123 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Author</title>
     <link rel="stylesheet" href="css/add_author.css">
+    <link rel="stylesheet" href="css/page_header.css">
+    <link rel="stylesheet" href="css/side_bar.css">
+    <link rel="stylesheet" href="css/navbar_header.css">
 </head>
 <body>
+    <div id="side-bar"> 
+  
+    </div>
+  
+    <div id="navbar-header"> 
+    
+    </div>
+    
+  
+
     <div class="container">
-        <h1>Add Author</h1>
-        <form id="authorForm">
-            <div class="form-group">
-                <label for="firstName">First Name:</label>
-                <input type="text" id="firstName" name="firstName" placeholder="Enter first name" required>
-            </div>
-            <div class="form-group">
-                <label for="middleName">Middle Name:</label>
-                <input type="text" id="middleName" name="middleName" placeholder="Enter middle name">
-            </div>
-            <div class="form-group">
-                <label for="lastName">Last Name:</label>
-                <input type="text" id="lastName" name="lastName" placeholder="Enter last name" required>
-            </div>
-            <div class="form-group">
-                <label for="authorPicture">Author Picture:</label>
-                <input type="file" id="authorPicture" name="authorPicture" accept="image/*">
-            </div>
-            <button type="button" id="submitButton">Submit</button>
-        </form>
+
+    <div id="page-header">
+      
+      <svg> </svg>
+      <svg> </svg>
+      <h1> </h1>
     </div>
 
-    <script type="module">
-        document.getElementById('submitButton').addEventListener('click', async () => {
-            const firstName = document.getElementById('firstName').value;
-            const middleName = document.getElementById('middleName').value;
-            const lastName = document.getElementById('lastName').value;
-            const authorPicture = document.getElementById('authorPicture').files[0];
-
-            const formData = new FormData();
-            formData.append('firstname', firstName); // Modified to match your Deno backend
-            formData.append('middlename', middleName); // Modified to match your Deno backend
-            formData.append('lastname', lastName); // Modified to match your Deno backend
-            if (authorPicture) {
-                formData.append('authorpfp', authorPicture); // Modified to match your Deno backend
-            }
-
-            try {
-                const response = await fetch('/admin/add-author', { // Modified to match your Deno server endpoint
-                    method: 'POST',
-                    body: formData,
-                });
-
-                if (response.ok) {
-                    alert('Author added successfully!');
-                    document.getElementById('authorForm').reset();
-                } else {
-                    const errorData = await response.json();
-                    alert(`Error adding author: ${errorData.message || 'Unknown error'}`);
-                }
-            } catch (error) {
-                console.error('Fetch error:', error);
-                alert('An unexpected error occurred.');
-            }
-        });
-    </script>
+        <div class="add-author">
+            <h2>Add Author</h2>
+            <div class="author-details">
+                <div class="image-upload">
+                    <img src="author-placeholder.jpg" alt="Author Image" id="authorImage">
+                    <label for="imageUpload" class="upload-button">Upload Image</label>
+                    <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+                </div>
+                <div class="author-form">
+                    <div class="form-group">
+                        <label for="firstName">First Name:</label>
+                        <input type="text" id="firstName" placeholder="Enter first name">
+                    </div>
+                    <div class="form-group">
+                        <label for="middleName">Middle Name:</label>
+                        <input type="text" id="middleName" placeholder="Enter middle name">
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Last Name:</label>
+                        <input type="text" id="lastName" placeholder="Enter last name">
+                    </div>
+                    <button class="add-button">Add Author</button>
+                </div>
+            </div>
+            <div class="author-list">
+                <h2>List of Authors</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Cover</th>
+                            <th>First Name</th>
+                            <th>Middle Name</th>
+                            <th>Last Name</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Cover</td>
+                            <td>Author</td>
+                            <td></td>
+                            <td>1</td>
+                        </tr>
+                        <tr>
+                            <td>Cover</td>
+                            <td>Author</td>
+                            <td></td>
+                            <td>2</td>
+                        </tr>
+                        <tr>
+                            <td>Cover</td>
+                            <td>Author</td>
+                            <td></td>
+                            <td>3</td>
+                        </tr>
+                        <tr>
+                            <td>Cover</td>
+                            <td>Author</td>
+                            <td></td>
+                            <td>4</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script>
+        fetch('./components/page_header.html')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById('page-header').innerHTML = data;
+          })
+          .catch(error => console.error('Error loading header:', error));
+      </script>
+    
+      <script>
+        fetch('./components/side_bar.html')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById('side-bar').innerHTML = data;
+          })
+          .catch(error => console.error('Error loading header:', error));
+      </script>
+    
+      <script>
+        fetch('./components/navbar_header.html')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById('navbar-header').innerHTML = data;
+          })
+          .catch(error => console.error('Error loading header:', error));
+      </script>
+    
+    <script src="script.js"></script>
+    
 </body>
 </html>

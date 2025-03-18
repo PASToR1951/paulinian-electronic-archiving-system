@@ -1,45 +1,47 @@
-import { findUser } from "../auth/userStore.ts";
+import { client } from "../data/denopost_conn.ts";
 
 async function handleSessionRequest(req: Request): Promise<Response> {
-    console.log("📩 Received /session request");
+    console.log("Received /session request");
 
     try {
         const authHeader = req.headers.get("Authorization");
-        let session;
 
-        if (authHeader) {
-            try {
-                session = JSON.parse(atob(authHeader.split(" ")[1]));
-                console.log("🔍 Decoded session:", session);
-            } catch {
-                return new Response(JSON.stringify({ message: "Invalid session token" }), { status: 401 });
-            }
-        } else {
-            console.log("👤 No session token found. Assigning guest session.");
-            session = { role: "guest" };
+        if (!authHeader) {
+            console.log("No session token found. Assigning guest session.");
+            return jsonResponse({ role: "guest" }, 200);
         }
 
-        if (session.role !== "guest") {
-            const user = await findUser(session.ID);
-            if (!user) {
-                return new Response(JSON.stringify({ message: "User not found" }), { status: 404 });
-            }
+        const token = authHeader.split(" ")[1];  // Extract token from "Bearer <token>"
+        console.log("Received token:", token);
 
-            return new Response(
-                JSON.stringify({ school_id: user.school_id, role: user.role }),
-                { status: 200, headers: { "Content-Type": "application/json" } }
-            );
-        }
-
-        return new Response(
-            JSON.stringify({ role: "guest" }),  // ✅ Response for guests
-            { status: 200, headers: { "Content-Type": "application/json" } }
+        // Query the database to check if token exists
+        const result = await client.queryObject<{ user_id: string; user_role: string }>(
+            "SELECT user_id, user_role FROM tokens WHERE token = $1",
+            [token]
         );
 
+        if (result.rows.length === 0) {
+            console.error("Invalid session token!");
+            return jsonResponse({ message: "Invalid session token" }, 401);
+        }
+
+        const { user_id, user_role } = result.rows[0];
+        console.log(`Session verified: ${user_id} (${user_role})`);
+
+        return jsonResponse({ school_id: user_id, role: user_role }, 200);
+
     } catch (error) {
-        console.error("❌ Session error:", error);
-        return new Response(JSON.stringify({ message: "Internal Server Error" }), { status: 500 });
+        console.error("Session error:", error);
+        return jsonResponse({ message: "Internal Server Error" }, 500);
     }
+}
+
+// Utility function to return JSON responses
+function jsonResponse(data: object, status: number): Response {
+    return new Response(JSON.stringify(data), {
+        status,
+        headers: { "Content-Type": "application/json" },
+    });
 }
 
 export { handleSessionRequest };

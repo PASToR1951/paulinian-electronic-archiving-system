@@ -1,8 +1,10 @@
 
 .page-header {
-    background-color: #fff;
-    padding-top: 20px; 
-    border-bottom: 1px solid #eee; 
+    background-color: #fffff5;
+    margin-top: 20px; 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    
+
 }
 
 .header-content {
@@ -12,7 +14,8 @@
     align-items: center; 
     max-width: 1200px; 
     margin: 0 auto; 
-    
+    height: 50px;
+    background-color: antiquewhite;
 }
 
 
