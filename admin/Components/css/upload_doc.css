@@ -3,7 +3,8 @@ body {
     font-family: sans-serif;
     min-height: 100vh;
     margin: 0;
-    background-color: #f4f4f4;
+    background-color: #fffff5;
+
     display: flex;
     flex-direction: column;
     justify-content: center; /* Centers vertically */
@@ -86,15 +87,52 @@ body {
 .preview-header {
     text-align: center;
     margin-bottom: 10px;
+    
+}
+.preview-header-content {
+    display: flex; /* This ensures the icon and title are aligned in a row */
+    height: 100px;
+    
+    
+    
 }
 
 .preview-content {
     border: 1px solid #ddd;
     padding: 20px;
+    align-items: stretch;
     border-radius: 4px;
     min-height: 70%;
     max-height: 85%;
     
+}
+.preview-header-content {
+    display: flex;
+    align-items: flex-start; /* Align items to the top */
+    gap: 10px; /* Add some space between the icon and the text */
+}
+
+.title-author-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start; /* Align text to the top */
+}
+
+.category-icon {
+    width: 80px;
+    height: 80px;
+    padding: 10px;
+}
+
+#preview-title {
+    margin: 0; /* Remove default margin */
+    font-size: 18px; /* Adjust as needed */
+}
+
+#preview-author {
+    margin: 0; /* Remove default margin */
+    font-size: 14px; /* Adjust as needed */
+    color: #000000; /* Optional: Adjust color for author text */
 }
 
 /* File Upload Icons */
@@ -167,7 +205,11 @@ body {
 .category {
     width: 100%;
 }
-
+.category-icon{
+    width: 80px;
+    height: 80px;
+    padding:10px;
+}
 /* Fix for Author and Topic Inputs */
 .select-container {
     width: 100%; /* Ensure full width */

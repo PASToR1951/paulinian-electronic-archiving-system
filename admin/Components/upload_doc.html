@@ -61,8 +61,8 @@
                         <select id="category" name="category" required>
                             <option value="thesis">Thesis</option>
                             <option value="dissertation">Dissertation</option>
-                            <option value="report">Confluence</option>
-                            <option value="other">Synthesis</option>
+                            <option value="confluence">Confluence</option>
+                            <option value="synthesis">Synthesis</option>
                         </select>
                     </div>
                 </div>
@@ -108,10 +108,14 @@
                 <h2>Preview</h2>
             </div>
             <div class="preview-content">
+                <div class="preview-header-content">
+                    <img id="category-icon" src="default_category_icon.png" alt="Category Icon" class="category-icon">
+                    <div class="title-author-container">
+                        <p><strong id="preview-title">Title of Document</strong></p>
+                        <p id="preview-author">by Author Name</p>
+                    </div>
+                </div>
                 
-                <img id="category-icon" src="default_category_icon.png" alt="Category Icon" class="category-icon">
-                <p><strong id="preview-title">Title of Document</strong></p>
-                <p id="preview-author">Author Name</p>
                 <p id="preview-year">Publishing Date: 2021</p>
                 <p id="preview-topic">Topics: History</p>
                 <p id="preview-language">Language: English</p>
@@ -172,5 +176,6 @@
     <script src="/admin/components/js/topic.js"></script>
     <script src="/admin/components/js/upload.js"></script>
     <script src="/admin/components/js/getauthor.js"></script>
+    <script src="/admin/components/js/category-icon.js"></script>
 </body>
 </html>

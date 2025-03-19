@@ -1,79 +1,50 @@
-// Placeholder for backend data - replace with actual data fetching
-async function getAuthors() {
-    // Simulate fetching data from a backend
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve([
-          "Author 1", "Author 2", "Author 3", "Author 4", "Author 5", 
-          "Jane Austen", "Charles Dickens", "Leo Tolstoy", "Virginia Woolf", 
-          "Ernest Hemingway", "Agatha Christie", "Stephen King", "J.R.R. Tolkien"
-        ]);
-      }, 200); // Simulate a 200ms delay
-    });
-  }
-  
-  let authors = []; // Will hold the fetched authors
-  let selectedAuthors = [];
-  
-  const selectedAuthorsDiv = document.getElementById("selectedAuthors");
+document.addEventListener("DOMContentLoaded", () => {
   const authorInput = document.getElementById("authorInput");
   const authorList = document.getElementById("authorList");
-  
-  
-  async function initializeAuthors() {
-    authors = await getAuthors();
-    updateAuthorList();
+  const selectedAuthors = document.getElementById("selectedAuthors");
+
+  // Function to fetch authors from the backend
+  async function fetchAuthors(query) {
+      try {
+          const response = await fetch(`/routes/author?search=${query}`);
+          if (response.ok) {
+              const authors = await response.json();
+              return authors;
+          }
+          throw new Error("Failed to fetch authors");
+      } catch (error) {
+          console.error(error);
+          return [];
+      }
   }
-  
-  function updateSelectedAuthors() {
-    selectedAuthorsDiv.innerHTML = "";
-    selectedAuthors.forEach(author => {
-      const authorDiv = document.createElement("div");
-      authorDiv.classList.add("author");
-      authorDiv.textContent = author;
-      authorDiv.addEventListener("click", () => {
-        selectedAuthors = selectedAuthors.filter(a => a !== author);
-        updateSelectedAuthors();
-      });
-      selectedAuthorsDiv.appendChild(authorDiv);
-    });
+
+  // Function to display the authors in the dropdown
+  async function handleAuthorInput() {
+      const query = authorInput.value.trim();
+      if (query.length > 0) {
+          const authors = await fetchAuthors(query);
+          authorList.innerHTML = ""; // Clear previous suggestions
+          authors.forEach(author => {
+              const listItem = document.createElement("div");
+              listItem.textContent = author;
+              listItem.classList.add("dropdown-item");
+              listItem.addEventListener("click", () => selectAuthor(author));
+              authorList.appendChild(listItem);
+          });
+      } else {
+          authorList.innerHTML = ""; // Clear suggestions if input is empty
+      }
   }
-  
-  function updateAuthorList(searchTerm = "") {
-    authorList.innerHTML = "";
-    const filteredAuthors = authors.filter(author => 
-      author.toLowerCase().includes(searchTerm.toLowerCase()) && 
-      !selectedAuthors.includes(author)
-    );
-    filteredAuthors.forEach(author => {
-      const authorItem = document.createElement("div");
-      authorItem.classList.add("dropdown-item");
-      authorItem.textContent = author;
-      authorItem.addEventListener("click", () => {
-        selectedAuthors.push(author);
-        updateSelectedAuthors();
-        authorInput.value = "";
-        updateAuthorList();
-        authorInput.focus();
-      });
-      authorList.appendChild(authorItem);
-    });
+
+  // Function to select an author and display it in the selected section
+  function selectAuthor(author) {
+      const authorElement = document.createElement("span");
+      authorElement.textContent = author;
+      selectedAuthors.appendChild(authorElement);
+      authorInput.value = ""; // Clear the input field
+      authorList.innerHTML = ""; // Clear the dropdown list
   }
-  
-  authorInput.addEventListener("input", () => {
-    updateAuthorList(authorInput.value);
-  });
-  
-  dropdownToggle.addEventListener("click", () => {
-    authorList.classList.toggle("show");
-    authorInput.focus();
-  });
-  
-  initializeAuthors(); // Fetch and display authors on load
-  
-  // Close dropdown when clicking outside
-  document.addEventListener("click", (event) => {
-    if (!event.target.closest(".select-container")) {
-      authorList.classList.remove("show");
-    }
-  });
+
+  // Event listener for input change
+  authorInput.addEventListener("input", handleAuthorInput);
+});

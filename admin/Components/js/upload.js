@@ -14,34 +14,34 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
 
                 if (response.ok) {
-                    // ✅ Store form data in sessionStorage
+                    // Store form data in sessionStorage
                     sessionStorage.setItem("title", formData.get("title"));
                     sessionStorage.setItem("author", formData.get("authorInput"));
                     sessionStorage.setItem("category", formData.get("category"));
                     sessionStorage.setItem("abstract", formData.get("abstract"));
 
-                    // ✅ If user uploaded a cover, store its path
+                    // If user uploaded a cover, store its path
                     const coverFile = formData.get("cover");
                     if (coverFile) {
                         sessionStorage.setItem("coverPath", URL.createObjectURL(coverFile));
                     }
 
-                    // ✅ Open success page (which will also load receipt)
+                    // Open success page (which will also load receipt)
                     globalThis.open("success.html", "_blank", "width=500,height=500");
 
-                    // ✅ Reset form after submission
+                    // Reset form after submission
                     this.reset();
                 } else {
-                    alert("❌ Failed to submit document.");
+                    alert("Failed to submit document.");
                 }
             } catch (error) {
                 console.error("Error submitting document:", error);
-                alert("❌ An error occurred while submitting.");
+                alert("An error occurred while submitting.");
             }
         });
     }
 });
-// ✅ Ensure file input is clickable
+//  Ensure file input is clickable
 document.querySelector(".upload-file").addEventListener("click", () => {
     document.getElementById("file").click();
 });

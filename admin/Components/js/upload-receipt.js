@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (response.ok) {
                 const result = await response.json();
-                console.log("✅ Upload Success:", result);
+                console.log("Upload Success:", result);
 
                 // Show success modal
                 successModal.style.display = "flex";
@@ -28,11 +28,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     showReceipt(formData);  // Show receipt
                 }, 2000);
             } else {
-                console.error("❌ Upload Failed:", response.statusText);
+                console.error("Upload Failed:", response.statusText);
                 alert("Upload failed! Please try again.");
             }
         } catch (error) {
-            console.error("❌ Error submitting form:", error);
+            console.error("Error submitting form:", error);
             alert("An error occurred. Please try again.");
         }
     });

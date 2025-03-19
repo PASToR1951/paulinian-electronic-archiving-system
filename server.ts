@@ -7,6 +7,7 @@ import { handleDocumentSubmission } from "./routes/upload-documents.ts";
 import { getAuthors } from "./routes/author.ts";
 
 
+
 const env = await load({ envPath: "./.env" });
 console.log("Loaded Environment Variables:", env);
 
