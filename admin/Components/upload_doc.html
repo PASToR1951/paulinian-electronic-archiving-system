@@ -13,7 +13,7 @@
     <div class="container">
         <div class="left-panel">
             <h2>Add New Document</h2>
-            <form action="/submit-document" method="POST" enctype="multipart/form-data">
+            <form id="upload-form" action="/submit-document" method="POST" enctype="multipart/form-data">
 
                 <label for="title">Title</label>
                 <input type="text" id="title" name="title" required><br><br>
@@ -121,6 +121,12 @@
                 <p id="preview-language">Language: English</p>
                 <p id="preview-pages">Pages: 140</p>
                 <p id="preview-added-date">Added Date: January 15, 2021</p>
+
+                <div class="read-document-container">
+                    <button id="read-document" class="disabled-button" disabled>Read Document</button>
+                </div>
+
+
                 <div class="abstract-preview">
                     <p><strong>Abstract</strong></p>
                     <p id="preview-abstract">This is the default abstract text...</p>

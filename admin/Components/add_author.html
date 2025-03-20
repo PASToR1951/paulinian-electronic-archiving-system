@@ -10,24 +10,14 @@
     <link rel="stylesheet" href="css/navbar_header.css">
 </head>
 <body>
-    <div id="side-bar"> 
-  
-    </div>
-  
-    <div id="navbar-header"> 
-    
-    </div>
-    
-  
+    <div id="side-bar"></div>
+    <div id="navbar-header"></div>
 
     <div class="container">
-
-    <div id="page-header">
-      
-      <svg> </svg>
-      <svg> </svg>
-      <h1> </h1>
-    </div>
+        <div id="page-header">
+            <h1>St Paul University Dumaguete</h1>
+            <p>CARITAS VERITAS SCIENTIA</p>
+        </div>
 
         <div class="add-author">
             <h2>Add Author</h2>
@@ -53,8 +43,11 @@
                     <button class="add-button">Add Author</button>
                 </div>
             </div>
-            <div class="author-list">
-                <h2>List of Authors</h2>
+        </div>
+
+        <div class="author-list">
+            <h2>List of Authors</h2>
+            <div class="table-container">
                 <table>
                     <thead>
                         <tr>
@@ -62,40 +55,58 @@
                             <th>First Name</th>
                             <th>Middle Name</th>
                             <th>Last Name</th>
+                            <th>Actions</th> <!-- New column for actions -->
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td>Cover</td>
-                            <td>Author</td>
-                            <td></td>
-                            <td>1</td>
+                            <td><img src="cover1.jpg" alt="Cover"></td>
+                            <td>John</td>
+                            <td>Doe</td>
+                            <td>Smith</td>
+                            <td>
+                                <button class="edit-button">Edit</button>
+                                 
+                            </td>
                         </tr>
                         <tr>
-                            <td>Cover</td>
-                            <td>Author</td>
+                            <td><img src="cover2.jpg" alt="Cover"></td>
+                            <td>Jane</td>
                             <td></td>
-                            <td>2</td>
+                            <td>Doe</td>
+                            <td>
+                                <button class="edit-button">Edit</button>
+                                
+                            </td>
                         </tr>
                         <tr>
-                            <td>Cover</td>
-                            <td>Author</td>
-                            <td></td>
-                            <td>3</td>
+                            <td><img src="cover3.jpg" alt="Cover"></td>
+                            <td>Michael</td>
+                            <td>James</td>
+                            <td>Brown</td>
+                            <td>
+                                <button class="edit-button">Edit</button>
+                                
+                            </td>
                         </tr>
                         <tr>
-                            <td>Cover</td>
-                            <td>Author</td>
-                            <td></td>
-                            <td>4</td>
+                            <td><img src="cover4.jpg" alt="Cover"></td>
+                            <td>Emily</td>
+                            <td>Ann</td>
+                            <td>White</td>
+                            <td>
+                                <button class="edit-button">Edit</button>
+                                
+                            </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
+
     <script>
-        fetch('./components/page_header.html')
+        fetch('./page_header.html')
           .then(response => response.text())
           .then(data => {
             document.getElementById('page-header').innerHTML = data;
@@ -104,7 +115,7 @@
       </script>
     
       <script>
-        fetch('./components/side_bar.html')
+        fetch('./side_bar.html')
           .then(response => response.text())
           .then(data => {
             document.getElementById('side-bar').innerHTML = data;
@@ -113,15 +124,12 @@
       </script>
     
       <script>
-        fetch('./components/navbar_header.html')
+        fetch('./navbar_header.html')
           .then(response => response.text())
           .then(data => {
             document.getElementById('navbar-header').innerHTML = data;
           })
           .catch(error => console.error('Error loading header:', error));
       </script>
-    
-    <script src="script.js"></script>
-    
 </body>
 </html>

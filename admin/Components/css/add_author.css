@@ -1,136 +1,182 @@
 body {
-    font-family: sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     padding: 0;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    background-color: #bcd88e;
+    background-color: #f4f4f4;
+    color: #333;
 }
 
 h2 {
     text-align: center;
     margin-bottom: 20px;
+    color: #444;
 }
 
 .container {
-    width: 1200px;
+    width: 90%;
+    max-width: 1200px;
     margin: 20px auto;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background-color: #9c8080;
-    box-sizing: border-box;
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
 }
 
 #page-header {
     width: 100%;
     text-align: center;
+    margin-bottom: 20px;
+}
+
+#page-header h1 {
+    font-size: 2.5em;
+    color: #2c3e50;
+}
+
+#page-header p {
+    font-size: 1.2em;
+    color: #7f8c8d;
 }
 
 .add-author {
-    width: 100%;
     margin-bottom: 20px;
-    height: auto;
-    box-sizing: border-box;
 }
 
 .add-author .author-details {
     display: flex;
     align-items: flex-start;
-    width: 100%;
-    box-sizing: border-box;
+    gap: 20px;
 }
 
 .add-author .image-upload {
-    margin-right: 20px;
     text-align: center;
     flex-shrink: 0;
-    display: flex; /* Added to make image-upload a flex container */
-    flex-direction: column; /* Stack image and label vertically */
-    align-items: center; /* Center image and label horizontally */
-    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .add-author .image-upload img {
-    width: 100px;
+    width: 120px;
     height: 120px;
     object-fit: cover;
     border-radius: 4px;
     margin-bottom: 10px;
-    box-sizing: border-box;
 }
 
 .add-author .upload-button {
-    background-color: #ffc107;
-    color: #000;
+    background-color: #F2C708;
+    color: #000000;
     padding: 8px 12px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    box-sizing: border-box;
+    transition: background-color 0.3s ease;
+}
+
+.add-author .upload-button:hover {
+    background-color: #2980b9;
 }
 
 .add-author .author-form {
     flex-grow: 1;
     display: flex;
     flex-wrap: wrap;
-    align-items: flex-start;
-    box-sizing: border-box;
+    gap: 10px;
 }
 
 .add-author .author-form .form-group {
+    flex: 1 1 calc(40% - 10px);
     margin-bottom: 10px;
-    width: 100%;
-    box-sizing: border-box;
 }
 
 .add-author .author-form label {
     display: block;
     margin-bottom: 5px;
-    box-sizing: border-box;
+    color: #555;
+    margin-top: 10px;
 }
 
 .add-author .author-form input[type="text"] {
-    width: calc(100% - 12px);
-    padding: 6px;
+    width: 70%;
+    padding: 10px;
     border: 1px solid #ccc;
     border-radius: 4px;
-    box-sizing: border-box;
+    font-size: 1em;
 }
 
 .add-author .add-button {
-    background-color: #4caf50;
-    color: white;
-    padding: 10px 15px;
+    background-color: #27ae60;
+    color: #000000;
+    padding: 10px 20px;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
-    margin-left: auto;
-    box-sizing: border-box;
+    transition: background-color 0.3s ease;
+    height: 50px;
+    width: 170px;
+}
+
+.add-author .add-button:hover {
+    background-color: #219150;
+}
+
+.author-list {
+    margin-top: 20px;
 }
 
 .author-list table {
     width: 100%;
     border-collapse: collapse;
-    box-sizing: border-box;
 }
 
 .author-list th, .author-list td {
     border: 1px solid #ddd;
-    padding: 8px;
+    padding: 12px;
     text-align: left;
-    box-sizing: border-box;
 }
 
 .author-list th {
-    background-color: #f2f2f2;
-    box-sizing: border-box;
+    background-color: #f8f9fa;
+    color: #333;
 }
 
 .author-list td:first-child {
     text-align: center;
     width: 80px;
-    box-sizing: border-box;
+}
+
+.author-list img {
+    width: 50px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+/* Default disabled button (greyed out) */
+.read-document-container{
+    
+}
+
+.disabled-button {
+    background-color: #b0b0b0;
+    color: rgb(150, 209, 54);
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: not-allowed;
+    transition: background-color 0.3s ease;height: 20px;
+    height: 300px;
+}
+
+/* Activated button (when a PDF is uploaded) */
+.active-button {
+    background-color: #27ae60;
+    cursor: pointer;
+}
+
+.active-button:hover {
+    background-color: #219150;
 }

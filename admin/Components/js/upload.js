@@ -1,36 +1,51 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const form = document.getElementById("document-form");
+    const form = document.getElementById("upload-form");
+    const fileInput = document.getElementById("file");
+    const coverInput = document.getElementById("cover");
+    const readButton = document.getElementById("read-document"); // Read Document Button
+    let pdfURL = ""; // Stores the uploaded PDF URL
 
     if (form) {
         form.addEventListener("submit", async function (event) {
             event.preventDefault(); // Prevent full-page reload
 
             const formData = new FormData(this);
+            const file = fileInput.files[0]; // Get file directly from input
+            const cover = coverInput.files[0];
+
+            // Ensure the PDF file is required
+            if (!file || file.type !== "application/pdf") {
+                alert("Please attach a valid PDF file before submitting.");
+                return;
+            }
+
+            // Remove the cover file if it's empty
+            if (!cover) {
+                formData.delete("cover");
+            }
 
             try {
-                const response = await fetch("/submit-document", {
+                const response = await fetch("http://localhost:8000/submit-document", {
                     method: "POST",
                     body: formData,
                 });
 
+                const result = await response.json();
+                console.log("📌 Server response:", result);
+
                 if (response.ok) {
-                    // Store form data in sessionStorage
-                    sessionStorage.setItem("title", formData.get("title"));
-                    sessionStorage.setItem("author", formData.get("authorInput"));
-                    sessionStorage.setItem("category", formData.get("category"));
-                    sessionStorage.setItem("abstract", formData.get("abstract"));
+                    alert(result.message);
 
-                    // If user uploaded a cover, store its path
-                    const coverFile = formData.get("cover");
-                    if (coverFile) {
-                        sessionStorage.setItem("coverPath", URL.createObjectURL(coverFile));
-                    }
+                    // Reset form inputs
+                    fileInput.value = "";
+                    coverInput.value = "";
+                    form.reset();
 
-                    // Open success page (which will also load receipt)
-                    globalThis.open("success.html", "_blank", "width=500,height=500");
-
-                    // Reset form after submission
-                    this.reset();
+                    // Reset Read Document button
+                    pdfURL = "";
+                    readButton.disabled = true;
+                    readButton.classList.remove("active-button");
+                    readButton.classList.add("disabled-button");
                 } else {
                     alert("Failed to submit document.");
                 }
@@ -40,37 +55,31 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
-});
-//  Ensure file input is clickable
-document.querySelector(".upload-file").addEventListener("click", () => {
-    document.getElementById("file").click();
-});
-document.querySelector(".upload-cover").addEventListener("click", () => {
-    document.getElementById("cover").click();
-});
 
-document.getElementById("file").addEventListener("change", function(event) {
-    const file = event.target.files[0];
-    if (file && file.type === "application/pdf") {
-        const url = URL.createObjectURL(file);
+    // ✅ FIXED: Enable "Read Document" button when a PDF is selected
+    fileInput.addEventListener("change", function (event) {
+        const file = event.target.files[0];
 
-        // Check if a PDF preview already exists
-        let existingEmbed = document.getElementById("pdf-preview");
-        if (!existingEmbed) {
-            // Create a new <embed> element if it doesn't exist
-            existingEmbed = document.createElement("embed");
-            existingEmbed.id = "pdf-preview";
-            existingEmbed.type = "application/pdf";
-            existingEmbed.width = "100%";
-            existingEmbed.height = "400px";
-            existingEmbed.style.marginTop = "10px"; // Add spacing from text
+        if (file && file.type === "application/pdf") {
+            pdfURL = URL.createObjectURL(file); // Generate a URL for the file
 
-            // Append to the preview-content div
-            const previewContainer = document.querySelector(".preview-content");
-            previewContainer.appendChild(existingEmbed);
+            // ✅ Ensure the button is properly activated
+            readButton.disabled = false;
+            readButton.classList.remove("disabled-button");
+            readButton.classList.add("active-button");
+        } else {
+            // Reset Read Document button if the file is not a PDF
+            pdfURL = "";
+            readButton.disabled = true;
+            readButton.classList.remove("active-button");
+            readButton.classList.add("disabled-button");
         }
+    });
 
-        // Update the PDF source
-        existingEmbed.src = url;
-    }
+    // ✅ FIXED: Open the PDF in a new tab when clicking "Read Document"
+    readButton.addEventListener("click", () => {
+        if (pdfURL) {
+            window.open(pdfURL, "_blank");
+        }
+    });
 });
