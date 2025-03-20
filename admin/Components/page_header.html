@@ -3,24 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Date Range Picker</title>
     <link rel="stylesheet" href="./css/page_header.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 </head>
 <body>
     <header class="page-header">
         <div class="header-content">
             <div class="left-section">
-
-            <h2>DATE RANGE PICKER & SEARCH w/ FILTER SPACE</h2>
-
-                
-            </div>
-            
-            <div class="right-section">
-
-                
+                <div id="reportrange" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
+                    <i class="fa fa-calendar"></i>&nbsp;
+                    <span></span> <i class="fa fa-caret-down"></i>
+                </div>
             </div>
         </div>
     </header>
+
+    <script>
+        $(function() {
+            var today = moment(); // Current date
+            var start = moment().subtract(1, 'month').startOf('month'); // Default: Start of last month
+            var minYear = moment().subtract(3, 'years').startOf('year'); // Allow selection up to 3 years ago
+            
+            function cb(start, end) {
+                $('#reportrange span').html(start.format('MMMM D, YYYY') + ' - ' + end.format('MMMM D, YYYY'));
+            }
+
+            $('#reportrange').daterangepicker({
+                startDate: start,
+                endDate: today,
+                minDate: minYear, // Restrict selection to the past 3 years
+                maxDate: today, // Cannot pick beyond today
+                showDropdowns: true, // Allow picking months and years
+                ranges: {
+                    'This Year': [moment().startOf('year'), today],
+                    'Last Year': [moment().subtract(1, 'year').startOf('year'), moment().subtract(1, 'year').endOf('year')],
+                    'Last 3 Years': [moment().subtract(3, 'year').startOf('year'), today]
+                },
+                locale: {
+                    format: 'MMMM D, YYYY'
+                }
+            }, cb);
+
+            cb(start, today);
+        });
+    </script>
 </body>
 </html>
