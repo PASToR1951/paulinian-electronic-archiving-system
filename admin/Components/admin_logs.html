@@ -1,168 +1,108 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logs Page</title>
+    <title>System Logs</title>
     <link rel="stylesheet" href="css/admin_logs.css">
     <link rel="stylesheet" href="css/side_bar.css">
     <link rel="stylesheet" href="css/navbar_header.css">
+    <link rel="stylesheet" href="css/logs_layout.css">
 </head>
 <body>
-    <div id="side-bar"> 
-  
-    </div>
-  <div id="navbar-header"> 
+    <div id="side-bar"></div>
+    <div id="navbar-header"></div>
     
-    </div>
-
-<div class="logs-container">
-    
-    
-    
-    <div class="logs-header">   
+    <div class="logs-container">
         
-        <div class="header-controls">
-            <div class="search-box">
-                <input type="text" placeholder="Search Logs...">
-                <button>
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M14.712 13.361L10.722 9.371a6.5 6.5 0 11-9.19 9.19 6.5 6.5 0 019.19-9.19l3.99 3.99a1 1 0 01-1.414 1.414zM6.5 11.5a5 5 0 100-10 5 5 0 000 10z" fill="currentColor"/>
-                    </svg>
-                </button>
-            </div>
-            <div class="filter-box">
-                <button class="filter-icon">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M3 7H17V9H3V7ZM5 13H15V11H5V13ZM10 16L14 12H6L10 16Z" fill="currentColor"/>
-                    </svg>
-                </button>
-                <div class="filter-dropdown">
-                    <select>
-                        <option value="all">All</option>
-                        <option value="errors">Errors</option>
-                        <option value="warnings">Warnings</option>
-                        <option value="info">Info</option>
-                    </select>
-                </div>
-            </div>
+        <!-- User Logins Section -->
+        <div class="logs-section user-logins">
+            <h2>User Logins</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Timestamp</th>
+                        <th>User</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>2024-12-20 10:00:00</td>
+                        <td>JohnDoe</td>
+                        <td style="color: green;">Success</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Downloads Section -->
+        <div class="logs-section">
+            <h2>Downloads</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Timestamp</th>
+                        <th>User</th>
+                        <th>File</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>2024-12-20 10:05:00</td>
+                        <td>JaneDoe</td>
+                        <td>thesis.pdf</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Saved Documents Section -->
+        <div class="logs-section">
+            <h2>Saved Documents</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Timestamp</th>
+                        <th>User</th>
+                        <th>Document</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>2024-12-20 10:10:00</td>
+                        <td>JohnDoe</td>
+                        <td>research_paper.pdf</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>No</th>
-                <th>Timestamp</th>
-                <th>Level</th>
-                <th>Message</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>1</td>
-                <td>2024-12-20 10:00:00</td>
-                <td>
-                    
-                        
-                        <span style="color: blue;">Info</span>
-                    
-                </td>
-                <td>System started successfully.</td>
-            </tr>
-            <tr>
-                <td>2</td>
-                <td>2024-12-20 10:05:00</td>
-                <td>
-                    
-                        <span>DEBUG</span>
-                        
-                    
-                </td>
-                <td>Debugging issue with network connection.</td>
-            </tr>
-            <tr>
-                <td>3</td>
-                <td>2024-12-20 10:10:00</td>
-                <td>
-                    <span style="color: rgba(221, 221, 41, 0.979)">WARNING</span>
-                </td>
-                <td>Connection is unstable, retrying.</td>
-            </tr>
-            <tr>
-                <td>4</td>
-                <td>2024-12-20 10:15:00</td>
-                <td>
-                    <span style= "color: red;">ERROR</span>
-                </td>
-                <td>Network connection failed, error code 404.</td>
-            </tr>
-            <tr>
-                <td>5</td>
-                <td>2024-12-20 10:00:00</td>
-                <td>
-                    <span style="color: blue;">INFO</span>
-                </td>
-                <td>System started successfully.</td>
-            </tr>
-            <tr>
-                <td>6</td>
-                <td>2024-12-20 10:00:00</td>
-                <td>
-                    <span style="color: blue;">INFO</span>
-                </td>
-                <td>System started successfully.</td>
-            </tr>
-            <tr>
-                <td>7</td>
-                <td>2024-12-20 10:00:00</td>
-                <td>
-                    <span style="color: blue;">INFO</span>
-                </td>
-                <td>System started successfully.</td>
-            </tr>
-            <tr>
-                <td>8</td>
-                <td>2024-12-20 10:00:00</td>
-                <td>
-                     <span style="color: blue;">INFO</span>
-                </td>
-                <td>System started successfully.</td>
-            </tr>
-        </tbody>
-        
-    </table>
-    <div class="pagination">
-        <div class="entries-info">
-            Showing 1 to 8 of 16 entries
-        </div>
-        <div class="page-links">
-            <button class="prev-button" disabled>&lt; prev</button>
-            <a href="#" class="page-number active">1</a>
-            <a href="#" class="page-number">2</a>
-            <a href="#" class="page-number">3</a>
-            <a href="#" class="page-number">4</a>
-            <a href="#" class="page-number">5</a>
-            <button class="next-button">&gt; next</button>
-        </div>
-    </div>
-</div>
-<script>
-    fetch('./side_bar.html')
-      .then(response => response.text())
-      .then(data => {
-        document.getElementById('side-bar').innerHTML = data;
-      })
-      .catch(error => console.error('Error loading header:', error));
-  </script>
+    
 
-  <script>
-    fetch('./navbar_header.html')
-      .then(response => response.text())
-      .then(data => {
-        document.getElementById('navbar-header').innerHTML = data;
-      })
-      .catch(error => console.error('Error loading header:', error));
-  </script>
+    <script>
+        fetch('./side_bar.html')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById('side-bar').innerHTML = data;
+          })
+          .catch(error => console.error('Error loading sidebar:', error));
+    </script>
+    
+    <script>
+        fetch('./navbar_header.html')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById('navbar-header').innerHTML = data;
+          })
+          .catch(error => console.error('Error loading navbar:', error));
+    </script>
 </body>
 </html>

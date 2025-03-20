@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Permissions</title>
+    <link rel="stylesheet" href="css/document-permission.css">
+</head>
+<body>
+    <div id="side-bar"> 
+  
+    </div>
+  
+    <div id="navbar-header"> 
+    
+    </div>
+    
+    <div class="container">
+        <div class="tab-header">
+            <h1 class="title">List of Request</h1>
+            <div class="tabs">
+                <button class="tab active" data-tab="list-of-request" data-title="List of Request">List of Requests</button>
+                <button class="tab" data-tab="active-requests" data-title="Active Requests">Active Requests</button>
+                <button class="tab" data-tab="expired-requests" data-title="Expired Requests">Expired Requests</button>
+            </div>
+        </div>
+        <div class="list-content">
+            <div id="list-of-request" class="tab-content active">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User Email</th>
+                            <th>Doc-ID</th>
+                            <th>Doc Name</th>
+                            <th>Requested Duration</th>
+                            <th>Request Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>user1@example.com</td>
+                            <td>DOC123</td>
+                            <td>Report.pdf</td>
+                            <td>7 days</td>
+                            <td>2023-10-26</td>
+                            <td>
+                                <button>Approve</button>
+                                <button>Reject</button>
+                                <select>
+                                    <option value="7">7 days</option>
+                                    <option value="14">14 days</option>
+                                    <option value="30">30 days</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>user2@example.com</td>
+                            <td>DOC456</td>
+                            <td>Proposal.docx</td>
+                            <td>14 days</td>
+                            <td>2023-10-25</td>
+                            <td>
+                                <button>Approve</button>
+                                <button>Reject</button>
+                                <select>
+                                    <option value="7">7 days</option>
+                                    <option value="14">14 days</option>
+                                    <option value="30">30 days</option>
+                                </select>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="active-requests" class="tab-content">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User Email</th>
+                            <th>Doc-ID/Doc Name</th>
+                            <th>Granted Duration</th>
+                            <th>Approval Date</th>
+                            <th>Expiration Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>user1@example.com</td>
+                            <td>DOC123</td>
+                            <td>7 days</td>
+                            <td>2023-10-26</td>
+                            <td>2023-11-02</td>
+                            <td>Active</td>
+                        </tr>
+                        <tr>
+                            <td>user2@example.com</td>
+                            <td>Proposal.docx</td>
+                            <td>14 days</td>
+                            <td>2023-10-25</td>
+                            <td>2023-11-08</td>
+                            <td>Expiring Soon</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="expired-requests" class="tab-content">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User Email</th>
+                            <th>Doc-ID/Doc Name</th>
+                            <th>Granted Duration</th>
+                            <th>Approval Date</th>
+                            <th>Expiration Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>user3@example.com</td>
+                            <td>DOC789</td>
+                            <td>30 days</td>
+                            <td>2023-09-26</td>
+                            <td>2023-10-26</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script>
+        fetch('side_bar.html')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById('side-bar').innerHTML = data;
+          })
+          .catch(error => console.error('Error loading header:', error));
+      </script>
+    
+      <script>
+        fetch('navbar_header.html')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById('navbar-header').innerHTML = data;
+          })
+          .catch(error => console.error('Error loading header:', error));
+      </script>
+    <script src="js/document-permission.js"></script>
+</body>
+</html>

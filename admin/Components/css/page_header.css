@@ -1,8 +1,8 @@
 
 .page-header {
-    background-color: #fffff5;
+   
     margin-top: 20px; 
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    
     
 
 }
@@ -15,7 +15,7 @@
     max-width: 1200px; 
     margin: 0 auto; 
     height: 50px;
-    background-color:  #fffff5;;
+    background-color:  #93a1cf;;
 }
 
 

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Creation Layout</title>
+    <link rel="stylesheet" href="css/create-news-article.css">
+</head>
+<body>
+    <div id="side-bar"> 
+  
+    </div>
+  
+    <div id="navbar-header"> 
+    
+    </div>
+    <div class="container">
+        <div class="left-section">
+            <div class="form-group">
+                <label for="title">Title:</label>
+                <input type="text" id="title" placeholder="">
+            </div>
+            <div class="form-group inline-fields"> 
+                <div class="half-width">
+                    <label for="category">Category:</label>
+                    <select id="category">
+                        <option value="technology">Technology</option>
+                    </select>
+                </div>
+                <div class="half-width">
+                    <label for="tags">Tags:</label>
+                    <input type="text" id="tags" placeholder="">
+                </div>
+            </div>
+            <div class="form-group inline-fields"> 
+                <div class="half-width">
+                    <label for="author">Author:</label>
+                    <input type="text" id="author" placeholder="">
+                </div>
+                <div class="half-width">
+                    <label for="publish-date">Publish Date:</label>
+                    <div class="date-input">
+                        <input type="text" id="publish-date" placeholder="">
+                        <span class="calendar-icon"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="slug">Slug / URL:</label>
+                <input type="text" id="slug" placeholder="">
+            </div>
+            <div class="form-group">
+                <div class="content-editor">
+                    <div class="editor-toolbar">
+                        <span>Normal text</span>
+                        <span>B</span>
+                        <span>I</span>
+                        <span>U</span>
+                        <span>...</span>
+                    </div>
+                    <textarea id="content" placeholder=""></textarea>
+                    <div class="content-editor-footer">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="right-section">
+            <div class="preview-area">
+                <div class="feature-image">
+                    <span class="plus-sign">+</span>
+                </div>
+                <div class="preview-data">
+                    <div class="preview-title">Title: [Title Preview]</div>
+                    <div class="preview-author">Author: [Author Preview]</div>
+                    <div class="preview-date">Published Date: [Date Preview]</div>
+                </div>
+                <div class="preview-source">Source: https://preview.app/</div>
+            </div>
+            <div class="actions">
+                <button class="preview-btn">Preview</button>
+                <button class="publish-btn">Publish</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        fetch('./side_bar.html')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById('side-bar').innerHTML = data;
+          })
+          .catch(error => console.error('Error loading header:', error));
+      </script>
+    
+      <script>
+        fetch('./navbar_header.html')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById('navbar-header').innerHTML = data;
+          })
+          .catch(error => console.error('Error loading header:', error));
+      </script>
+</body>
+</html>

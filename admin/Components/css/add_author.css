@@ -5,7 +5,7 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    background-color: #f4f4f4;
+    background-color: #fffff5;
     color: #333;
 }
 
@@ -16,13 +16,14 @@ h2 {
 }
 
 .container {
-    width: 90%;
+    width: 1200px;
     max-width: 1200px;
-    margin: 20px auto;
-    padding: 20px;
-    background-color: #fff;
+    margin: 40px auto;
+    
+    background-color: #fffff5;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     border-radius: 8px;
+    height: 75vh;
 }
 
 #page-header {
@@ -42,7 +43,7 @@ h2 {
 }
 
 .add-author {
-    margin-bottom: 20px;
+    margin: 20px;
 }
 
 .add-author .author-details {
@@ -125,7 +126,7 @@ h2 {
 }
 
 .author-list {
-    margin-top: 20px;
+    margin: 20px;
 }
 
 .author-list table {
@@ -156,19 +157,16 @@ h2 {
     border-radius: 4px;
 }
 /* Default disabled button (greyed out) */
-.read-document-container{
-    
-}
+
 
 .disabled-button {
     background-color: #b0b0b0;
-    color: rgb(150, 209, 54);
+    color: white;
     padding: 10px 15px;
     border: none;
     border-radius: 5px;
     cursor: not-allowed;
-    transition: background-color 0.3s ease;height: 20px;
-    height: 300px;
+    transition: background-color 0.3s ease;
 }
 
 /* Activated button (when a PDF is uploaded) */

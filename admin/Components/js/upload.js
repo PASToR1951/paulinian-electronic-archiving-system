@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
 
                 const result = await response.json();
-                console.log("📌 Server response:", result);
+                console.log(" Server response:", result);
 
                 if (response.ok) {
                     alert(result.message);
@@ -56,14 +56,14 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // ✅ FIXED: Enable "Read Document" button when a PDF is selected
+    // FIXED: Enable "Read Document" button when a PDF is selected
     fileInput.addEventListener("change", function (event) {
         const file = event.target.files[0];
 
         if (file && file.type === "application/pdf") {
             pdfURL = URL.createObjectURL(file); // Generate a URL for the file
 
-            // ✅ Ensure the button is properly activated
+            // Ensure the button is properly activated
             readButton.disabled = false;
             readButton.classList.remove("disabled-button");
             readButton.classList.add("active-button");
@@ -76,7 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // ✅ FIXED: Open the PDF in a new tab when clicking "Read Document"
+    // FIXED: Open the PDF in a new tab when clicking "Read Document"
     readButton.addEventListener("click", () => {
         if (pdfURL) {
             window.open(pdfURL, "_blank");

@@ -12,12 +12,10 @@
 <body>
     <div id="side-bar"></div>
     <div id="navbar-header"></div>
+    
 
     <div class="container">
-        <div id="page-header">
-            <h1>St Paul University Dumaguete</h1>
-            <p>CARITAS VERITAS SCIENTIA</p>
-        </div>
+        
 
         <div class="add-author">
             <h2>Add Author</h2>
@@ -105,14 +103,7 @@
         </div>
     </div>
 
-    <script>
-        fetch('./page_header.html')
-          .then(response => response.text())
-          .then(data => {
-            document.getElementById('page-header').innerHTML = data;
-          })
-          .catch(error => console.error('Error loading header:', error));
-      </script>
+    
     
       <script>
         fetch('./side_bar.html')

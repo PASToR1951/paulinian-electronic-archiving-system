@@ -1,7 +1,7 @@
 // denosrc/main.ts (or your main server file)
 import { serve } from "https://deno.land/std@0.217.0/http/server.ts";
 // Import other modules as needed (e.g., your controllers)
-import { addAuthor } from "./controllers/author.ts"; // If you have an author controller
+import { addAuthor } from "./controllers/authors.ts"; // If you have an author controller
 
 async function handleRequest(request: Request): Promise<Response> {
   const url = new URL(request.url);
