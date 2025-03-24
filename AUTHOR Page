@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Author Profile</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2980b9;
+            --text-color: #333;
+            --light-gray: #f5f5f5;
+            --medium-gray: #e0e0e0;
+            --dark-gray: #777;
+            --success-color: #27ae60;
+            --error-color: #e74c3c;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            color: var(--text-color);
+            background-color: var(--light-gray);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+        
+        header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .profile-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .view-mode, .edit-mode {
+            padding: 30px;
+        }
+        
+        .edit-mode {
+            display: none;
+        }
+        
+        .profile-header {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .profile-picture {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            background-color: var(--medium-gray);
+            border: 3px solid var(--primary-color);
+        }
+        
+        .profile-picture-placeholder {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background-color: var(--medium-gray);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            color: white;
+            border: 3px solid var(--primary-color);
+        }
+        
+        .profile-name-details {
+            flex: 1;
+        }
+        
+        h1 {
+            font-size: 32px;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+        
+        .profile-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .meta-item i {
+            color: var(--dark-gray);
+        }
+        
+        .section {
+            margin-bottom: 25px;
+        }
+        
+        .section-title {
+            font-size: 20px;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--medium-gray);
+            padding-bottom: 5px;
+        }
+        
+        .bio-text {
+            line-height: 1.8;
+        }
+        
+        .contact-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .contact-item i {
+            color: var(--primary-color);
+            font-size: 20px;
+        }
+        
+        .profile-metadata {
+            font-size: 14px;
+            color: var(--dark-gray);
+            margin-top: 30px;
+            text-align: right;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .edit-btn {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .edit-btn:hover {
+            background-color: var(--secondary-color);
+        }
+        
+        .save-btn {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        .save-btn:hover {
+            background-color: #219a52;
+        }
+        
+        .cancel-btn {
+            background-color: var(--medium-gray);
+            color: var(--text-color);
+        }
+        
+        .cancel-btn:hover {
+            background-color: #d0d0d0;
+        }
+        
+        form {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        label {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        input, textarea {
+            padding: 10px;
+            border: 1px solid var(--medium-gray);
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        
+        .notification {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .file-input-container {
+            position: relative;
+            margin-top: 10px;
+        }
+        
+        .file-input-label {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .file-input-label:hover {
+            background-color: var(--secondary-color);
+        }
+        
+        #profile-picture-input {
+            opacity: 0;
+            position: absolute;
+            z-index: -1;
+        }
+        
+        .file-name {
+            margin-left: 10px;
+            font-size: 14px;
+        }
+        
+        .preview-container {
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .image-preview {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary-color);
+        }
+        
+        /* Tablet Styles */
+        @media (min-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        /* Desktop Styles */
+        @media (min-width: 992px) {
+            .form-row {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
+        
+        /* Mobile Adjustments */
+        @media (max-width: 767px) {
+            .profile-header {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            
+            .profile-picture, .profile-picture-placeholder {
+                margin-bottom: 20px;
+            }
+            
+            .profile-meta {
+                justify-content: center;
+            }
+            
+            .contact-info {
+                flex-direction: column;
+            }
+            
+            .action-buttons {
+                justify-content: center;
+            }
+            
+            .profile-metadata {
+                text-align: center;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">AuthorHub</div>
+        </div>
+    </header>
+    
+    <main class="container">
+        <div id="notification" class="notification"></div>
+        
+        <div class="profile-container">
+            <!-- View Mode -->
+            <div class="view-mode" id="view-mode">
+                <div class="profile-header">
+                    <div id="profile-image-container">
+                        <!-- Will be populated by JS -->
+                    </div>
+                    
+                    <div class="profile-name-details">
+                        <h1 id="author-name">Loading...</h1>
+                        <div class="profile-meta">
+                            <div class="meta-item">
+                                <i class="fas fa-building"></i>
+                                <span id="author-affiliation">Loading...</span>
+                            </div>
+                            <div class="meta-item">
+                                <i class="fas fa-graduation-cap"></i>
+                                <span id="author-department">Loading...</span>
+                            </div>
+                            <div class="meta-item" id="graduation-year-container">
+                                <i class="fas fa-calendar"></i>
+                                <span id="author-graduation">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section" id="bio-section">
+                    <h2 class="section-title">Biography</h2>
+                    <p class="bio-text" id="author-bio">Loading...</p>
+                </div>
+                
+                <div class="section">
+                    <h2 class="section-title">Contact Information</h2>
+                    <div class="contact-info" id="contact-info">
+                        <!-- Will be populated by JS -->
+                    </div>
+                </div>
+                
+                <div class="profile-metadata">
+                    <div>Author ID: <span id="author-id">Loading...</span></div>
+                    <div>Created: <span id="created-at">Loading...</span></div>
+                    <div>Last Updated: <span id="updated-at">Loading...</span></div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="edit-btn" id="edit-button">
+                        <i class="fas fa-edit"></i> Edit Profile
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Edit Mode -->
+            <div class="edit-mode" id="edit-mode">
+                <h2 class="section-title">Edit Profile</h2>
+                
+                <form id="profile-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="full-name">Full Name*</label>
+                            <input type="text" id="full-name" name="full_name" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="affiliation">Affiliation*</label>
+                            <input type="text" id="affiliation" name="affiliation" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="department">Department*</label>
+                            <input type="text" id="department" name="department" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="year-of-graduation">Year of Graduation</label>
+                            <input type="number" id="year-of-graduation" name="year_of_graduation" min="1900" max="2100">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="linkedin">LinkedIn URL</label>
+                            <input type="url" id="linkedin" name="linkedin" placeholder="https://linkedin.com/in/username">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="orcid-id">ORCID ID</label>
+                        <input type="text" id="orcid-id" name="orcid_id" placeholder="0000-0000-0000-0000">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="bio">Biography</label>
+                        <textarea id="bio" name="bio"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="profile-picture-input">Profile Picture</label>
+                        <div class="file-input-container">
+                            <label for="profile-picture-input" class="file-input-label">
+                                <i class="fas fa-upload"></i> Choose File
+                            </label>
+                            <input type="file" id="profile-picture-input" name="profile_picture" accept="image/*">
+                            <span class="file-name" id="file-name">No file chosen</span>
+                        </div>
+                        <div class="preview-container" id="preview-container">
+                            <img src="" alt="Preview" class="image-preview" id="image-preview">
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button type="button" class="cancel-btn" id="cancel-button">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button type="submit" class="save-btn" id="save-button">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        // Sample author data (in a real app, this would come from a database)
+        let authorData = {
+            author_id: "550e8400-e29b-41d4-a716-446655440000",
+            full_name: "Dr. Jane Smith",
+            affiliation: "Stanford University",
+            department: "Computer Science",
+            year_of_graduation: 2015,
+            email: "jane.smith@example.com",
+            linkedin: "https://linkedin.com/in/janesmith",
+            orcid_id: "0000-0002-1825-0097",
+            bio: "Dr. Jane Smith is a professor of Computer Science specializing in artificial intelligence and machine learning. She has published over 50 papers in top-tier conferences and journals. Her current research focuses on developing more explainable and ethical AI systems for healthcare applications.",
+            profile_picture: null, // Null for placeholder
+            created_at: "2023-01-15T08:30:00Z",
+            updated_at: "2023-03-20T14:45:00Z"
+        };
+        
+        // DOM Elements
+        const viewMode = document.getElementById('view-mode');
+        const editMode = document.getElementById('edit-mode');
+        const editButton = document.getElementById('edit-button');
+        const cancelButton = document.getElementById('cancel-button');
+        const saveButton = document.getElementById('save-button');
+        const profileForm = document.getElementById('profile-form');
+        const notification = document.getElementById('notification');
+        const profileImageContainer = document.getElementById('profile-image-container');
+        const profilePictureInput = document.getElementById('profile-picture-input');
+        const fileName = document.getElementById('file-name');
+        const previewContainer = document.getElementById('preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        
+        // Initialize the profile view
+        function initializeProfile() {
+            // Populate view mode with author data
+            document.getElementById('author-name').textContent = authorData.full_name;
+            document.getElementById('author-affiliation').textContent = authorData.affiliation;
+            document.getElementById('author-department').textContent = authorData.department;
+            
+            // Show graduation year if available
+            const graduationYearContainer = document.getElementById('graduation-year-container');
+            if (authorData.year_of_graduation) {
+                document.getElementById('author-graduation').textContent = `Class of ${authorData.year_of_graduation}`;
+                graduationYearContainer.style.display = 'flex';
+            } else {
+                graduationYearContainer.style.display = 'none';
+            }
+            
+            // Bio section
+            const bioSection = document.getElementById('bio-section');
+            if (authorData.bio) {
+                document.getElementById('author-bio').textContent = authorData.bio;
+                bioSection.style.display = 'block';
+            } else {
+                bioSection.style.display = 'none';
+            }
+            
+            // Profile picture
+            if (authorData.profile_picture) {
+                profileImageContainer.innerHTML = `
+                    <img src="${authorData.profile_picture}" alt="${authorData.full_name}" class="profile-picture">
+                `;
+            } else {
+                // Create initials for placeholder
+                const initials = authorData.full_name
+                    .split(' ')
+                    .map(n => n[0])
+                    .join('')
+                    .substring(0, 2)
+                    .toUpperCase();
+                
+                profileImageContainer.innerHTML = `
+                    <div class="profile-picture-placeholder">
+                        ${initials}
+                    </div>
+                `;
+            }
+            
+            // Contact information
+            const contactInfo = document.getElementById('contact-info');
+            contactInfo.innerHTML = '';
+            
+            if (authorData.email) {
+                contactInfo.innerHTML += `
+                    <div class="contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <a href="mailto:${authorData.email}">${authorData.email}</a>
+                    </div>
+                `;
+            }
+            
+            if (authorData.linkedin) {
+                contactInfo.innerHTML += `
+                    <div class="contact-item">
+                        <i class="fab fa-linkedin"></i>
+                        <a href="${authorData.linkedin}" target="_blank">LinkedIn Profile</a>
+                    </div>
+                `;
+            }
+            
+            if (authorData.orcid_id) {
+                contactInfo.innerHTML += `
+                    <div class="contact-item">
+                        <i class="fas fa-id-card"></i>
+                        <a href="https://orcid.org/${authorData.orcid_id}" target="_blank">ORCID: ${authorData.orcid_id}</a>
+                    </div>
+                `;
+            }
+            
+            // Metadata
+            document.getElementById('author-id').textContent = authorData.author_id;
+            document.getElementById('created-at').textContent = formatDate(authorData.created_at);
+            document.getElementById('updated-at').textContent = formatDate(authorData.updated_at);
+            
+            // Populate form fields for edit mode
+            document.getElementById('full-name').value = authorData.full_name;
+            document.getElementById('affiliation').value = authorData.affiliation;
+            document.getElementById('department').value = authorData.department;
+            document.getElementById('year-of-graduation').value = authorData.year_of_graduation || '';
+            document.getElementById('email').value = authorData.email || '';
+            document.getElementById('linkedin').value = authorData.linkedin || '';
+            document.getElementById('orcid-id').value = authorData.orcid_id || '';
+            document.getElementById('bio').value = authorData.bio || '';
+        }
+        
+        // Format date for display
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString();
+        }
+        
+        // Show notification
+        function showNotification(message, type) {
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+        
+        // Event Listeners
+        editButton.addEventListener('click', () => {
+            viewMode.style.display = 'none';
+            editMode.style.display = 'block';
+        });
+        
+        cancelButton.addEventListener('click', () => {
+            viewMode.style.display = 'block';
+            editMode.style.display = 'none';
+            initializeProfile(); // Reset form values
+        });
+        
+        profileForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            // In a real app, you would send this data to a server
+            authorData = {
+                ...authorData,
+                full_name: document.getElementById('full-name').value,
+                affiliation: document.getElementById('affiliation').value,
+                department: document.getElementById('department').value,
+                year_of_graduation: document.getElementById('year-of-graduation').value || null,
+                email: document.getElementById('email').value || null,
+                linkedin: document.getElementById('linkedin').value || null,
+                orcid_id: document.getElementById('orcid-id').value || null,
+                bio: document.getElementById('bio').value || null,
+                // In a real app, you would handle file upload separately
+                updated_at: new Date().toISOString()
+            };
+            
+            initializeProfile();
+            viewMode.style.display = 'block';
+            editMode.style.display = 'none';
+            
+            showNotification('Profile updated successfully!', 'success');
+        });
+        
+        profilePictureInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                fileName.textContent = file.name;
+                
+                // Preview image
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    imagePreview.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                    
+                    // In a real app, you would handle file upload to a server
+                    // and get back a URL to store in authorData.profile_picture
+                };
+                reader.readAsDataURL(file);
+            } else {
+                fileName.textContent = 'No file chosen';
+                previewContainer.style.display = 'none';
+            }
+        });
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', initializeProfile);
+    </script>
+</body>
+</html>
