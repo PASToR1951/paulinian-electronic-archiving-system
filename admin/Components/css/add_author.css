@@ -19,27 +19,11 @@ h2 {
     width: 1200px;
     max-width: 1200px;
     margin: 40px auto;
-    
     background-color: #fffff5;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     border-radius: 8px;
     height: 75vh;
-}
-
-#page-header {
-    width: 100%;
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-#page-header h1 {
-    font-size: 2.5em;
-    color: #2c3e50;
-}
-
-#page-header p {
-    font-size: 1.2em;
-    color: #7f8c8d;
+    padding: 20px;
 }
 
 .add-author {
@@ -66,6 +50,7 @@ h2 {
     object-fit: cover;
     border-radius: 4px;
     margin-bottom: 10px;
+    border: 2px solid #ccc;
 }
 
 .add-author .upload-button {
@@ -98,10 +83,14 @@ h2 {
     display: block;
     margin-bottom: 5px;
     color: #555;
-    margin-top: 10px;
+    margin-top: 0px;
 }
 
-.add-author .author-form input[type="text"] {
+.add-author .author-form input[type="text"],
+.add-author .author-form input[type="email"],
+.add-author .author-form input[type="url"],
+.add-author .author-form input[type="number"],
+.add-author .author-form textarea {
     width: 70%;
     padding: 10px;
     border: 1px solid #ccc;
@@ -109,9 +98,16 @@ h2 {
     font-size: 1em;
 }
 
+.add-author .author-form textarea {
+    resize: vertical;
+    height: 80px;
+}
+
 .add-author .add-button {
     background-color: #27ae60;
-    color: #000000;
+    
+    
+    color: #ffffff;
     padding: 10px 20px;
     border: none;
     border-radius: 6px;
@@ -119,6 +115,10 @@ h2 {
     transition: background-color 0.3s ease;
     height: 50px;
     width: 170px;
+    font-size: 1em;
+    font-weight: bold;
+    
+
 }
 
 .add-author .add-button:hover {
@@ -134,7 +134,8 @@ h2 {
     border-collapse: collapse;
 }
 
-.author-list th, .author-list td {
+.author-list th, 
+.author-list td {
     border: 1px solid #ddd;
     padding: 12px;
     text-align: left;
@@ -155,26 +156,54 @@ h2 {
     height: 60px;
     object-fit: cover;
     border-radius: 4px;
+    border: 1px solid #ccc;
 }
-/* Default disabled button (greyed out) */
 
-
-.disabled-button {
-    background-color: #b0b0b0;
+/* Button styles */
+.edit-button {
+    background-color: #3498db;
     color: white;
-    padding: 10px 15px;
+    padding: 8px 12px;
     border: none;
     border-radius: 5px;
-    cursor: not-allowed;
+    cursor: pointer;
     transition: background-color 0.3s ease;
 }
 
-/* Activated button (when a PDF is uploaded) */
-.active-button {
-    background-color: #27ae60;
-    cursor: pointer;
+.edit-button:hover {
+    background-color: #2980b9;
 }
 
-.active-button:hover {
-    background-color: #219150;
+/* Responsive Design (Preserving Original Layout) */
+@media (max-width: 1024px) {
+    .add-author .author-details {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .add-author .author-form {
+        width: 100%;
+    }
+
+    .add-author .author-form .form-group {
+        flex: 1 1 100%;
+    }
+
+    .add-author .add-button {
+        width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+
+    .author-list table {
+        font-size: 14px;
+    }
+
+    .add-author .author-form .form-group {
+        flex: 1 1 100%;
+    }
 }

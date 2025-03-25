@@ -12,11 +12,8 @@
 <body>
     <div id="side-bar"></div>
     <div id="navbar-header"></div>
-    
 
     <div class="container">
-        
-
         <div class="add-author">
             <h2>Add Author</h2>
             <div class="author-details">
@@ -27,18 +24,44 @@
                 </div>
                 <div class="author-form">
                     <div class="form-group">
-                        <label for="firstName">First Name:</label>
-                        <input type="text" id="firstName" placeholder="Enter first name">
+                        <label for="fullName">Full Name:</label>
+                        <input type="text" id="fullName" placeholder="Enter full name">
                     </div>
                     <div class="form-group">
-                        <label for="middleName">Middle Name:</label>
-                        <input type="text" id="middleName" placeholder="Enter middle name">
+                        <label for="affiliation">Affiliation:</label>
+                        <input type="text" id="affiliation" placeholder="Enter affiliation">
                     </div>
                     <div class="form-group">
-                        <label for="lastName">Last Name:</label>
-                        <input type="text" id="lastName" placeholder="Enter last name">
+                        <label for="department">Department:</label>
+                        <input type="text" id="department" placeholder="Enter department">
                     </div>
-                    <button class="add-button">Add Author</button>
+                    <div class="form-group">
+                        <label for="yearGraduation">Year of Graduation:</label>
+                        <input type="number" id="yearGraduation" placeholder="Enter graduation year">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email:</label>
+                        <input type="email" id="email" placeholder="Enter email">
+                    </div>
+                    <div class="form-group">
+                        <label for="linkedin">LinkedIn:</label>
+                        <input type="url" id="linkedin" placeholder="Enter LinkedIn profile URL">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bio">Biography:</label>
+                        <textarea id="bio" placeholder="Enter author bio"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="orcid">ORCID ID:</label>
+                        <input type="text" id="orcid" placeholder="Enter ORCID ID">
+
+                        <button class="add-button">Add Author</button>
+
+                        
+                    </div>
+                    
+                    
                 </div>
             </div>
         </div>
@@ -49,78 +72,82 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Cover</th>
-                            <th>First Name</th>
-                            <th>Middle Name</th>
-                            <th>Last Name</th>
-                            <th>Actions</th> <!-- New column for actions -->
+                            <th>Profile</th>
+                            <th>Full Name</th>
+                            <th>Affiliation</th>
+                            <th>Department</th>
+                            <th>Graduation Year</th>
+                            <th>Email</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td><img src="cover1.jpg" alt="Cover"></td>
-                            <td>John</td>
-                            <td>Doe</td>
-                            <td>Smith</td>
-                            <td>
-                                <button class="edit-button">Edit</button>
-                                 
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><img src="cover2.jpg" alt="Cover"></td>
-                            <td>Jane</td>
-                            <td></td>
-                            <td>Doe</td>
-                            <td>
-                                <button class="edit-button">Edit</button>
-                                
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><img src="cover3.jpg" alt="Cover"></td>
-                            <td>Michael</td>
-                            <td>James</td>
-                            <td>Brown</td>
-                            <td>
-                                <button class="edit-button">Edit</button>
-                                
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><img src="cover4.jpg" alt="Cover"></td>
-                            <td>Emily</td>
-                            <td>Ann</td>
-                            <td>White</td>
-                            <td>
-                                <button class="edit-button">Edit</button>
-                                
-                            </td>
-                        </tr>
+                    <tbody id="authorTableBody">
+                        <!-- Data will be dynamically loaded here -->
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    
-    
-      <script>
+    <script>
+        // Load sidebar and navbar
         fetch('./side_bar.html')
           .then(response => response.text())
           .then(data => {
             document.getElementById('side-bar').innerHTML = data;
           })
-          .catch(error => console.error('Error loading header:', error));
-      </script>
-    
-      <script>
+          .catch(error => console.error('Error loading sidebar:', error));
+
         fetch('./navbar_header.html')
           .then(response => response.text())
           .then(data => {
             document.getElementById('navbar-header').innerHTML = data;
           })
-          .catch(error => console.error('Error loading header:', error));
-      </script>
+          .catch(error => console.error('Error loading navbar:', error));
+
+        // Fetch authors from the database (mock function)
+        function loadAuthors() {
+            const authors = [
+                {
+                    profile_picture: 'cover1.jpg',
+                    full_name: 'John Doe',
+                    affiliation: 'XYZ University',
+                    department: 'Computer Science',
+                    year_of_graduation: 2022,
+                    email: 'johndoe@example.com'
+                },
+                {
+                    profile_picture: 'cover2.jpg',
+                    full_name: 'Jane Smith',
+                    affiliation: 'ABC College',
+                    department: 'Biology',
+                    year_of_graduation: 2021,
+                    email: 'janesmith@example.com'
+                }
+            ];
+
+            const tableBody = document.getElementById('authorTableBody');
+            tableBody.innerHTML = ''; // Clear existing rows
+
+            authors.forEach(author => {
+                const row = `
+                    <tr>
+                        <td><img src="${author.profile_picture}" alt="Profile" class="profile-img"></td>
+                        <td>${author.full_name}</td>
+                        <td>${author.affiliation}</td>
+                        <td>${author.department}</td>
+                        <td>${author.year_of_graduation || 'N/A'}</td>
+                        <td>${author.email || 'N/A'}</td>
+                        <td>
+                            <button class="edit-button">Edit</button>
+                        </td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', loadAuthors);
+    </script>
 </body>
 </html>

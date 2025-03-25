@@ -73,7 +73,9 @@
   },
   "redirects": {
     "https://deno.land/x/dotenv/load.ts": "https://deno.land/x/dotenv@v3.2.2/load.ts",
-    "https://deno.land/x/oak/mod.ts": "https://deno.land/x/oak@v17.1.4/mod.ts"
+    "https://deno.land/x/oak/mod.ts": "https://deno.land/x/oak@v17.1.4/mod.ts",
+    "https://esm.sh/@types/react@~19.0.7/jsx-runtime.d.ts": "https://esm.sh/@types/react@19.0.12/jsx-runtime.d.ts",
+    "https://esm.sh/react/jsx-runtime": "https://esm.sh/react@19.0.0/jsx-runtime"
   },
   "remote": {
     "https://deno.land/std@0.131.0/_util/assert.ts": "e94f2eb37cebd7f199952e242c77654e43333c1ac4c5c700e929ea3aa5489f74",
@@ -479,6 +481,8 @@
     "https://deno.land/x/postgres@v0.19.3/query/transaction.ts": "8f4eef68f8e9b4be216199404315e6e08fe1fe98afb2e640bffd077662f79678",
     "https://deno.land/x/postgres@v0.19.3/utils/deferred.ts": "5420531adb6c3ea29ca8aac57b9b59bd3e4b9a938a4996bbd0947a858f611080",
     "https://deno.land/x/postgres@v0.19.3/utils/utils.ts": "ca47193ea03ff5b585e487a06f106d367e509263a960b787197ce0c03113a738",
+    "https://esm.sh/react@19.0.0/denonext/jsx-runtime.mjs": "643b749fa9666fbf73619a99fd708722edb4acaa34c8cea7be783a3432367780",
+    "https://esm.sh/react@19.0.0/jsx-runtime": "491d2a6b0632208ebc307680e900d5c3246bf6738f3b1ef028a72c94e8b53a62",
     "https://raw.githubusercontent.com/jshttp/mime-db/v1.52.0/db.json": "85c8e1ba609079947c8df83c092900ab0226e1d7b60e5e7105fb7dd701833263"
   },
   "workspace": {
