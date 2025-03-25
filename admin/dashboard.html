@@ -8,7 +8,8 @@
   <link rel="stylesheet" href="/admin/components/css/page_header.css">
   <link rel="stylesheet" href="/admin/components/css/side_bar.css">
   <link rel="stylesheet" href="/admin/components/css/navbar_header.css">
-
+  <link rel="stylesheet" href="/admin/Components/css/chart.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 </head>
 <body>
@@ -212,15 +213,149 @@
         </div>
       </div>
       
-      <div class="column"><!--Mark-->
-        <div class="view-graph">
-          <h2>Charts | Graph for Views w/ Filter (Daily,Weekly,Monthly) </h2>
-          <div class="">
-            
-          </div>
-
+      <div class="container">
+        <div class="chart-container">
+            <div class="chart-header">
+                <h2>Total Visitors</h2>
+                <div>
+                    <button class="active" onclick="updateChart('last3months')">Last 3 months</button>
+                    <button onclick="updateChart('last30days')">Last 30 days</button>
+                    <button onclick="updateChart('last7days')">Last 7 days</button>
+                </div>
+            </div>
+            <canvas id="visitorChart"></canvas>
         </div>
     </div>
+    <script>
+        // Sample data (replace with your actual data)
+        const data = {
+            labels: ['Apr 4', 'Apr 10', 'Apr 16', 'Apr 22', 'Apr 28', 'May 4', 'May 10', 'May 16', 'May 22', 'May 29', 'Jun 4', 'Jun 10', 'Jun 16', 'Jun 22', 'Jun 30'],
+            userVisits: [100, 120, 150, 180, 200, 220, 250, 280, 300, 320, 350, 380, 400, 420, 450],
+            guestVisits: [50, 60, 75, 90, 100, 110, 125, 140, 150, 160, 175, 190, 200, 210, 225]
+        };
+
+        let myChart;
+
+        function createChart(labels, userVisits, guestVisits) {
+            const ctx = document.getElementById('visitorChart').getContext('2d');
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'User Visits',
+                        data: userVisits,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)', // Blue fill
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1,
+                        fill: true
+                    }, {
+                        label: 'Guest Visits',
+                        data: guestVisits,
+                        backgroundColor: 'rgba(100, 220, 100, 0.2)', // Green fill
+                        borderColor: 'rgba(100, 220, 100, 1)',
+                        borderWidth: 1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    devicePixelRatio: window.devicePixelRatio,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#000000'
+                            },
+                            grid: {
+                                color: 'rgb(210, 210, 210)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#000000'
+                            },
+                            grid: {
+                                color: 'rgb(210, 210, 210)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                labelColor: function(context) {
+                                     if (context.datasetIndex === 0) {
+                                        return {
+                                            borderColor: 'rgba(75, 192, 192, 1)',
+                                            backgroundColor: 'rgba(75, 192, 192, 1)'
+                                        };
+                                    } else {
+                                         return {
+                                            borderColor: 'rgba(100, 220, 100, 1)',
+                                            backgroundColor: 'rgba(100, 220, 100, 1)'
+                                        };
+                                    }
+                                },
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                     if (context.parsed.y !== null) {
+                                        label += context.parsed.y + ' Visits';
+                                    }
+                                    return label;
+                                }
+                            },
+                            backgroundColor: '#1e1e1e',
+                            titleColor: '#e0e0e0',
+                            bodyColor: '#e0e0e0',
+                            borderColor: '#4a5568',
+                            borderWidth: 1,
+                        },
+                        legend: {
+                            labels: {
+                                color: '#000000'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChart(period) {
+            let labels, userVisits, guestVisits;
+            if (period === 'last30days') {
+                labels = data.labels.slice(-10); // Adjust as needed
+                userVisits = data.userVisits.slice(-10);
+                guestVisits = data.guestVisits.slice(-10);
+            } else if (period === 'last7days') {
+                labels = data.labels.slice(-7); // Adjust as needed
+                userVisits = data.userVisits.slice(-7);
+                guestVisits = data.guestVisits.slice(-7);
+            } else {
+                labels = data.labels;
+                userVisits = data.userVisits;
+                guestVisits = data.guestVisits;
+            }
+
+            if (myChart) {
+                myChart.destroy();
+            }
+            createChart(labels, userVisits, guestVisits);
+
+            // Update button active state
+            const buttons = document.querySelectorAll('.chart-header button');
+            buttons.forEach(button => button.classList.remove('active'));
+            document.querySelector(`.chart-header button[onclick="updateChart('${period}')"]`).classList.add('active');
+        }
+
+        // Initial chart creation
+        createChart(data.labels, data.userVisits, data.guestVisits);
+    </script>
 
     </div><!--Mark-->
 
