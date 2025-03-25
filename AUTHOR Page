@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils'; // Utility for combining class names
 import { motion, AnimatePresence } from 'framer-motion'; // For animations
 
 // Define Publication Category Type
-type PublicationCategory = 'Thesis' | 'Dissertation' | 'Conference' | 'Journal';
+type PublicationCategory = 'Thesis' | 'Dissertation' | 'Confluence' | 'Synergy';
 
 // Define the Publication data structure
 interface Publication {
@@ -54,12 +54,12 @@ const sampleAuthor: Author = {
     bio: "Dr. Evelyn Reed is a leading researcher in the field of exoplanetary science. Her work focuses on the atmospheric composition of distant worlds and the search for habitable environments beyond our solar system. She is passionate about science communication and mentoring the next generation of astronomers. Her recent publications explore novel techniques for detecting biosignatures in exoplanet atmospheres.",
     profile_picture: undefined,
     publications: [
-        { id: "pub1", title: "Atmospheric Characterization of GJ 1214b", category: "Journal", year: 2015, link: "https://example.com/journal1" },
-        { id: "pub2", title: "Searching for Biosignatures on TRAPPIST-1e", category: "Journal", year: 2018 },
-        { id: "pub3", title: "Novel Techniques in Exoplanet Detection", category: "Conference", year: 2019, link: "https://example.com/conf1" },
+        { id: "pub1", title: "Atmospheric Characterization of GJ 1214b", category: "Synergy", year: 2015, link: "https://example.com/Synergy1" },
+        { id: "pub2", title: "Searching for Biosignatures on TRAPPIST-1e", category: "Synergy", year: 2018 },
+        { id: "pub3", title: "Novel Techniques in Exoplanet Detection", category: "Confluence", year: 2019, link: "https://example.com/conf1" },
         { id: "pub4", title: "The Evolution of Planetary Atmospheres", category: "Dissertation", year: 2010 },
         { id: "pub5", title: "Early Universe Cosmology Models", category: "Thesis", year: 2006 },
-        { id: "pub6", title: "High-Contrast Imaging for Exoplanet Discovery", category: "Conference", year: 2021 },
+        { id: "pub6", title: "High-Contrast Imaging for Exoplanet Discovery", category: "Confluence", year: 2021 },
     ],
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -83,8 +83,8 @@ const groupPublicationsByCategory = (publications: Publication[]) => {
 const categoryIcons: Record<PublicationCategory, React.ElementType> = {
     Thesis: ScrollText,
     Dissertation: BookOpen,
-    Conference: Users,
-    Journal: Library,
+    Confluence: Users,
+    Synergy: Library,
 };
 
 const AuthorProfilePage: NextPage = () => {
@@ -146,7 +146,7 @@ const AuthorProfilePage: NextPage = () => {
             }
 
             // Validate each publication object within the array
-            const validCategories: PublicationCategory[] = ['Thesis', 'Dissertation', 'Conference', 'Journal'];
+            const validCategories: PublicationCategory[] = ['Thesis', 'Dissertation', 'Confluence', 'Synergy'];
             parsedPublications.forEach((pub: any, index: number) => {
                 if (typeof pub !== 'object' || pub === null) {
                     throw new Error(`Item at index ${index} is not a valid object.`);
