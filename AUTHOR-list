@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -7,23 +7,23 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Edit, HelpCircle } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-
 
 interface Author {
     id: string;
     name: string;
     department: string;
-    email: string;
     affiliation: string;
     orcid: string;
     biography: string;
     profilePicture: string;
     gender: 'M' | 'F';
+    email: string;
 }
 
 const generateSpudId = (gender: 'M' | 'F') => {
-    const randomDigits = Math.floor(Math.random() * 1000000000); // 9 digits
+    const randomDigits = Math.floor(Math.random() * 1000000000);
     const paddedDigits = String(randomDigits).padStart(9, '0');
     return `SPUD-${paddedDigits}-${gender}`;
 };
@@ -38,47 +38,84 @@ const validAffiliations = [
     "International"
 ];
 
+const validDepartments = [
+    "College of Nursing",
+    "College of Business & Information Technology",
+    "College of Arts, Sciences & Education",
+    "Basic Education"
+];
+
+const formatOrcid = (value: string) => {
+    const numericValue = value.replace(/[^0-9]/g, ''); // Remove non-numeric
+    const maxLength = 16;
+    const truncatedValue = numericValue.slice(0, maxLength); // Truncate to max length
+
+    let formattedOrcid = '';
+    for (let i = 0; i < truncatedValue.length; i++) {
+        formattedOrcid += truncatedValue[i];
+        if ((i + 1) % 4 === 0 && i + 1 !== truncatedValue.length) {
+            formattedOrcid += '-';
+        }
+    }
+    return formattedOrcid;
+};
+
 const AuthorCard: React.FC<{ author: Author; onUpdate: (updatedAuthor: Author) => void }> = ({ author, onUpdate }) => {
     const [open, setOpen] = useState(false);
     const [editedName, setEditedName] = useState(author.name);
     const [editedPicture, setEditedPicture] = useState(author.profilePicture);
     const [editedDepartment, setEditedDepartment] = useState(author.department);
-    const [editedEmail, setEditedEmail] = useState(author.email);
     const [editedAffiliation, setEditedAffiliation] = useState(author.affiliation);
     const [editedOrcid, setEditedOrcid] = useState(author.orcid);
     const [editedBiography, setEditedBiography] = useState(author.biography);
     const [editedGender, setEditedGender] = useState(author.gender);
-    const [localAuthor, setLocalAuthor] = useState(author); // Add local state
+    const [editedEmail, setEditedEmail] = useState(author.email);
+    const [localAuthor, setLocalAuthor] = useState(author);
+    const [editedId, setEditedId] = useState(author.id);
+
 
     useEffect(() => {
         setLocalAuthor(author);
         setEditedName(author.name);
         setEditedPicture(author.profilePicture);
         setEditedDepartment(author.department);
-        setEditedEmail(author.email);
         setEditedAffiliation(author.affiliation);
         setEditedOrcid(author.orcid);
         setEditedBiography(author.biography);
         setEditedGender(author.gender);
+        setEditedEmail(author.email);
+        setEditedId(author.id);
     }, [author]);
 
 
     const handleSave = () => {
-        const updatedId = localAuthor.id; // Keep the original ID
         const updatedAuthor: Author = {
-            id: updatedId,
+            id: editedId,
             name: editedName,
             department: editedDepartment,
-            email: editedEmail,
             affiliation: editedAffiliation,
             orcid: editedOrcid,
             biography: editedBiography,
             profilePicture: editedPicture,
             gender: editedGender,
+            email: editedEmail,
         };
         onUpdate(updatedAuthor);
-        setLocalAuthor(updatedAuthor); // Update local state
+        setLocalAuthor(updatedAuthor);
         setOpen(false);
+    };
+
+    const handleOrcidChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const formatted = formatOrcid(e.target.value);
+        setEditedOrcid(formatted);
+    }, []);
+
+    const handleIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value.toUpperCase(); // Ensure uppercase
+        const validFormat = /^SPUD-[0-9]{9}-[MF]$/.test(value);
+        if (validFormat || value === "") { // allow empty input
+            setEditedId(value);
+        }
     };
 
     return (
@@ -111,30 +148,29 @@ const AuthorCard: React.FC<{ author: Author; onUpdate: (updatedAuthor: Author) =
                             </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0 flex-1">
-                            <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2 truncate">
-                                <span className="truncate">{localAuthor.name}</span>
-                                <span className="text-xs font-medium text-green-500 bg-green-100/50 px-1.5 py-0.5 rounded-full">
-                                    {localAuthor.id}
-                                </span>
+                            <CardTitle className="text-lg font-semibold text-gray-900 truncate">
+                                {localAuthor.name}
                             </CardTitle>
                             <CardDescription className="text-gray-500 text-sm">
+                                <span className="inline-block text-xs font-medium text-green-500 bg-green-100/50 px-1.5 py-0.5 rounded-full mb-1">
+                                    {localAuthor.id}
+                                </span>
                                 {localAuthor.department && <div className="truncate"> {localAuthor.department}</div>}
                                 {localAuthor.affiliation && <div className="truncate"> {localAuthor.affiliation}</div>}
-                                {localAuthor.email && <div className="truncate"> {localAuthor.email}</div>}
                             </CardDescription>
                         </div>
                     </div>
                     <Dialog open={open} onOpenChange={setOpen}>
                         <DialogTrigger asChild>
                             <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-gray-600 hover:text-green-500 hover:bg-green-500/20"
+                                variant="outline"
+                                className="text-gray-700 bg-green-100/50 hover:bg-green-200/50 hover:text-green-600 flex items-center gap-2 px-2 py-1"
                             >
                                 <Edit className="h-4 w-4" />
+                                <span className="text-xs">Edit</span>
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="bg-white text-gray-900 border-gray-200 max-w-2xl sm:max-w-xl">
+                        <DialogContent className="bg-white text-gray-900 border-gray-200 max-w-2xl sm:max-w-3xl">
                             <DialogHeader>
                                 <DialogTitle className="text-lg text-green-500">Edit Author</DialogTitle>
                                 <DialogDescription className="text-gray-500">
@@ -142,14 +178,14 @@ const AuthorCard: React.FC<{ author: Author; onUpdate: (updatedAuthor: Author) =
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-2 pb-4">
-                                 <div className="space-y-4">
+                                <div className="space-y-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="id" className="text-gray-700">ID</Label>
                                         <Input
                                             id="id"
-                                            value={localAuthor.id}
-                                            disabled
-                                            placeholder="ID"
+                                            value={editedId}
+                                            onChange={(e) => handleIdChange(e)}
+                                            placeholder="SPUD-XXXXXXXXX-M/F"
                                             className="bg-gray-100 border-gray-300 text-gray-900"
                                         />
                                     </div>
@@ -162,42 +198,6 @@ const AuthorCard: React.FC<{ author: Author; onUpdate: (updatedAuthor: Author) =
                                             onChange={(e) => setEditedName(e.target.value)}
                                             className="bg-gray-100 border-gray-300 text-gray-900"
                                         />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="department" className="text-gray-700">Department</Label>
-                                        <Input
-                                            id="department"
-                                            placeholder="Department"
-                                            value={editedDepartment}
-                                            onChange={(e) => setEditedDepartment(e.target.value)}
-                                            className="bg-gray-100 border-gray-300 text-gray-900"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="email" className="text-gray-700">Email</Label>
-                                        <Input
-                                            id="email"
-                                            placeholder="Email"
-                                            value={editedEmail}
-                                            onChange={(e) => setEditedEmail(e.target.value)}
-                                            className="bg-gray-100 border-gray-300 text-gray-900"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="affiliation" className="text-gray-700">Affiliation</Label>
-                                         <select
-                                            id="affiliation"
-                                            value={editedAffiliation}
-                                            onChange={(e) => setEditedAffiliation(e.target.value)}
-                                            className="bg-gray-100 border-gray-300 text-gray-900 rounded-md px-3 py-2 w-full"
-                                        >
-                                            <option value="">Select Affiliation</option>
-                                            {validAffiliations.map(aff => (
-                                                <option key={aff} value={aff}>{aff}</option>
-                                            ))}
-                                        </select>
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="orcid" className="text-gray-700 flex items-center gap-1">
@@ -223,10 +223,40 @@ const AuthorCard: React.FC<{ author: Author; onUpdate: (updatedAuthor: Author) =
                                             id="orcid"
                                             placeholder="ORCID"
                                             value={editedOrcid}
-                                            onChange={(e) => setEditedOrcid(e.target.value)}
+                                            onChange={handleOrcidChange}
                                             className="bg-gray-100 border-gray-300 text-gray-900"
                                         />
                                     </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="department" className="text-gray-700">Department</Label>
+                                        <select
+                                            id="department"
+                                            value={editedDepartment}
+                                            onChange={(e) => setEditedDepartment(e.target.value)}
+                                            className="bg-gray-100 border-gray-300 text-gray-900 rounded-md px-3 py-2 w-full"
+                                        >
+                                            <option value="">Select Department</option>
+                                            {validDepartments.map(dept => (
+                                                <option key={dept} value={dept}>{dept}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="affiliation" className="text-gray-700">Affiliation</Label>
+                                        <select
+                                            id="affiliation"
+                                            value={editedAffiliation}
+                                            onChange={(e) => setEditedAffiliation(e.target.value)}
+                                            className="bg-gray-100 border-gray-300 text-gray-900 rounded-md px-3 py-2 w-full"
+                                        >
+                                            <option value="">Select Affiliation</option>
+                                            {validAffiliations.map(aff => (
+                                                <option key={aff} value={aff}>{aff}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="space-y-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="picture" className="text-gray-700">Profile Picture URL</Label>
                                         <Input
@@ -235,17 +265,6 @@ const AuthorCard: React.FC<{ author: Author; onUpdate: (updatedAuthor: Author) =
                                             value={editedPicture}
                                             onChange={(e) => setEditedPicture(e.target.value)}
                                             className="bg-gray-100 border-gray-300 text-gray-900"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="biography" className="text-gray-700">Biography</Label>
-                                        <Input
-                                            id="biography"
-                                            placeholder="Biography"
-                                            value={editedBiography}
-                                            onChange={(e) => setEditedBiography(e.target.value)}
-                                            className="bg-gray-100 border-gray-300 text-gray-900"
-                                            rows={4}
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -260,6 +279,27 @@ const AuthorCard: React.FC<{ author: Author; onUpdate: (updatedAuthor: Author) =
                                             <option value="M">Male</option>
                                             <option value="F">Female</option>
                                         </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="email" className="text-gray-700">Email</Label>
+                                        <Input
+                                            id="email"
+                                            placeholder="Email"
+                                            value={editedEmail}
+                                            onChange={(e) => setEditedEmail(e.target.value)}
+                                            className="bg-gray-100 border-gray-300 text-gray-900"
+                                        />
+                                    </div>
+                                    <div className="space-y-2 col-span-full">
+                                        <Label htmlFor="biography" className="text-gray-700">Biography</Label>
+                                        <Textarea
+                                            id="biography"
+                                            placeholder="Biography"
+                                            value={editedBiography}
+                                            onChange={(e) => setEditedBiography(e.target.value)}
+                                            className="bg-gray-100 border-gray-300 text-gray-900 min-h-[150px]"
+                                            rows={4}
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -306,17 +346,34 @@ const AuthorListPage = () => {
     const [authors, setAuthors] = useState<Author[]>(sampleAuthors);
 
     const handleUpdateAuthor = (updatedAuthor: Author) => {
-        setAuthors(authors.map((author) => (author.id === updatedAuthor.id ? updatedAuthor : author)));
+        setAuthors(authors.map((author) => {
+            if (author.id === updatedAuthor.id) {
+                return {
+                    ...updatedAuthor,
+                    department: validDepartments.includes(updatedAuthor.department)
+                        ? updatedAuthor.department
+                        : "College of Nursing",
+                };
+            }
+            return author;
+        }));
     };
 
     const updateSampleAuthors = () => {
         const updatedAuthors = sampleAuthors.map((author, index) => {
-            const gender = index % 2 === 0 ? 'M' : 'F';  // Alternate genders for demo
+            const gender = index % 2 === 0 ? 'M' : 'F';
+            const department = validDepartments[index % validDepartments.length];
+            const email = `author${index + 1}@example.com`;
+            const orcid = formatOrcid(`123456789012345${index}`); // For testing
+            const id = generateSpudId(gender);
             return {
                 ...author,
-                id: generateSpudId(gender), // Generate new ID
+                id: id,
                 gender: gender,
-                affiliation: validAffiliations[index % validAffiliations.length], // Rotate through valid affiliations
+                department: department,
+                affiliation: validAffiliations[index % validAffiliations.length],
+                email: email,
+                orcid: orcid,
             };
         });
         setAuthors(updatedAuthors);
@@ -338,94 +395,95 @@ const AuthorListPage = () => {
 // Example data (replace with your actual data)
 const sampleAuthors: Author[] = [
     {
-        id: "1",
+        id: "SPUD-123456789-M",
         name: "Alice Smith",
         department: "Computer Science",
-        email: "alice.smith@example.com",
         affiliation: "St. Paul University Manila",
         orcid: "0000-0001-2345-6789",
         biography: "Alice Smith is a professor of Computer Science at UC Berkeley. Her research interests include...",
         profilePicture: "https://source.unsplash.com/random/100x100/?woman,face,1",
         gender: 'F',
+        email: "alice.smith@example.com",
     },
     {
-        id: "2",
+        id: "SPUD-987654321-F",
         name: "Bob Johnson",
         department: "Physics",
-        email: "bob.johnson@example.com",
         affiliation: "St. Paul University Quezon City",
         orcid: "0000-0002-9876-5432",
         biography: "Bob Johnson is a renowned physicist working at Stanford University. He specializes in...",
         profilePicture: "https://source.unsplash.com/random/100x100/?man,face,2",
         gender: 'M',
+        email: "bob.johnson@example.com",
     },
     {
-        id: "3",
+        id: "SPUD-246813579-M",
         name: "Charlie Brown",
         department: "Engineering",
-        email: "charlie.brown@example.com",
         affiliation: "St. Paul University at San Miguel",
         orcid: "0000-0003-1234-5678",
         biography: "Charlie Brown is an engineer at MIT. His work focuses on...",
         profilePicture: "https://source.unsplash.com/random/100x100/?man,face,3",
         gender: 'M',
+        email: "charlie.brown@example.com",
     },
     {
-        id: "4",
+        id: "SPUD-135792468-F",
         name: "Diana Miller",
         department: "Biology",
-        email: "diana.miller@example.com",
         affiliation: "St. Paul University Dumaguete",
         orcid: "0000-0004-6789-0123",
         biography: "Diana Miller is a biologist at Harvard University. Her research explores...",
         profilePicture: "https://source.unsplash.com/random/100x100/?woman,face,4",
         gender: 'F',
+        email: "diana.miller@example.com",
     },
     {
-        id: "5",
+        id: "SPUD-864209753-M",
         name: "Ethan Davisssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss",
         department: "Mathematics",
-        email: "ethan.davis@example.com",
         affiliation: "St. Paul University Iloilo",
         orcid: "0000-0005-2345-6780",
         biography: "Ethan Davis is a mathematician at Princeton University. His areas of interest are...",
         profilePicture: "https://source.unsplash.com/random/100x100/?man,face,5",
         gender: 'M',
+        email: "ethan.davis@example.com",
     },
     {
-        id: "6",
+        id: "SPUD-753198642-F",
         name: "Fiona Wilson",
         department: "Chemistry",
-        email: "fiona.wilson@example.com",
         affiliation: "St. Paul University Surigao",
         orcid: "0000-0006-9876-5431",
         biography: "Fiona Wilson is a chemist at Yale University. Her work involves...",
         profilePicture: "https://source.unsplash.com/random/100x100/?woman,face,6",
         gender: 'F',
+        email: "fiona.wilson@example.com",
     },
     {
-        id: "7",
+        id: "SPUD-369258147-M",
         name: "George Lee",
         department: "Economics",
-        email: "george.lee@example.com",
         affiliation: "International",
         orcid: "0000-0007-1234-5679",
         biography: "George Lee is an economist at the University of Oxford. He specializes in...",
         profilePicture: "https://source.unsplash.com/random/100x100/?man,face,7",
         gender: 'M',
+        email: "george.lee@example.com",
     },
     {
-        id: "8",
+        id: "SPUD-258147369-F",
         name: "Hannah Clark",
         department: "Sociology",
-        email: "hannah.clark@example.com",
         affiliation: "International",
         orcid: "0000-0008-6789-0122",
         biography: "Hannah Clark is a sociologist at the University of Cambridge. Her research focuses on...",
         profilePicture: "https://source.unsplash.com/random/100x100/?woman,face,8",
         gender: 'F',
+        email: "hannah.clark@example.com",
     },
 ];
 
 export default AuthorListPage;
 
+//cute ko
