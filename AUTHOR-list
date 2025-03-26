@@ -1,0 +1,431 @@
+import React, { useState, useEffect } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Edit, HelpCircle } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+
+
+interface Author {
+    id: string;
+    name: string;
+    department: string;
+    email: string;
+    affiliation: string;
+    orcid: string;
+    biography: string;
+    profilePicture: string;
+    gender: 'M' | 'F';
+}
+
+const generateSpudId = (gender: 'M' | 'F') => {
+    const randomDigits = Math.floor(Math.random() * 1000000000); // 9 digits
+    const paddedDigits = String(randomDigits).padStart(9, '0');
+    return `SPUD-${paddedDigits}-${gender}`;
+};
+
+const validAffiliations = [
+    "St. Paul University Manila",
+    "St. Paul University Quezon City",
+    "St. Paul University at San Miguel",
+    "St. Paul University Dumaguete",
+    "St. Paul University Iloilo",
+    "St. Paul University Surigao",
+    "International"
+];
+
+const AuthorCard: React.FC<{ author: Author; onUpdate: (updatedAuthor: Author) => void }> = ({ author, onUpdate }) => {
+    const [open, setOpen] = useState(false);
+    const [editedName, setEditedName] = useState(author.name);
+    const [editedPicture, setEditedPicture] = useState(author.profilePicture);
+    const [editedDepartment, setEditedDepartment] = useState(author.department);
+    const [editedEmail, setEditedEmail] = useState(author.email);
+    const [editedAffiliation, setEditedAffiliation] = useState(author.affiliation);
+    const [editedOrcid, setEditedOrcid] = useState(author.orcid);
+    const [editedBiography, setEditedBiography] = useState(author.biography);
+    const [editedGender, setEditedGender] = useState(author.gender);
+    const [localAuthor, setLocalAuthor] = useState(author); // Add local state
+
+    useEffect(() => {
+        setLocalAuthor(author);
+        setEditedName(author.name);
+        setEditedPicture(author.profilePicture);
+        setEditedDepartment(author.department);
+        setEditedEmail(author.email);
+        setEditedAffiliation(author.affiliation);
+        setEditedOrcid(author.orcid);
+        setEditedBiography(author.biography);
+        setEditedGender(author.gender);
+    }, [author]);
+
+
+    const handleSave = () => {
+        const updatedId = localAuthor.id; // Keep the original ID
+        const updatedAuthor: Author = {
+            id: updatedId,
+            name: editedName,
+            department: editedDepartment,
+            email: editedEmail,
+            affiliation: editedAffiliation,
+            orcid: editedOrcid,
+            biography: editedBiography,
+            profilePicture: editedPicture,
+            gender: editedGender,
+        };
+        onUpdate(updatedAuthor);
+        setLocalAuthor(updatedAuthor); // Update local state
+        setOpen(false);
+    };
+
+    return (
+        <div className="relative">
+            <Card
+                className={cn(
+                    "transition-all duration-300",
+                    "border-green-200",
+                    "bg-white/90 backdrop-blur-md",
+                    "border",
+                    "shadow-md",
+                    "shadow-black/10",
+                    "hover:bg-green-100/80 hover:border-green-300 hover:shadow-lg"
+                )}
+
+            >
+                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
+                    <div className="flex items-center gap-4 min-w-0">
+                        <Avatar className="h-12 w-12 border-2 border-green-500/50">
+                            <AvatarImage
+                                src={localAuthor.profilePicture}
+                                alt={localAuthor.name}
+                                className="border-green-500/50"
+                                onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).src = `https://placehold.co/100x100/EEE/31343C?text=${localAuthor.name.substring(0, 2).toUpperCase()}&font=Montserrat`;
+                                }}
+                            />
+                            <AvatarFallback className="bg-green-500 text-white">
+                                {localAuthor.name.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                            <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2 truncate">
+                                <span className="truncate">{localAuthor.name}</span>
+                                <span className="text-xs font-medium text-green-500 bg-green-100/50 px-1.5 py-0.5 rounded-full">
+                                    {localAuthor.id}
+                                </span>
+                            </CardTitle>
+                            <CardDescription className="text-gray-500 text-sm">
+                                {localAuthor.department && <div className="truncate"> {localAuthor.department}</div>}
+                                {localAuthor.affiliation && <div className="truncate"> {localAuthor.affiliation}</div>}
+                                {localAuthor.email && <div className="truncate"> {localAuthor.email}</div>}
+                            </CardDescription>
+                        </div>
+                    </div>
+                    <Dialog open={open} onOpenChange={setOpen}>
+                        <DialogTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-gray-600 hover:text-green-500 hover:bg-green-500/20"
+                            >
+                                <Edit className="h-4 w-4" />
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="bg-white text-gray-900 border-gray-200 max-w-2xl sm:max-w-xl">
+                            <DialogHeader>
+                                <DialogTitle className="text-lg text-green-500">Edit Author</DialogTitle>
+                                <DialogDescription className="text-gray-500">
+                                    Make changes to the author&apos;s information below.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-2 pb-4">
+                                 <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="id" className="text-gray-700">ID</Label>
+                                        <Input
+                                            id="id"
+                                            value={localAuthor.id}
+                                            disabled
+                                            placeholder="ID"
+                                            className="bg-gray-100 border-gray-300 text-gray-900"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="name" className="text-gray-700">Name</Label>
+                                        <Input
+                                            id="name"
+                                            placeholder="Name"
+                                            value={editedName}
+                                            onChange={(e) => setEditedName(e.target.value)}
+                                            className="bg-gray-100 border-gray-300 text-gray-900"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="department" className="text-gray-700">Department</Label>
+                                        <Input
+                                            id="department"
+                                            placeholder="Department"
+                                            value={editedDepartment}
+                                            onChange={(e) => setEditedDepartment(e.target.value)}
+                                            className="bg-gray-100 border-gray-300 text-gray-900"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="email" className="text-gray-700">Email</Label>
+                                        <Input
+                                            id="email"
+                                            placeholder="Email"
+                                            value={editedEmail}
+                                            onChange={(e) => setEditedEmail(e.target.value)}
+                                            className="bg-gray-100 border-gray-300 text-gray-900"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="affiliation" className="text-gray-700">Affiliation</Label>
+                                         <select
+                                            id="affiliation"
+                                            value={editedAffiliation}
+                                            onChange={(e) => setEditedAffiliation(e.target.value)}
+                                            className="bg-gray-100 border-gray-300 text-gray-900 rounded-md px-3 py-2 w-full"
+                                        >
+                                            <option value="">Select Affiliation</option>
+                                            {validAffiliations.map(aff => (
+                                                <option key={aff} value={aff}>{aff}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="orcid" className="text-gray-700 flex items-center gap-1">
+                                            ORCID
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <HelpCircle className="h-4 w-4 text-gray-500 cursor-pointer" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>
+                                                            ORCID: Open Researcher and Contributor ID. A persistent digital identifier for researchers.  (According to {' '}
+                                                            <a href="https://libguides.library.curtin.edu.au/referencing/apa-7th-edition" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+                                                                Curtin University Library
+                                                            </a>
+                                                            {').'}
+                                                        </p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </Label>
+                                        <Input
+                                            id="orcid"
+                                            placeholder="ORCID"
+                                            value={editedOrcid}
+                                            onChange={(e) => setEditedOrcid(e.target.value)}
+                                            className="bg-gray-100 border-gray-300 text-gray-900"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="picture" className="text-gray-700">Profile Picture URL</Label>
+                                        <Input
+                                            id="picture"
+                                            placeholder="Profile Picture URL"
+                                            value={editedPicture}
+                                            onChange={(e) => setEditedPicture(e.target.value)}
+                                            className="bg-gray-100 border-gray-300 text-gray-900"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="biography" className="text-gray-700">Biography</Label>
+                                        <Input
+                                            id="biography"
+                                            placeholder="Biography"
+                                            value={editedBiography}
+                                            onChange={(e) => setEditedBiography(e.target.value)}
+                                            className="bg-gray-100 border-gray-300 text-gray-900"
+                                            rows={4}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="gender" className="text-gray-700">Gender</Label>
+                                        <select
+                                            id="gender"
+                                            value={editedGender}
+                                            onChange={(e) => setEditedGender(e.target.value as 'M' | 'F')}
+                                            className="bg-gray-100 border-gray-300 text-gray-900 rounded-md px-3 py-2 w-full"
+                                        >
+                                            <option value="">Select Gender</option>
+                                            <option value="M">Male</option>
+                                            <option value="F">Female</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button
+                                    variant="outline"
+                                    className="bg-gray-200 text-gray-700 border-gray-300 hover:bg-gray-300 hover:text-gray-900"
+                                    onClick={() => setOpen(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    className="bg-green-500 text-white hover:bg-green-600"
+                                    onClick={handleSave}
+                                >
+                                    Save
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </CardHeader>
+
+            </Card>
+        </div>
+    );
+};
+
+const AuthorList: React.FC<{ authors: Author[]; onUpdateAuthor: (updatedAuthor: Author) => void }> = ({ authors, onUpdateAuthor }) => {
+    return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {authors.map((author) => (
+                <AuthorCard
+                    key={author.id}
+                    author={author}
+                    onUpdate={(updatedAuthor) => onUpdateAuthor(updatedAuthor)}
+                />
+            ))}
+        </div>
+    );
+};
+
+const AuthorListPage = () => {
+    const [authors, setAuthors] = useState<Author[]>(sampleAuthors);
+
+    const handleUpdateAuthor = (updatedAuthor: Author) => {
+        setAuthors(authors.map((author) => (author.id === updatedAuthor.id ? updatedAuthor : author)));
+    };
+
+    const updateSampleAuthors = () => {
+        const updatedAuthors = sampleAuthors.map((author, index) => {
+            const gender = index % 2 === 0 ? 'M' : 'F';  // Alternate genders for demo
+            return {
+                ...author,
+                id: generateSpudId(gender), // Generate new ID
+                gender: gender,
+                affiliation: validAffiliations[index % validAffiliations.length], // Rotate through valid affiliations
+            };
+        });
+        setAuthors(updatedAuthors);
+    };
+
+    // Update IDs and affiliations when the component mounts.
+    useEffect(() => {
+        updateSampleAuthors();
+    }, []);
+
+    return (
+        <div className="p-6 bg-green-50 min-h-screen">
+            <h1 className="text-3xl font-bold mb-8 text-green-500">Authors</h1>
+            <AuthorList authors={authors} onUpdateAuthor={handleUpdateAuthor} />
+        </div>
+    );
+};
+
+// Example data (replace with your actual data)
+const sampleAuthors: Author[] = [
+    {
+        id: "1",
+        name: "Alice Smith",
+        department: "Computer Science",
+        email: "alice.smith@example.com",
+        affiliation: "St. Paul University Manila",
+        orcid: "0000-0001-2345-6789",
+        biography: "Alice Smith is a professor of Computer Science at UC Berkeley. Her research interests include...",
+        profilePicture: "https://source.unsplash.com/random/100x100/?woman,face,1",
+        gender: 'F',
+    },
+    {
+        id: "2",
+        name: "Bob Johnson",
+        department: "Physics",
+        email: "bob.johnson@example.com",
+        affiliation: "St. Paul University Quezon City",
+        orcid: "0000-0002-9876-5432",
+        biography: "Bob Johnson is a renowned physicist working at Stanford University. He specializes in...",
+        profilePicture: "https://source.unsplash.com/random/100x100/?man,face,2",
+        gender: 'M',
+    },
+    {
+        id: "3",
+        name: "Charlie Brown",
+        department: "Engineering",
+        email: "charlie.brown@example.com",
+        affiliation: "St. Paul University at San Miguel",
+        orcid: "0000-0003-1234-5678",
+        biography: "Charlie Brown is an engineer at MIT. His work focuses on...",
+        profilePicture: "https://source.unsplash.com/random/100x100/?man,face,3",
+        gender: 'M',
+    },
+    {
+        id: "4",
+        name: "Diana Miller",
+        department: "Biology",
+        email: "diana.miller@example.com",
+        affiliation: "St. Paul University Dumaguete",
+        orcid: "0000-0004-6789-0123",
+        biography: "Diana Miller is a biologist at Harvard University. Her research explores...",
+        profilePicture: "https://source.unsplash.com/random/100x100/?woman,face,4",
+        gender: 'F',
+    },
+    {
+        id: "5",
+        name: "Ethan Davisssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss",
+        department: "Mathematics",
+        email: "ethan.davis@example.com",
+        affiliation: "St. Paul University Iloilo",
+        orcid: "0000-0005-2345-6780",
+        biography: "Ethan Davis is a mathematician at Princeton University. His areas of interest are...",
+        profilePicture: "https://source.unsplash.com/random/100x100/?man,face,5",
+        gender: 'M',
+    },
+    {
+        id: "6",
+        name: "Fiona Wilson",
+        department: "Chemistry",
+        email: "fiona.wilson@example.com",
+        affiliation: "St. Paul University Surigao",
+        orcid: "0000-0006-9876-5431",
+        biography: "Fiona Wilson is a chemist at Yale University. Her work involves...",
+        profilePicture: "https://source.unsplash.com/random/100x100/?woman,face,6",
+        gender: 'F',
+    },
+    {
+        id: "7",
+        name: "George Lee",
+        department: "Economics",
+        email: "george.lee@example.com",
+        affiliation: "International",
+        orcid: "0000-0007-1234-5679",
+        biography: "George Lee is an economist at the University of Oxford. He specializes in...",
+        profilePicture: "https://source.unsplash.com/random/100x100/?man,face,7",
+        gender: 'M',
+    },
+    {
+        id: "8",
+        name: "Hannah Clark",
+        department: "Sociology",
+        email: "hannah.clark@example.com",
+        affiliation: "International",
+        orcid: "0000-0008-6789-0122",
+        biography: "Hannah Clark is a sociologist at the University of Cambridge. Her research focuses on...",
+        profilePicture: "https://source.unsplash.com/random/100x100/?woman,face,8",
+        gender: 'F',
+    },
+];
+
+export default AuthorListPage;
+
