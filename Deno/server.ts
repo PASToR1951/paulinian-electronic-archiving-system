@@ -4,21 +4,35 @@ import { serveFile } from "https://deno.land/std@0.218.2/http/file_server.ts";
 import { handleLoginRequest } from "./routes/login.ts";
 import { client } from "./data/denopost_conn.ts";
 import { handleDocumentSubmission } from "./controllers/upload-documents.ts";
-import { fetchAuthors } from "./controllers/authors.ts"; // Updated author fetching function
+import { fetchAuthors } from "./controllers/authors.ts";
 
 const env = await load({ envPath: "./.env" });
 console.log("Loaded Environment Variables:", env);
 
 const PORT = 8000;
+const REACT_URL = "http://localhost:5173"; // React Frontend
 
 async function handler(req: Request): Promise<Response> {
     const url = new URL(req.url);
-
     console.log(`Received request: ${req.method} ${url.pathname}`);
 
     // Handle Login
     if (url.pathname === "/login" && req.method === "POST") {
-        return await handleLoginRequest(req);
+        const loginResponse = await handleLoginRequest(req);
+        const loginData = await loginResponse.json();
+
+        if (loginData.role === "admin") {
+            return new Response(null, {
+                status: 302,
+                headers: { "Location": "/admin/dashboard.html" },
+            });
+        } else if (loginData.role === "user") {
+            return new Response(null, {
+                status: 302,
+                headers: { "Location": REACT_URL },
+            });
+        }
+        return loginResponse;
     }
 
     // Handle Author Search
@@ -45,9 +59,9 @@ async function handler(req: Request): Promise<Response> {
             // Serve Public & Admin Files
             let filePath = url.pathname;
             if (filePath === "/") {
-                filePath = "/public/index.html";
+                filePath = "/public/index.html"; // User's Landing Page
             } else if (filePath.startsWith("/admin/")) {
-                filePath = `/admin${filePath.replace("/admin", "")}`;
+                filePath = `/admin${filePath.replace("/admin", "")}`; // Admin Dashboard
             } else {
                 filePath = `/public${filePath}`;
             }
