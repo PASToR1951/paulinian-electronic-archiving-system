@@ -18,21 +18,7 @@ async function handler(req: Request): Promise<Response> {
 
     // Handle Login
     if (url.pathname === "/login" && req.method === "POST") {
-        const loginResponse = await handleLoginRequest(req);
-        const loginData = await loginResponse.json();
-
-        if (loginData.role === "admin") {
-            return new Response(null, {
-                status: 302,
-                headers: { "Location": "/admin/dashboard.html" },
-            });
-        } else if (loginData.role === "user") {
-            return new Response(null, {
-                status: 302,
-                headers: { "Location": REACT_URL },
-            });
-        }
-        return loginResponse;
+        return await handleLoginRequest(req); // ✅ No need to parse or modify the response
     }
 
     // Handle Author Search
