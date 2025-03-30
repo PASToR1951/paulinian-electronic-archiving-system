@@ -31,15 +31,33 @@ CREATE TABLE admins (
 );
 
 -- Create authors table
-CREATE TABLE authors (
-    id SERIAL PRIMARY KEY,
-    first_name VARCHAR(50) NOT NULL,
-    middle_name VARCHAR(50),
-    last_name VARCHAR(50) NOT NULL,
-    authorpfp TEXT,
+CREATE TABLE Authors (
+    author_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    full_name VARCHAR(255) NOT NULL,
+    affiliation VARCHAR(255) NOT NULL,
+    department VARCHAR(255) NOT NULL,
+    year_of_graduation INT NULL,
+    email VARCHAR(255) NULL,
+    linkedin VARCHAR(255) NULL,
+    orcid_id VARCHAR(255) NULL,
+    bio TEXT NULL,
+    profile_picture VARCHAR(255) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_updated_at
+BEFORE UPDATE ON Authors
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
 
 -- Create categories table
 CREATE TABLE categories (
@@ -179,3 +197,33 @@ VALUES ('USER-002', 'userpassword456', 2); -- For another regular user
 -- Insert admins
 INSERT INTO public.admins (school_id, department_id) 
 VALUES ('ADMIN-001', 1); -- Admin's department
+
+--Insert authors
+INSERT INTO Authors (
+    author_id, full_name, affiliation, department, year_of_graduation, 
+    email, linkedin, orcid_id, bio, profile_picture, created_at, updated_at
+) VALUES
+    (gen_random_uuid(), 'Alice Johnson', 'Harvard University', 'Computer Science', 2018, 
+     'alice.johnson@email.com', 'https://linkedin.com/in/alicejohnson', '0000-0001-2345-6789', 
+     'Alice is a researcher in AI and Machine Learning.', '/uploads/alice.jpg', 
+     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+
+    (gen_random_uuid(), 'Bob Smith', 'MIT', 'Physics', 2020, 
+     'bob.smith@email.com', 'https://linkedin.com/in/bobsmith', '0000-0002-3456-7890', 
+     'Bob specializes in quantum computing and theoretical physics.', '/uploads/bob.jpg', 
+     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+
+    (gen_random_uuid(), 'Charlie Evans', 'Stanford University', 'Biotechnology', NULL, 
+     NULL, 'https://linkedin.com/in/charlieevans', NULL, 
+     'Charlie is focused on genetic engineering and CRISPR research.', '/uploads/charlie.jpg', 
+     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+
+    (gen_random_uuid(), 'Diana Lopez', 'Oxford University', 'Philosophy', 2015, 
+     'diana.lopez@email.com', NULL, '0000-0003-4567-8901', 
+     'Diana studies ethics in artificial intelligence.', NULL, 
+     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+
+    (gen_random_uuid(), 'Ethan Wright', 'Cambridge University', 'Mathematics', 2019, 
+     'ethan.wright@email.com', 'https://linkedin.com/in/ethanwright', NULL, 
+     'Ethan is passionate about topology and abstract algebra.', '/uploads/ethan.jpg', 
+     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);

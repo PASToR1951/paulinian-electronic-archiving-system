@@ -21,7 +21,8 @@
                 <label for="author">Author</label>
                 
                     <div class="dropdown">
-                        <input type="text" id="authorInput" placeholder="Type to search authors...">
+                        <input type="text" id="authorInput" name="authorInput" placeholder="Type to search authors...">
+
                         <div class="dropdown-list" id="authorList"></div>
                     </div>
                     <div class="select-container"> <div class="selected-authors" id="selectedAuthors"></div>
@@ -33,7 +34,7 @@
                 <div class="dropdown-container">
                     <div class="dropdown-group">
                         <div>
-                            <label for="volume">Volume</label>
+                            <label for="volume-no">Volume</label>
                             <select id="volume-no" name="volume-no" required>
                                 <option value="none"></option>
                                 <option value="Volume-1">1</option>
@@ -44,7 +45,7 @@
                         </div>
                         <div>
                             <label for="department">Department</label>
-                            <select id="department" name="Department" required>
+                            <select id="department" name="department" required>
                                 
                                 <option value="cbit">College of Business and Information Technology</option>
                                 <option value="cons">College of Nursing</option>
@@ -59,6 +60,7 @@
                     <div class="category">
                         <label for="category">Category</label>
                         <select id="category" name="category" required>
+                            <option value="default">Select Category</option>
                             <option value="thesis">Thesis</option>
                             <option value="dissertation">Dissertation</option>
                             <option value="confluence">Confluence</option>
@@ -68,13 +70,14 @@
                 </div>
 
                 <label for="topic">Topic</label>
-                <div class="select-container">
                 <div class="dropdown">
-                <input type="text" id="topicInput" placeholder="Type or search topics...">
+                    <input type="text" id="topicInput" name="topicInput" placeholder="Type to search topics...">
                 <div class="dropdown-list" id="topicList"></div>
                 </div>
-            <div class="selected-topics" id="selectedTopics"></div>
-        </div>
+                <div class="select-container">
+                    <div class="selected-items" id="selectedTopics"></div>
+                </div>
+                
                 <label for="abstract">Abstract / Summary</label>
                 <textarea id="abstract" name="abstract" rows="4" required></textarea><br><br>
 
@@ -88,14 +91,14 @@
                         <input type="file" id="file" name="file" style="display: none;">
                     </label>
                     
-                    <label for="cover" class="upload-cover">
+                    <!-- <label for="cover" class="upload-cover">
                         <div class="upload-box">
-                            <!-- SVG for Cover Upload -->
+                            
                             <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-photo-scan"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 8h.01" /><path d="M6 13l2.644 -2.644a1.21 1.21 0 0 1 1.712 0l3.644 3.644" /><path d="M13 13l1.644 -1.644a1.21 1.21 0 0 1 1.712 0l1.644 1.644" /><path d="M4 8v-2a2 2 0 0 1 2 -2h2" /><path d="M4 16v2a2 2 0 0 0 2 2h2" /><path d="M16 4h2a2 2 0 0 1 2 2v2" /><path d="M16 20h2a2 2 0 0 0 2 -2v-2" /></svg>
                             <p>Upload Cover Photo</p>
                         </div>
                         <input type="file" id="cover" name="cover" style="display: none;">
-                    </label>
+                    </label> -->
                     
                 </div>
                 <div class="submit-container">
@@ -109,7 +112,7 @@
             </div>
             <div class="preview-content">
                 <div class="preview-header-content">
-                    <img id="category-icon" src="default_category_icon.png" alt="Category Icon" class="category-icon">
+                    <img id="category-icon" src="icons/Category-icons/default_category_icon.png" alt="Category Icon" class="category-icon">
                     <div class="title-author-container">
                         <p><strong id="preview-title">Title of Document</strong></p>
                         <p id="preview-author">by Author Name</p>
@@ -154,7 +157,8 @@
     <div class="modal-content">
         <h2>Upload Receipt</h2>
         <div class="receipt-body">
-            <img id="receipt-cover" src="../img/Samp_cover.jpg" alt="Document Cover">
+            <!-- Change from document cover to category icon -->
+            <img id="receipt-category-icon" src="default_category_icon.png" alt="Category Icon" class="category-icon">
             <div class="text-body">
                 <p><strong>Title:</strong> <span id="receipt-title"></span></p>
                 <p><strong>Author:</strong> <span id="receipt-author"></span></p>
@@ -168,6 +172,7 @@
 
 
 
+
     
     <script>
         fetch('navbar_header.html')
@@ -177,11 +182,12 @@
             })
             .catch(error => console.error('Error loading header:', error));
     </script>
-    <script src="/admin/components/js/getauthor.js"></script>
-    <script src="/admin/components/js/side_bar.js"></script>
-    <script src="/admin/components/js/topic.js"></script>
-    <script src="/admin/components/js/upload.js"></script>
-    <script src="/admin/components/js/getauthor.js"></script>
-    <script src="/admin/components/js/category-icon.js"></script>
+    <script src="./js/side_bar.js"></script>
+
+    <script src="./js/get-author.js"></script>
+    <script src="./js/get-topics.js"></script>
+
+    <script src="./js/upload.js"></script>
+    <script src="./js/category-icon.js"></script>
 </body>
 </html>

@@ -4,7 +4,9 @@ import { serveFile } from "https://deno.land/std@0.218.2/http/file_server.ts";
 import { handleLoginRequest } from "./routes/login.ts";
 import { client } from "./data/denopost_conn.ts";
 import { handleDocumentSubmission } from "./controllers/upload-documents.ts";
-import { fetchAuthors } from "./controllers/authors.ts";
+import { searchAuthors } from "./controllers/author-Controller.ts";
+import { searchTopics } from "./controllers/topic-Controller.ts";
+
 
 const env = await load({ envPath: "./.env" });
 console.log("Loaded Environment Variables:", env);
@@ -22,10 +24,13 @@ async function handler(req: Request): Promise<Response> {
     }
 
     // Handle Author Search
-    if (req.method === "GET" && url.pathname === "/authors") {
-        return await fetchAuthors(req);
+    if (req.method === "GET" && url.pathname === "/api/authors") {
+        return await searchAuthors(req);
     }
-
+    // topcis
+    if (req.method === "GET" && url.pathname === "/api/topics") {
+        return await searchTopics(req);
+    }
     // Handle Document Submission
     if (url.pathname === "/submit-document" && req.method === "POST") {
         return await handleDocumentSubmission(req);

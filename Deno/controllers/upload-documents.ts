@@ -1,4 +1,5 @@
 import { client } from "../data/denopost_conn.ts";
+import { ensureDir } from "https://deno.land/std@0.224.0/fs/mod.ts";
 
 export async function handleDocumentSubmission(req: Request): Promise<Response> {
     try {
@@ -18,18 +19,28 @@ export async function handleDocumentSubmission(req: Request): Promise<Response> 
         const category = formData.get("category")?.toString();
         const topic = formData.get("topic")?.toString();
         const abstract = formData.get("abstract")?.toString();
-        const file = formData.get("file");
+        const file = formData.get("file") as File;
 
-        console.log({ title, author, year, department, category, topic, abstract, file });
-
-        if (!title || !author || !year || !department || !category || !topic || !abstract) {
+        if (!title || !author || !year || !department || !category || !topic || !abstract || !file) {
             return new Response(JSON.stringify({ message: "Missing required fields" }), {
                 status: 400,
                 headers: { "Content-Type": "application/json" },
             });
         }
 
-        return new Response(JSON.stringify({ message: "Document received!" }), {
+        // Ensure file storage directory exists
+        const uploadDir = "./filepathpdf";
+        await ensureDir(uploadDir);
+
+        // Save the file
+        const filePath = `${uploadDir}/${file.name}`;
+        const fileData = new Uint8Array(await file.arrayBuffer());
+
+        await Deno.writeFile(filePath, fileData);
+
+        console.log(`File saved at: ${filePath}`);
+
+        return new Response(JSON.stringify({ message: "Document uploaded successfully!", filePath }), {
             status: 200,
             headers: { "Content-Type": "application/json" },
         });
@@ -39,4 +50,3 @@ export async function handleDocumentSubmission(req: Request): Promise<Response> 
         return new Response(JSON.stringify({ message: "Internal Server Error" }), { status: 500 });
     }
 }
-

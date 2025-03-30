@@ -5,6 +5,7 @@
 
     // Define an object to map categories to image paths
     const categoryIcons = {
+       
         confluence: '/admin/components/icons/category-icons/confluence.png',
         dissertation: '/admin/components/icons/category-icons/dissertation.png',
         thesis: '/admin/components/icons/category-icons/thesis.png',
@@ -19,7 +20,7 @@
         if (categoryIcons[selectedCategory]) {
             categoryIcon.src = categoryIcons[selectedCategory]; // Update the image src
         } else {
-            categoryIcon.src = 'default_category_icon.png'; // Default icon if no valid category is found
+            categoryIcon.src = '/admin/components/icons/category-icons/default_category_icon.png';
         }
     });
 

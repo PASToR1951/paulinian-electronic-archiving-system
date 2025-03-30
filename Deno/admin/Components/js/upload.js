@@ -1,7 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("upload-form");
     const fileInput = document.getElementById("file");
-    const coverInput = document.getElementById("cover");
     const readButton = document.getElementById("read-document"); // Read Document Button
     let pdfURL = ""; // Stores the uploaded PDF URL
 
@@ -11,17 +10,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const formData = new FormData(this);
             const file = fileInput.files[0]; // Get file directly from input
-            const cover = coverInput.files[0];
 
             // Ensure the PDF file is required
             if (!file || file.type !== "application/pdf") {
                 alert("Please attach a valid PDF file before submitting.");
                 return;
-            }
-
-            // Remove the cover file if it's empty
-            if (!cover) {
-                formData.delete("cover");
             }
 
             try {
@@ -31,14 +24,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
 
                 const result = await response.json();
-                console.log(" Server response:", result);
+                console.log("Server response:", result);
 
                 if (response.ok) {
                     alert(result.message);
 
                     // Reset form inputs
                     fileInput.value = "";
-                    coverInput.value = "";
                     form.reset();
 
                     // Reset Read Document button
@@ -56,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // FIXED: Enable "Read Document" button when a PDF is selected
+    // Enable "Read Document" button when a PDF is selected
     fileInput.addEventListener("change", function (event) {
         const file = event.target.files[0];
 
@@ -76,7 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // FIXED: Open the PDF in a new tab when clicking "Read Document"
+    // Open the PDF in a new tab when clicking "Read Document"
     readButton.addEventListener("click", () => {
         if (pdfURL) {
             window.open(pdfURL, "_blank");
