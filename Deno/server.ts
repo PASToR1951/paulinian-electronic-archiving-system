@@ -5,14 +5,12 @@ import { handleLoginRequest } from "./routes/login.ts";
 import { client } from "./data/denopost_conn.ts";
 import { handleDocumentSubmission } from "./controllers/upload-documents.ts";
 import { searchAuthors } from "./controllers/author-Controller.ts";
-import { searchTopics } from "./controllers/topic-Controller.ts";
-
+import { searchTopics, createTopic } from "./controllers/topic-Controller.ts";
 
 const env = await load({ envPath: "./.env" });
 console.log("Loaded Environment Variables:", env);
 
 const PORT = 8000;
-const REACT_URL = "http://localhost:5173"; // React Frontend
 
 async function handler(req: Request): Promise<Response> {
     const url = new URL(req.url);
@@ -20,43 +18,46 @@ async function handler(req: Request): Promise<Response> {
 
     // Handle Login
     if (url.pathname === "/login" && req.method === "POST") {
-        return await handleLoginRequest(req); // ✅ No need to parse or modify the response
+        return await handleLoginRequest(req);
     }
 
     // Handle Author Search
     if (req.method === "GET" && url.pathname === "/api/authors") {
         return await searchAuthors(req);
     }
-    // topcis
+
+    // Handle Topic Search
     if (req.method === "GET" && url.pathname === "/api/topics") {
         return await searchTopics(req);
     }
+
+    // Handle Creating Topics
+    if (req.method === "POST" && url.pathname === "/api/topics") {
+        return await createTopic(req);
+    }
+
     // Handle Document Submission
     if (url.pathname === "/submit-document" && req.method === "POST") {
         return await handleDocumentSubmission(req);
     }
 
-    // Serve Static Files (Images, PDFs)
+    // Serve Static Files (Images, PDFs, etc.)
     if (req.method === "GET") {
         try {
             if (url.pathname.startsWith("/uploads/pdf/")) {
                 return await serveFile(req, `.${url.pathname}`);
             }
-
             if (url.pathname.startsWith("/img/")) {
                 return await serveFile(req, `./public${url.pathname}`);
             }
-
-            // Serve Public & Admin Files
             let filePath = url.pathname;
             if (filePath === "/") {
-                filePath = "/public/index.html"; // User's Landing Page
+                filePath = "/public/index.html";
             } else if (filePath.startsWith("/admin/")) {
-                filePath = `/admin${filePath.replace("/admin", "")}`; // Admin Dashboard
+                filePath = `/admin${filePath.replace("/admin", "")}`;
             } else {
                 filePath = `/public${filePath}`;
             }
-
             return await serveFile(req, `${Deno.cwd()}${filePath}`);
         } catch (error) {
             console.error(`Error serving file: ${url.pathname}`, error);

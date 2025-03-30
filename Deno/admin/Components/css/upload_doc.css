@@ -254,8 +254,8 @@ body {
     display: flex;
     flex-direction: column;
     gap: 5px;
-    margin-bottom: 10px;
-    background-color: transparent; /* Removed red background */
+   
+    
 }
 
 .dropdown {
@@ -272,16 +272,18 @@ body {
 }
 
 .selected-authors {
-    margin-top: 10px;
+    width: auto;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    
+    
 }
 
 .selected-author {
     display: inline-flex;
     align-items: center;
-    background: #007bff;
+   
     color: rgb(0, 0, 0);
     padding: 5px 10px;
     border-radius: 5px;
@@ -293,16 +295,39 @@ body {
     margin-left: 8px;
     font-weight: bold;
 }
+.selected-topics {
+    width: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
 
+.selected-topics {
+    display: inline-flex;
+    align-items: center;
+    
+    color: rgb(0, 0, 0);
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 14px;
+}
 
-/* Selected Items */
-.author, .topic {
+.remove-topic {
+    cursor: pointer;
+    margin-left: 8px;
+    font-weight: bold;
+}
+
+/* Topic Styles (Matches Author Styling) */
+.topic {
     background-color: #f0f0f0;
     padding: 5px 10px;
     margin: 2px;
     border-radius: 3px;
     cursor: pointer;
 }
+
+
 
 /* Dropdown List */
 .dropdown-list {

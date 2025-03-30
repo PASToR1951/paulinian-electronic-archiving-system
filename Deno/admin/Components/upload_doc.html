@@ -25,8 +25,9 @@
 
                         <div class="dropdown-list" id="authorList"></div>
                     </div>
-                    <div class="select-container"> <div class="selected-authors" id="selectedAuthors"></div>
-                </div><br><br>
+                    <div class="select-container"> 
+                        <div class="selected-authors" id="selectedAuthors"></div>
+                </div><br>
 
                 <label for="year">Year Published</label>
                 <input type="number" id="year" name="year" value="2024" required><br><br>
@@ -72,11 +73,12 @@
                 <label for="topic">Topic</label>
                 <div class="dropdown">
                     <input type="text" id="topicInput" name="topicInput" placeholder="Type to search topics...">
-                <div class="dropdown-list" id="topicList"></div>
+                    <div class="dropdown-list" id="topicList"></div>
                 </div>
                 <div class="select-container">
-                    <div class="selected-items" id="selectedTopics"></div>
+                    <div class="selected-topics" id="selectedTopics"></div>
                 </div>
+                <br>
                 
                 <label for="abstract">Abstract / Summary</label>
                 <textarea id="abstract" name="abstract" rows="4" required></textarea><br><br>
