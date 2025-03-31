@@ -1,158 +1,119 @@
-/* css/admin_logs.css */
-
-/* Global Styles */
 body {
     margin: 0;
-  padding: 0px;
-  font-family: sans-serif;
-  transition: background-color 0.3s ease, color 0.3s ease;
+    padding: 0;
+    font-family: sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    background-color: #fffff5;
 }
 
 .docs-container {
     max-width: 1200px;
-    margin: 0 auto; 
+    margin: 0 auto;
 }
+
+/* Ensure the table has a fixed height */
 .docs-table {
     max-width: 1200px;
-}
-.tbody{
-    width: 1200px;
-    
-}
-
-.docs-title {
-    font-size: 2.5em;
-    margin: 0;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    overflow: hidden;
+    background-color: tomato;
 }
 
-.header-controls {
-    display: flex;
-    align-items: center;
+/* Table wrapper to ensure height consistency */
+.table-wrapper {
+    width: 100%;
+    max-width: 1200px;
+    margin: auto;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    background-color: white;
+    overflow: hidden;
 }
 
-.search-box {
-    display: flex;
-    align-items: center;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    padding: 5px 10px;
-    margin-right: 10px;
+/* Table structure */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
 }
 
-.search-box input[type="text"] {
-    border: none;
-    outline: none;
-    flex-grow: 1;
-    padding: 5px;
-}
-
-.search-box button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 5px;
-}
-
-.filter-box {
-    position: relative;
-}
-
-.filter-icon {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 5px;
-}
-
-.filter-dropdown {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    background-color: #fff;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
-    z-index: 1;
-    display: none;
-}
-
-.filter-box:hover .filter-dropdown {
+/* Fix table height and enable scroll when needed */
+.docs-table-container {
+    max-height: 300px; /* Adjust height as needed */
+    overflow-y: auto;
     display: block;
 }
 
-.filter-dropdown select {
-    border: none;
-    padding: 5px 10px;
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background: url("data:image/svg+xml;utf8,<svg fill='black' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24h-24z' fill='none'/></svg>") no-repeat right 10px center;
-    padding-right: 30px;
-    cursor: pointer;
+/* Keep headers visible when scrolling */
+thead {
+    background-color: #008035;
+    color: white;
+    position: sticky;
+    top: 0;
+    z-index: 2;
 }
 
-.docs-count {
-    color: #00000073;
+/* Table rows and columns */
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
 }
 
-h1 {
-    text-align: center;
-    font-size: 2rem;
-    margin-bottom: 1rem;
-}
-
-table {
-    width: 1200px;
-    margin: auto;
-    border-collapse: separate;
-    border-spacing: 0;
-    border: 1px solid #ddd;
-    box-sizing: border-box;
-    box-shadow: #333;
-}
-
-th,
-td {
-    
-    text-align: left;      /* Centers text horizontally */
-    vertical-align: middle; /* Vertical alignment */
-    border: none;
-   
-
-}
-.td{
-    border-collapse: separate;
-    border-spacing: 10px;
-    
-    vertical-align: middle;
-}
-
+/* Table headers */
 th {
-  
-    display: none;
     background-color: #008035;
     color: white;
 }
 
-select {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-tr:nth-child(even) {
-    background-color: #f9f9f9;
-}
-
-.pagination {
+/* Ensure tbody has a minimum height */
+tbody {
     width: 1200px;
+    display: block;
+    min-height: 50vh; /* Ensures tbody is visible even if empty */
+    overflow-y: auto;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: turquoise;
+}
+
+/* Keep table rows structured */
+tbody tr {
+    
+    width: 90%;
+    table-layout: fixed;
+    height: 80px;
+    background-color: #0056b3;
+}
+
+/* Empty state message */
+.empty-message {
+    text-align: center;
+    padding: 20px;
+    color: #777;
+    font-style: italic;
+    display: block;
+}
+
+/* Ensure images fit within table cells */
+td img {
+    border-radius: 6px;
+    width: 50px;
+    height: 70px;
+    display: block;
+    margin: 0 auto;
+}
+
+/* Pagination */
+.pagination {
+    width: 100%;
+    max-width: 1200px;
     margin: auto;
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 20px;
-    font-family: sans-serif;
 }
 
 .entries-info {
@@ -178,163 +139,142 @@ tr:nth-child(even) {
     cursor: pointer;
 }
 
-.page-number:hover,
-.prev-button:hover,
-.next-button:hover {
-    background-color: #f0f0f0;
-}
-
 .page-number.active {
     background-color: #007bff;
     color: #fff;
     border-color: #007bff;
 }
 
-.prev-button:disabled {
+.prev-button:disabled,
+.next-button:disabled {
     opacity: 0.5;
     cursor: default;
 }
 
-/* Style for the action icons */
+/* Actions Column */
 .actions {
-    height: 90px;
-    display: flex; /* Enable flexbox for actions container */
-    gap: 10px;      /* Space between the action icons */
-    justify-content: center; /* Center the icons horizontally */
-    align-items: center;    /* Center the icons vertically */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
 }
 
 .actions a {
-    text-decoration: none; /* Remove underlines from links */
-    color: inherit;       /* Inherit color from parent */
-    display: inline-flex; /* Use flexbox for icon centering within <a> */
-    align-items: center;  /* Vertically center icon within <a> */
-    justify-content: center; /* Horizontally center icon within <a> */
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .actions i {
-    font-size: 1.5rem; /* Increased icon size */
-    cursor: pointer;   /* Make cursor a pointer on hover */
+    font-size: 1.5rem;
+    cursor: pointer;
 }
 
 .actions a.edit-icon {
-    color: #007bff; /* Blue for edit */
+    color: #007bff;
 }
 
 .actions a.delete-icon {
-    color: #dc3545; /* Red for delete */
+    color: #dc3545;
 }
 
-/* Adjust image size if necessary */
-td img {
-    border: 1px solid;
-    border-radius: 6px;
-    width: 50px;
-    height: 70px;
-    display: block; /* Key for centering */
-    margin: 0 auto; /* Centers horizontally */
-    padding: 0;
-    
-}
-/*category section*/
+/* Category Section */
 .category-container {
     margin-top: 10px;
     display: flex;
     flex-direction: column;
-    max-width: 1200px; /* Or whatever width you want the *container* to be */
+    max-width: 1200px;
     height: 100px;
-    margin-bottom: 20px ;
+    margin-bottom: 20px;
     border: 1px solid #ccc;
     padding: 20px;
     border-radius: 10px;
-  }
-  
-  .category-header {
+}
+
+.category-header {
     display: flex;
-    justify-content: space-between; /* View All to the right */
+    justify-content: space-between;
     align-items: center;
-    width: 100%; /* Occupy full width of container */
+    width: 100%;
     margin-bottom: 10px;
-  }
-  
-  .label {
+}
+
+.label {
     font-size: 20px;
     font-weight: bold;
-  }
-  
-  .view-all {
-    padding: 5px 10px; /* Adjust padding for size */
-    
-    color: rgb(0, 0, 0);
-    text-decoration: underline;
-    border: none;
-    cursor: pointer;
-    white-space: nowrap; /* Prevent button text from wrapping */
-  }
-  
-  .category-inner {
+}
+
+
+
+.category-inner {
     display: flex;
     justify-content: center;
     gap: 90px;
     width: auto;
-    
-  }
-  
-  .category{
-    display: flex; /* Use flexbox for icon and details */
-    align-items: center; /* Vertically align icon and details */
-    gap: 10px; /* Spacing between icon and details */
-    cursor: pointer; /* Make the folder a pointer on hover */
-    transition: transform 0.3s ease, text-decoration 0.3s ease; /* Smooth transitions for scale and underline */
-    position: relative; /* For positioning the underline */
-  }
-  .category:hover{
+}
+
+.category {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: transform 0.3s ease, text-decoration 0.3s ease;
+    position: relative;
+}
+
+.category:hover {
     transform: scale(1.05);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    
-  }
-  .category::after { /* Create the underline effect */
+}
+
+.category::after {
     content: "";
     position: absolute;
     left: 0;
-    bottom: -2px; /* Adjust distance from text */
-    width: 0; /* Initially no width */
+    bottom: -2px;
+    width: 0;
     height: 2px;
-    background-color: blue; /* Underline color */
-    transition: width 0.3s ease; /* Smooth transition for width */
-  }
-  
-  .category:hover::after {
-    width: 100%; /* Full width on hover */
-  }
-  .category-icon img{
+    background-color: blue;
+    transition: width 0.3s ease;
+}
+
+.category:hover::after {
+    width: 100%;
+}
+
+.category-icon img {
     width: 60px;
     height: 60px;
-    background-size: cover; /* Or contain, depending on your needs */
-    background-position: center; /* Adjust as needed */
-  }
-  
-  .category-details {
+    background-size: cover;
+    background-position: center;
+}
+
+.category-details {
     display: flex;
-    flex-direction: column; /* Stack name and count vertically */
-    gap: 5px; /* Spacing between name and count */
-  }
-  
-  .category-name {
-    font-size: 16px;  /* Adjust as needed */
+    flex-direction: column;
+    gap: 5px;
+}
+
+.category-name {
+    font-size: 16px;
     transition: color 0.3s ease;
-  }
-  .category:hover .category-name {
-    color: #007bff; /* Change color on hover */
-  }
-  .category-file-count {
+}
+
+.category:hover .category-name {
+    color: #007bff;
+}
+
+.category-file-count {
     font-size: 12px;
-    color: #777; /* Grey color */
+    color: #777;
     transition: color 0.3s ease;
-  }
-  .category:hover .category-file-count {
-    color: #0056b3; /* slightly different color on hover */
-  }
-  .hidden {
-    display: none; /* Hide extra folders */
-  }
+}
+
+.category:hover .category-file-count {
+    color: #0056b3;
+}
+
+.hidden {
+    display: none;
+}

@@ -134,6 +134,28 @@ body {
     
     
 }
+label {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    display: inline-block;
+  }
+
+  /* Style for the input field */
+  input[type="date"] {
+    padding: 8px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 50%;
+    max-width: 300px;
+    margin-bottom: 15px;
+  }
+
+  /* Add some spacing between the label and input */
+  .form-group {
+    margin-bottom: 20px;
+  }
 
 .preview-content {
     border: 1px solid #ddd;

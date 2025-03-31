@@ -4,79 +4,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logs Page</title>
+    <title>Documents Page</title>
     <link rel="stylesheet" href="css/documents_page.css">
     <link rel="stylesheet" href="css/side_bar.css">
     <link rel="stylesheet" href="css/navbar_header.css">
     <link rel="stylesheet" href="css/page_header.css">
-
-    
-
 </head>
 
 <body>
-    <div id="side-bar"> </div>
-    <div id="navbar-header"> </div>
+    <div id="side-bar"></div>
+    <div id="navbar-header"></div>
 
     <div class="docs-container">
-        <div id="page-header">
-    
-            <svg> </svg>
-            <svg> </svg>
-            <h1> </h1>
-          </div>
-        
+        <div id="page-header"></div>
+
         <div class="category-container">
             <div class="category-header">
-              <div class="label">Categories</div>
-              
+                <div class="label">Categories</div>
             </div>
-          
             <div class="category-inner">
-              <div class="category">
-                  <div class="category-icon">
-                      <img src="/admin/Components/icons/Category-icons/confluence.png" alt="Confluence Icon" class="category-png-icon">
-                  </div>
-                  <div class="category-details">
-                      <div class="category-name">Confluence</div>
-                      <div class="category-file-count">429 files</div>
-                  </div>
-              </div>
-          
-              <div class="category">
-                  <div class="category-icon">
-                      <img src="/admin/Components/icons/Category-icons/dissertation.png" alt="Dissertation Icon" class="category-png-icon">
-                  </div>
-                  <div class="category-details">
-                      <div class="category-name">Dissertation</div>
-                      <div class="category-file-count">65 files</div>
-                  </div>
-              </div>
-          
-              <div class="category">
-                  <div class="category-icon">
-                       <img src="/admin/Components/icons/Category-icons/thesis.png" alt="Thesis Icon" class="category-png-icon">
-                  </div>
-                  <div class="category-details">
-                      <div class="category-name">Thesis</div>
-                      <div class="category-file-count">354 files</div>
-                  </div>
-              </div>
-          
-              <div class="category">
-                  <div class="category-icon">
-                      <img src="/admin/Components/icons/Category-icons/synthesis.png" alt="Synthesis Icon" class="category-png-icon">
-                  </div>
-                  <div class="category-details">
-                      <div class="category-name">Synthesis</div>
-                      <div class="category-file-count">275 files</div>
-                  </div>
-              </div>
-          </div>
-          
-              
+                <!-- Categories remain static, but file counts will update dynamically -->
+                <div class="category" data-category="Confluence">
+                    <div class="category-icon">
+                        <img src="/admin/Components/icons/Category-icons/confluence.png" alt="Confluence Icon" class="category-png-icon">
+                    </div>
+                    <div class="category-details">
+                        <div class="category-name">Confluence</div>
+                        <div class="category-file-count">Loading...</div>
+                    </div>
+                </div>
+
+                <div class="category" data-category="Dissertation">
+                    <div class="category-icon">
+                        <img src="/admin/Components/icons/Category-icons/dissertation.png" alt="Dissertation Icon" class="category-png-icon">
+                    </div>
+                    <div class="category-details">
+                        <div class="category-name">Dissertation</div>
+                        <div class="category-file-count">Loading...</div>
+                    </div>
+                </div>
+
+                <div class="category" data-category="Thesis">
+                    <div class="category-icon">
+                        <img src="/admin/Components/icons/Category-icons/thesis.png" alt="Thesis Icon" class="category-png-icon">
+                    </div>
+                    <div class="category-details">
+                        <div class="category-name">Thesis</div>
+                        <div class="category-file-count">Loading...</div>
+                    </div>
+                </div>
+
+                <div class="category" data-category="Synthesis">
+                    <div class="category-icon">
+                        <img src="/admin/Components/icons/Category-icons/synthesis.png" alt="Synthesis Icon" class="category-png-icon">
+                    </div>
+                    <div class="category-details">
+                        <div class="category-name">Synthesis</div>
+                        <div class="category-file-count">Loading...</div>
+                    </div>
+                </div>
             </div>
-          </div>
+        </div>
+
         <table id="docs-table">
             <thead>
                 <tr>
@@ -88,99 +77,42 @@
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td><img src="/admin/Components/img/Samp_cover.jpg" alt="Cover 1" ></td>
-                    <td>The Lord of the Rings</td>
-                    <td>J.R.R. Tolkien</td>
-                    <td>1954</td>
-                    <td class="actions">
-                        <a href="#" class="edit-icon"> <i class="fas fa-edit"></i></a>
-                        <a href="#" class="delete-icon"> <i class="fas fa-trash-alt"></i></a>
-                    </td>
+                <tr id="no-docs-message">
+                    <td colspan="5" class="no-docs">No documents found</td>
                 </tr>
-                <tr>
-                    <td><img src="/admin/Components/img/Samp_cover.jpg" alt="Cover 2" ></td>
-                    <td>Pride and Prejudice</td>
-                    <td>Jane Austen</td>
-                    <td>1813</td>
-                    <td class="actions">
-                        <a href="#" class="edit-icon"> <i class="fas fa-edit"></i></a>
-                        <a href="#" class="delete-icon"> <i class="fas fa-trash-alt"></i></a>
-                    </td>
-                </tr>
-                <tr>
-                    <td><img src="/admin/Components/img/Samp_cover.jpg" alt="Cover 3" ></td>
-                    <td>1984</td>
-                    <td>George Orwell</td>
-                    <td>1949</td>
-                    <td class="actions">
-                        <a href="#" class="edit-icon"> <i class="fas fa-edit"></i></a>
-                        <a href="#" class="delete-icon"> <i class="fas fa-trash-alt"></i></a>
-                    </td>
-                </tr>
-                <tr>
-                    <td><img src="/admin/Components/img/Samp_cover.jpg" alt="Cover 3" ></td>
-                    <td>1984</td>
-                    <td>George Orwell</td>
-                    <td>1949</td>
-                    <td class="actions">
-                        <a href="#" class="edit-icon"> <i class="fas fa-edit"></i></a>
-                        <a href="#" class="delete-icon"> <i class="fas fa-trash-alt"></i></a>
-                    </td>
-                </tr>
-                <tr>
-                    <td><img src="/admin/Components/img/Samp_cover.jpg" alt="Cover 3" ></td>
-                    <td>1984</td>
-                    <td>George Orwell</td>
-                    <td>1949</td>
-                    <td class="actions">
-                        <a href="#" class="edit-icon"> <i class="fas fa-edit"></i></a>
-                        <a href="#" class="delete-icon"> <i class="fas fa-trash-alt"></i></a>
-                    </td>
-                </tr>
-
             </tbody>
-
         </table>
+
         <div class="pagination">
-            <div class="entries-info">
-                Showing 1 to 3 of 3 entries
-            </div>
-            <div class="page-links">
-                <button class="prev-button" disabled>&lt; prev</button>
-                <a href="#" class="page-number active">1</a>
-                <a href="#" class="page-number ">2</a>
-                <a href="#" class="page-number ">3</a>
-                <button class="next-button" disabled>&gt; next</button>
-            </div>
+            <div id="entries-info"></div>
+            <div id="page-links"></div>
         </div>
     </div>
+
     <script>
         fetch('./page_header.html')
           .then(response => response.text())
           .then(data => {
-            document.getElementById('page-header').innerHTML = data;
+              document.getElementById('page-header').innerHTML = data;
           })
           .catch(error => console.error('Error loading header:', error));
-      </script>
-    <script>
+
         fetch('./side_bar.html')
             .then(response => response.text())
             .then(data => {
                 document.getElementById('side-bar').innerHTML = data;
             })
-            .catch(error => console.error('Error loading header:', error));
-    </script>
- 
-    <script>
+            .catch(error => console.error('Error loading sidebar:', error));
+
         fetch('./navbar_header.html')
             .then(response => response.text())
             .then(data => {
                 document.getElementById('navbar-header').innerHTML = data;
             })
-            .catch(error => console.error('Error loading header:', error));
+            .catch(error => console.error('Error loading navbar:', error));
     </script>
 
+    <script src="js/document-page.js"></script>
 </body>
 
 </html>

@@ -6,6 +6,8 @@ import { client } from "./data/denopost_conn.ts";
 import { handleDocumentSubmission } from "./controllers/upload-documents.ts";
 import { searchAuthors } from "./controllers/author-Controller.ts";
 import { searchTopics, createTopic } from "./controllers/topic-Controller.ts";
+import { fetchCategories, fetchDocuments } from "./controllers/document-Controller.ts";
+import { handler as categoriesHandler } from "./controllers/document-Controller.ts";
 
 const env = await load({ envPath: "./.env" });
 console.log("Loaded Environment Variables:", env);
@@ -40,7 +42,16 @@ async function handler(req: Request): Promise<Response> {
     if (url.pathname === "/submit-document" && req.method === "POST") {
         return await handleDocumentSubmission(req);
     }
+    
+    // Fetch Categories with File Count
+    if (url.pathname === "/api/categories" && req.method === "GET") {
+        return await fetchCategories();
+    }
 
+    // Fetch Documents List
+    if (url.pathname === "/api/documents" && req.method === "GET") {
+        return await fetchDocuments(req);
+    }
     // Serve Static Files (Images, PDFs, etc.)
     if (req.method === "GET") {
         try {
@@ -64,7 +75,31 @@ async function handler(req: Request): Promise<Response> {
             return new Response("File not found", { status: 404 });
         }
     }
+    // Fetch Categories with File Count
+if (url.pathname === "/api/categories" && req.method === "GET") {
+    try {
+        const result = await client.queryObject("SELECT category, COUNT(*) as file_count FROM documents GROUP BY category");
+        return new Response(JSON.stringify(result.rows), {
+            headers: { "Content-Type": "application/json" },
+        });
+    } catch (error) {
+        console.error("Error fetching categories:", error);
+        return new Response("Internal Server Error", { status: 500 });
+    }
+}
 
+// Fetch Documents List
+if (url.pathname === "/api/documents" && req.method === "GET") {
+    try {
+        const result = await client.queryObject("SELECT title, authors, year, cover_path FROM documents");
+        return new Response(JSON.stringify(result.rows), {
+            headers: { "Content-Type": "application/json" },
+        });
+    } catch (error) {
+        console.error("Error fetching documents:", error);
+        return new Response("Internal Server Error", { status: 500 });
+    }
+}
     return new Response("Not Found", { status: 404 });
 }
 
@@ -83,3 +118,4 @@ async function startServer() {
 }
 
 startServer();
+

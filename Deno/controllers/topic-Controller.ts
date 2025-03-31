@@ -1,12 +1,15 @@
 import { client } from "../data/denopost_conn.ts";
 
 async function ensureDatabaseConnection() {
-    if (!client.connected) {
+    try {
+        await client.queryObject("SELECT 1"); // Simple query to check if connected
+    } catch (error) {
+        console.error("Database reconnection failed, attempting to reconnect...");
         try {
             await client.connect();
             console.log("Database reconnected.");
-        } catch (error) {
-            console.error("Database reconnection failed:", error);
+        } catch (connError) {
+            console.error("Database reconnection failed:", connError);
             return new Response(JSON.stringify({ error: "Database connection lost" }), {
                 status: 500,
                 headers: { "Content-Type": "application/json" },
@@ -24,17 +27,19 @@ export async function searchTopics(req: Request): Promise<Response> {
         console.log("Searching for topics with query:", query);
 
         if (!query) {
-            return new Response(JSON.stringify([]), { // Return empty array instead of error
+            return new Response(JSON.stringify([]), { 
                 status: 200,
                 headers: { "Content-Type": "application/json" },
             });
         }
 
-        // ✅ Fetch existing topics only
+        
         const result = await client.queryObject(
             `SELECT * FROM topics WHERE topic_name ILIKE $1 ORDER BY topic_name LIMIT 10`,
             [`${query}%`]
         );
+
+        
 
         console.log("Topic search results:", result.rows);
         return new Response(JSON.stringify(result.rows), {
@@ -50,13 +55,13 @@ export async function searchTopics(req: Request): Promise<Response> {
     }
 }
 
-// ✅ CREATE TOPIC (Only when user confirms)
+
 export async function createTopic(req: Request): Promise<Response> {
     try {
-        const body = await req.json(); // ✅ First, parse JSON body
-        const topicName = body.topic_name?.trim(); // ✅ Then, extract topic_name
+        const body = await req.json();
+        const topicName = body.topic_name?.trim(); 
 
-        console.log("Sending POST request to create topic:", topicName); // ✅ Now it's safe to log
+        console.log("Sending POST request to create topic:", topicName);
 
         if (!topicName) {
             return new Response(JSON.stringify({ error: "Invalid topic name" }), {
@@ -73,7 +78,10 @@ export async function createTopic(req: Request): Promise<Response> {
 
         if (checkResult.rows.length > 0) {
             console.log("Topic already exists:", checkResult.rows[0]);
-            return new Response(JSON.stringify(checkResult.rows[0]), {
+            return new Response(JSON.stringify({
+                message: "Topic already exists",
+                topic: checkResult.rows[0]
+            }), {
                 headers: { "Content-Type": "application/json" },
             });
         }

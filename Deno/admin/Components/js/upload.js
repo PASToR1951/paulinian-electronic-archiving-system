@@ -1,6 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("upload-form");
     const fileInput = document.getElementById("file");
+    const publicationDateInput = document.getElementById("publication-date");
+    console.log(publicationDateInput.value); // Check the value before appending to formData
+
     const topicInput = document.getElementById("topicInput");
     const authorInput = document.getElementById("authorInput");
     const topicList = document.getElementById("topicList");
@@ -13,7 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let selectedAuthors = new Set(); // Store selected authors
     let selectedTopics = new Set();  // Store selected topics
 
-    // ✅ Handle Author Selection
+    // Fetch Authors
     authorInput.addEventListener("input", async function () {
         const searchQuery = authorInput.value.trim().toLowerCase();
         authorList.innerHTML = ""; // Clear previous suggestions
@@ -70,7 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
         selectedAuthorsContainer.appendChild(authorSpan);
     }
 
-    // ✅ Handle Topic Selection
+    // Fetch Topics
     topicInput.addEventListener("input", async function () {
         const searchQuery = topicInput.value.trim().toLowerCase();
         topicList.innerHTML = ""; // Clear previous suggestions
@@ -127,23 +130,23 @@ document.addEventListener("DOMContentLoaded", () => {
         selectedTopicsContainer.appendChild(topicSpan);
     }
 
-    // ✅ Handle Form Submission
+    // Submit Form
     if (form) {
         form.addEventListener("submit", async function (event) {
             event.preventDefault();
 
             const formData = new FormData();
             formData.append("title", document.getElementById("title")?.value.trim() || "");
-            formData.append("year", document.getElementById("year")?.value.trim() || "");
+            formData.append("publication_date", publicationDateInput?.value.trim() || "");
             formData.append("volume-no", document.getElementById("volume-no")?.value.trim() || "");
             formData.append("department", document.getElementById("department")?.value.trim() || "");
             formData.append("category", document.getElementById("category")?.value.trim() || "");
             formData.append("abstract", document.getElementById("abstract")?.value.trim() || "");
+            // Debugging authors & topics
+            console.log("Selected Authors:", [...selectedAuthors]);
+            console.log("Selected Topics:", [...selectedTopics]);
 
-            // ✅ Collect Selected Authors
             formData.append("authors", JSON.stringify([...selectedAuthors]));
-
-            // ✅ Collect Selected Topics
             formData.append("topics", JSON.stringify([...selectedTopics]));
 
             const file = fileInput.files[0];
@@ -181,7 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // ✅ Enable "Read Document" Button
+    // Handle File Upload
     fileInput.addEventListener("change", function (event) {
         const file = event.target.files[0];
 
