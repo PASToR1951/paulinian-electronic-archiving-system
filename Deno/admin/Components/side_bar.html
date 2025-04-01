@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Navigation Bar</title>
-    <link rel="stylesheet" href="./css/side_bar.css">
+    <link rel="stylesheet" href="css/side_bar.css">
+    <link rel="stylesheet" href="css/page_header.css">
+    <link rel="stylesheet" href="css/navbar_header.css">
 </head>
 <body>
     <nav class="side-bar">
@@ -45,6 +47,13 @@
                     <span class="icon-text">Documents List</span>
                 </a>
                 
+                <a href="/admin/Components/create-news-article.html" class="icon-wrapper">
+                    <div class="icon">
+                        <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-news"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M16 6h3a1 1 0 0 1 1 1v11a2 2 0 0 1 -4 0v-13a1 1 0 0 0 -1 -1h-10a1 1 0 0 0 -1 1v12a3 3 0 0 0 3 3h11" /><path d="M8 8l4 0" /><path d="M8 12l4 0" /><path d="M8 16l4 0" /></svg>
+                    </div>
+                    <span class="icon-text">Author Lists</span>
+                </a>
+
                 <a href="/admin/Components/add_author.html" class="icon-wrapper">
                     <div class="icon">
                         <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-pencil-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" /><path d="M13.5 6.5l4 4" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>
@@ -52,12 +61,7 @@
                     <span class="icon-text">Add New Author</span>
                 </a>
 
-                <a href="/admin/Components/create-news-article.html" class="icon-wrapper">
-                    <div class="icon">
-                        <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-news"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M16 6h3a1 1 0 0 1 1 1v11a2 2 0 0 1 -4 0v-13a1 1 0 0 0 -1 -1h-10a1 1 0 0 0 -1 1v12a3 3 0 0 0 3 3h11" /><path d="M8 8l4 0" /><path d="M8 12l4 0" /><path d="M8 16l4 0" /></svg>
-                    </div>
-                    <span class="icon-text">Create News Article</span>
-                </a>
+                
 
                 <a href="/admin/Components/Document-Permissions.html" class="icon-wrapper">
                     <div class="icon">
@@ -96,15 +100,16 @@
                     <span class="icon-text">Settings</span>
                 </a>
                 
-                <a href="#" class="icon-wrapper">
+                <a href="/logout" onclick="handleLogout(event)" class="icon-wrapper">
                     <div class="icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-logout-2"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 8v-2a2 2 0 0 1 2 -2h7a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-7a2 2 0 0 1 -2 -2v-2" /><path d="M15 12h-12l3 -3" /><path d="M6 15l-3 -3" /></svg>
                     </div>
-                    <span class="icon-text">Logout </span>
+                    <span class="icon-text">Logout</span>
                 </a>
             </div>
         </div>
     </nav>
     <script src="/public/js/sidebar.js"></script>
+    <script src="/public/js/logout.js"></script>
 </body>
 </html>

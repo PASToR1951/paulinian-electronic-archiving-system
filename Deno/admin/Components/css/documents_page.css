@@ -22,28 +22,32 @@ body {
 
 /* Table wrapper to ensure height consistency */
 .table-wrapper {
-    width: 100%;
     max-width: 1200px;
-    margin: auto;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-    background-color: white;
-    overflow: hidden;
+    margin: 0 auto;
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
 }
 
 /* Table structure */
 table {
     width: 100%;
+    max-width: 1200px;
     border-collapse: collapse;
     table-layout: fixed;
+    margin: 0 auto;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 /* Fix table height and enable scroll when needed */
 .docs-table-container {
     max-height: 300px; /* Adjust height as needed */
     overflow-y: auto;
-    display: block;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 /* Keep headers visible when scrolling */
@@ -53,13 +57,16 @@ thead {
     position: sticky;
     top: 0;
     z-index: 2;
+    width: 100%;
+    max-width: 1200px;
+    display: table;
 }
 
 /* Table rows and columns */
 th, td {
     padding: 12px;
     text-align: left;
-    border-bottom: 1px solid #ddd;
+    border-bottom: none; /* Remove underline */
 }
 
 /* Table headers */
@@ -70,21 +77,28 @@ th {
 
 /* Ensure tbody has a minimum height */
 tbody {
-    width: 1200px;
-    display: block;
+    width: 100%;
+    max-width: 1200px;
+    display: table;
     min-height: 50vh; /* Ensures tbody is visible even if empty */
     overflow-y: auto;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    background-color: turquoise;
+    margin: 0 auto;
+    border-radius: 0 0 8px 8px;
+    background-color: #fffff5;
 }
 
 /* Keep table rows structured */
 tbody tr {
-    
-    width: 90%;
+    width: 100%;
+    max-width: 1200px;
+    display: table;
     table-layout: fixed;
     height: 80px;
-    background-color: #0056b3;
+    background-color: #fffff5;
+    box-sizing: border-box;
+    margin: 0 auto;
+    border-bottom: none; /* Remove underline */
 }
 
 /* Empty state message */
@@ -94,15 +108,26 @@ tbody tr {
     color: #777;
     font-style: italic;
     display: block;
+    width: 100%;
 }
 
 /* Ensure images fit within table cells */
 td img {
     border-radius: 6px;
     width: 50px;
-    height: 70px;
+    height: 50px;
     display: block;
     margin: 0 auto;
+    object-fit: contain;
+    background-color: #f8f9fa;
+    padding: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* First column (icon) specific styling */
+td:first-child {
+    width: 80px;
+    text-align: center;
 }
 
 /* Pagination */
@@ -164,6 +189,7 @@ td img {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
 }
 
 .actions i {
@@ -204,8 +230,6 @@ td img {
     font-size: 20px;
     font-weight: bold;
 }
-
-
 
 .category-inner {
     display: flex;
@@ -277,4 +301,152 @@ td img {
 
 .hidden {
     display: none;
+}
+
+/* Document card styling */
+.document-card {
+    max-width: 1200px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    margin: 0 auto;
+    box-sizing: border-box;
+    background-color: white;
+    border-bottom: none; /* Remove underline */
+    transition: all 0.2s ease;
+    padding: 8px 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+}
+
+.document-card:hover {
+    background-color: #f9fbff;
+    border-left: 3px solid #1890ff;
+}
+
+/* Filter indicator section */
+#filter-indicator { 
+    margin: 10px 0; 
+}
+
+.filter-badge {
+    display: inline-block;
+    padding: 5px 10px;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+#clear-filter {
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-left: 8px;
+    color: #666;
+}
+
+#clear-filter:hover { 
+    color: #ff0000; 
+}
+
+/* Category styling enhancement */
+.category {
+    cursor: pointer !important;
+    transition: all 0.2s ease;
+}
+
+.category:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.category.active {
+    background-color: #e6f7ff !important;
+    border-color: #1890ff !important;
+    box-shadow: 0 2px 6px rgba(24, 144, 255, 0.2) !important;
+}
+
+/* Document info cells styling */
+.doc-icon {
+    flex-shrink: 0;
+    padding: 10px;
+    text-decoration: none;
+    border-bottom: none;
+}
+
+.doc-info {
+    flex: 1;
+    padding: 10px;
+    overflow: hidden;
+    text-decoration: none;
+    border-bottom: none;
+}
+
+.doc-header {
+    margin-bottom: 5px;
+}
+
+.doc-title {
+    font-weight: bold;
+}
+
+.doc-author {
+    color: #666;
+}
+
+.doc-year {
+    color: #888;
+}
+
+.doc-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.tag {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    background-color: #f0f0f0;
+}
+
+.tag.document-type {
+    background-color: #e6f7ff;
+    color: #1890ff;
+}
+
+.tag.topic {
+    background-color: #f6ffed;
+    color: #52c41a;
+}
+
+/* Action buttons styling */
+.actions {
+    flex-shrink: 0;
+    text-align: right;
+    white-space: nowrap;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-bottom: none;
+}
+
+.edit-icon {
+    margin-right: 15px;
+    text-decoration: none !important;
+    color: inherit;
+    cursor: pointer;
+}
+
+.delete-icon {
+    text-decoration: none !important;
+    color: inherit;
+    cursor: pointer;
+}
+
+/* Add this to your existing CSS file */
+.document-list-container {
+    border: 2px solid #000; /* Adjust the width, style, and color as needed */
+    /* ... existing styles ... */
 }

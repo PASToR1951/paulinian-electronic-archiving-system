@@ -17,7 +17,7 @@ async function handleLoginRequest(req: Request): Promise<Response> {
         try {
             requestData = await req.json();
         } catch (jsonError) {
-            console.error(" Failed to parse request JSON:", jsonError);
+            console.error("Failed to parse request JSON:", jsonError);
             return jsonResponse({ message: "Invalid JSON format" }, 400);
         }
 
@@ -43,21 +43,40 @@ async function handleLoginRequest(req: Request): Promise<Response> {
         const token = await createSessionToken(user.school_id, user.role);
         console.log(`Generated session token: ${token}`);
 
-        // Redirect based on role
-        const redirectUrl = user.role === "Isadmin" ? "/admin/dashboard.html" : "/index.html";
-        console.log(`Redirecting User (${user.role}) to: ${redirectUrl}`);
+        // Check role and redirect accordingly
+        const role = user.role.toLowerCase();
+        console.log(`User role (lowercase): ${role}`);
+        
+        let redirectUrl;
+        if (role === "admin" || role === "isadmin" || role === "administrator") {
+            redirectUrl = "/admin/dashboard.html";
+        } else {
+            redirectUrl = "/index.html";
+        }
+        
+        console.log(`Redirecting User (${role}) to: ${redirectUrl}`);
 
-        // **Fix: Ensure we return the response immediately**
-        return jsonResponse({ message: "Login successful", token, redirect: redirectUrl }, 200);
+        // Create response with session token cookie
+        const response = jsonResponse({ 
+            message: "Login successful", 
+            token, 
+            redirect: redirectUrl,
+            role: user.role 
+        }, 200);
+
+        // Set the session token cookie
+        response.headers.set(
+            "Set-Cookie",
+            `session_token=${token}; Path=/; HttpOnly; SameSite=Strict`
+        );
+
+        return response;
     } catch (error) {
         console.error("Unexpected error in handleLoginRequest:", error);
-
-        // **Fix: Always return a response in the catch block**
         return jsonResponse({ message: "Internal Server Error", error: error.message }, 500);
     }
 }
 
-// **Fix: Ensure a new Response object is always returned**
 function jsonResponse(data: object, status: number): Response {
     return new Response(JSON.stringify(data), {
         status,

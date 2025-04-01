@@ -1,19 +1,61 @@
-import { Router } from "https://deno.land/x/oak/mod.ts";
-import { deleteToken } from "./session.ts";
+// logout.ts
+import { client } from "../data/denopost_conn.ts";  // PostgreSQL connection file
 
-const router = new Router();
+export async function handleLogout(req: Request): Promise<Response> {
+    try {
+        // Get the session token from cookies
+        const cookies = req.headers.get("cookie") || "";
+        const sessionToken = cookies.match(/session_token=([^;]+)/)?.[1];
 
-router.post("/logout", async (context) => {
-    const token = context.cookies.get("auth_token");
+        // Security headers to prevent caching and back navigation
+        const securityHeaders = {
+            "Location": "/index.html",
+            "Set-Cookie": "session_token=; Max-Age=0; Path=/; HttpOnly; SameSite=Strict",
+            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+            "X-Frame-Options": "DENY",
+            "X-Content-Type-Options": "nosniff",
+            "X-XSS-Protection": "1; mode=block",
+            "Referrer-Policy": "no-referrer",
+            "Clear-Site-Data": "\"cache\", \"cookies\", \"storage\""
+        };
 
-    if (token) {
-        await deleteToken(token);
-        console.log("🚪 User logged out.");
+        if (!sessionToken) {
+            // If no session token, just redirect to index
+            return new Response(null, {
+                status: 302,
+                headers: securityHeaders
+            });
+        }
+
+        // Invalidate session by removing the session token from the tokens table
+        await client.queryObject(`
+            DELETE FROM tokens WHERE token = $1
+        `, [sessionToken]);
+
+        // Create response with cleared cookie and redirect
+        return new Response(null, {
+            status: 302,
+            headers: securityHeaders
+        });
+    } catch (error) {
+        console.error("Error during logout:", error);
+        // Even if there's an error, try to redirect to index
+        return new Response(null, {
+            status: 302,
+            headers: {
+                "Location": "/index.html",
+                "Set-Cookie": "session_token=; Max-Age=0; Path=/; HttpOnly; SameSite=Strict",
+                "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+                "Pragma": "no-cache",
+                "Expires": "0",
+                "X-Frame-Options": "DENY",
+                "X-Content-Type-Options": "nosniff",
+                "X-XSS-Protection": "1; mode=block",
+                "Referrer-Policy": "no-referrer",
+                "Clear-Site-Data": "\"cache\", \"cookies\", \"storage\""
+            }
+        });
     }
-
-    context.response.status = 200;
-    context.response.body = { message: "Logged out successfully" };
-    context.response.headers.set("Set-Cookie", "auth_token=; HttpOnly; Path=/; Secure; Max-Age=0");
-});
-
-export default router; 
+} 

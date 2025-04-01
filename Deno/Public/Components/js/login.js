@@ -33,10 +33,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
             try {
                 console.log("Sending login request...");
-                const response = await fetch("http://localhost:8000/login", { 
+                const response = await fetch("/login", { 
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ ID, Password }),
+                    credentials: "include" // Important for cookies
                 });
 
                 console.log("Waiting for server response...");
@@ -54,10 +55,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.log("Server Response:", data);
 
                 if (response.ok) {
-                    alert("Login successful! Redirecting...");
-                    globalThis.location.href = data.redirect;
+                    // Store the session token
+                    if (data.token) {
+                        document.cookie = `session_token=${data.token}; path=/; HttpOnly; SameSite=Strict`;
+                    }
+                    
+                    // Redirect based on role
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    } else {
+                        window.location.href = "/index.html";
+                    }
                 } else {
-                    alert(data.message || "Login failed.");
+                    alert(data.message || "Login failed. Please check your credentials.");
                 }
             } catch (error) {
                 console.error("Login request error:", error);
