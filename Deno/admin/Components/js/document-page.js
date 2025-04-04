@@ -12,9 +12,32 @@ async function loadCategories() {
         // Log available categories for debugging
         console.log("Available categories:", categories);
 
+        // Calculate total file count for the "All" category
+        let totalFileCount = 0;
+        categories.forEach(category => {
+            totalFileCount += category.file_count;
+        });
+
+        // Update the "All" category file count
+        const allCategoryElement = document.querySelector('.category[data-category="All"]');
+        if (allCategoryElement) {
+            const fileCountElement = allCategoryElement.querySelector(".category-file-count");
+            fileCountElement.textContent = `${totalFileCount} files`;
+            
+            // Add click handler for "All" category
+            allCategoryElement.removeEventListener('click', allCategoryElement.clickHandler);
+            allCategoryElement.clickHandler = () => {
+                console.log("All category clicked");
+                filterByCategory("All");
+            };
+            allCategoryElement.addEventListener('click', allCategoryElement.clickHandler);
+            allCategoryElement.style.cursor = 'pointer';
+        }
+
         categories.forEach(category => {
             // Find existing category element using data-category attribute
             const categoryElement = document.querySelector(`.category[data-category="${category.category_name}"]`);
+            console.log(`Looking for category element: ${category.category_name}`, categoryElement);
 
             if (categoryElement) {
                 console.log(`Found category element for ${category.category_name}`);
@@ -42,7 +65,7 @@ async function loadCategories() {
             }
         });
         
-        // Add direct click handler for confluence category specifically
+        // Add direct click handler for Confluence category specifically
         const confluenceElement = document.querySelector('.category[data-category="Confluence"]');
         if (confluenceElement) {
             console.log("Found Confluence category element, ensuring click handler is attached");
@@ -57,6 +80,21 @@ async function loadCategories() {
             console.warn("Confluence category element not found!");
         }
         
+        // Add direct click handler for Dissertation category specifically
+        const dissertationElement = document.querySelector('.category[data-category="Dissertation"]');
+        if (dissertationElement) {
+            console.log("Found Dissertation category element, ensuring click handler is attached");
+            if (!dissertationElement.hasDirectHandler) {
+                dissertationElement.hasDirectHandler = true;
+                dissertationElement.addEventListener('click', function() {
+                    console.log("Dissertation category clicked directly");
+                    filterByCategory("Dissertation");
+                });
+            }
+        } else {
+            console.warn("Dissertation category element not found!");
+        }
+        
     } catch (error) {
         console.error("Error fetching categories:", error);
     }
@@ -66,39 +104,55 @@ async function loadCategories() {
 window.filterByCategory = function(categoryName) {
     console.log(`Filtering by category: ${categoryName}`);
     
-    // Set a small delay to ensure we don't have race conditions
-    setTimeout(() => {
-        // Toggle filter if clicking the same category again
-        if (currentCategoryFilter === categoryName) {
-            console.log("Clearing category filter");
-            currentCategoryFilter = null;
-            document.querySelectorAll('.category').forEach(cat => {
-                cat.classList.remove('active');
-            });
-        } else {
-            console.log(`Setting filter to: ${categoryName}`);
-            currentCategoryFilter = categoryName;
-            
-            // Highlight the selected category
-            document.querySelectorAll('.category').forEach(cat => {
-                const catName = cat.getAttribute('data-category');
-                console.log(`Checking category element: "${catName}" against "${categoryName}"`);
-                
-                if (catName === categoryName) {
-                    cat.classList.add('active');
-                    console.log(`Activated category: ${categoryName}`);
-                } else {
-                    cat.classList.remove('active');
-                }
-            });
-        }
+    // Toggle filter if clicking the same category again
+    if (currentCategoryFilter === categoryName) {
+        console.log("Clearing category filter");
+        currentCategoryFilter = null;
+        document.querySelectorAll('.category').forEach(cat => {
+            cat.classList.remove('active');
+        });
+    } else {
+        console.log(`Setting filter to: ${categoryName}`);
+        currentCategoryFilter = categoryName;
         
-        // Reset to first page and reload documents with filter
-        currentPage = 1;
-        loadDocuments(currentPage);
-    }, 10);
+        // Highlight the selected category
+        document.querySelectorAll('.category').forEach(cat => {
+            if (cat.getAttribute('data-category') === categoryName) {
+                cat.classList.add('active');
+                console.log(`Activated category: ${categoryName}`);
+            } else {
+                cat.classList.remove('active');
+            }
+        });
+    }
     
-    return false; // Prevent default action
+    // Reset to first page and reload documents with filter
+    currentPage = 1;
+    loadDocuments(currentPage);
+    
+    // Update the filter indicator
+    updateFilterIndicator();
+}
+
+// Add this new function to update the filter indicator
+function updateFilterIndicator() {
+    let filterIndicator = document.getElementById('filter-indicator');
+    if (!filterIndicator) {
+        filterIndicator = document.createElement('div');
+        filterIndicator.id = 'filter-indicator';
+        const table = document.getElementById('docs-table');
+        table.parentNode.insertBefore(filterIndicator, table);
+    }
+    
+    if (currentCategoryFilter && currentCategoryFilter !== "All") {
+        filterIndicator.innerHTML = `
+            <span class="filter-badge">Filtered by: ${currentCategoryFilter}</span>
+            <button id="clear-filter" onclick="filterByCategory('${currentCategoryFilter}')">Clear Filter</button>
+        `;
+        filterIndicator.style.display = 'block';
+    } else {
+        filterIndicator.style.display = 'none';
+    }
 }
 
 // Load categories and first page of documents on page load
@@ -112,6 +166,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // Add direct click handlers for each category
     // Hard-coding the most common categories to ensure they work
+    setupCategoryHandler("All");
     setupCategoryHandler("Confluence");
     setupCategoryHandler("Thesis");
     setupCategoryHandler("Dissertation");
@@ -222,163 +277,92 @@ function setupCategoryHandler(categoryName) {
 
 async function loadDocuments(page = 1) {
     try {
-        // Add category filter to URL if active
         let url = `/api/documents?page=${page}&size=${pageSize}`;
-        if (currentCategoryFilter) {
+        
+        // Only add category parameter if a filter is active and it's not "All"
+        if (currentCategoryFilter && currentCategoryFilter !== "All") {
             url += `&category=${encodeURIComponent(currentCategoryFilter)}`;
-            console.log(`Loading documents with filter URL: ${url}`);
-        } else {
-            console.log(`Loading all documents: ${url}`);
+            console.log(`Applying category filter: ${currentCategoryFilter}`);
         }
         
-        // Log the API request
         console.log(`Fetching documents from: ${url}`);
         
-        // Ensure the table container has proper width constraints
-        // All styling is now in CSS file
-        
         const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         
-        // Log the response data
-        console.log(`Received ${Array.isArray(data) ? data.length : 0} documents`);
+        console.log('Received document data:', data);
         
-        // Debug: Log each document and its category
-        if (Array.isArray(data) && data.length > 0) {
-            console.log('Documents received:');
-            data.forEach(doc => {
-                console.log(`Document "${doc.title}" has category: ${doc.category_name}`);
-            });
-        }
-        
-        // Make sure we have a proper array of documents
         let documents = Array.isArray(data) ? data : [];
         
-        // ALWAYS apply client-side filtering if a category filter is active
-        // This ensures consistent behavior across all categories
-        if (currentCategoryFilter && documents.length > 0) {
-            console.log(`Applying strict client-side filter for "${currentCategoryFilter}"`);
-            const unfiltered = documents.length;
-            
-            // Add debug log of all available documents and their categories
-            console.log("Available documents and their categories:");
-            documents.forEach(doc => {
-                console.log(`- ${doc.title}: "${doc.category_name}"`);
-            });
-            
-            // Filter the documents on the client side with strict category matching only
-            documents = documents.filter(doc => {
-                // Skip documents without category
-                if (!doc.category_name) {
-                    console.log(`Document "${doc.title}" has no category, excluding`);
-                    return false;
-                }
-                
-                // Normalize category names for comparison - STRICT EXACT MATCH ONLY
-                const docCategory = doc.category_name.toLowerCase().trim();
-                const filterCategory = currentCategoryFilter.toLowerCase().trim();
-                
-                // Only use exact matching - no partial matches
-                const matches = docCategory === filterCategory;
-                
-                console.log(`Document "${doc.title}" - category "${docCategory}" - ${matches ? 'MATCHES' : 'does NOT match'} filter "${filterCategory}"`);
-                
-                return matches;
-            });
-            
-            console.log(`Client-side filtering: ${unfiltered} → ${documents.length} documents`);
-        }
-        
-        // Get the tbody element before using it
         const tbody = document.querySelector("#docs-table tbody");
-        tbody.innerHTML = ""; // Clear existing data
-
-        // Update filter indicator if a filter is active
-        const filterIndicator = document.querySelector("#filter-indicator") || document.createElement("div");
-        filterIndicator.id = "filter-indicator";
-        
-        if (currentCategoryFilter) {
-            filterIndicator.innerHTML = `
-                <div class="filter-badge">
-                    Filtered by: ${currentCategoryFilter}
-                    <button id="clear-filter">✕</button>
-                </div>
-            `;
-            const tableContainer = document.querySelector("#docs-table").parentNode;
-            if (!document.querySelector("#filter-indicator")) {
-                tableContainer.insertBefore(filterIndicator, document.querySelector("#docs-table"));
-            }
-            
-            // Add event listener to clear filter button
-            setTimeout(() => {
-                const clearBtn = document.querySelector("#clear-filter");
-                if (clearBtn) {
-                    clearBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        filterByCategory(currentCategoryFilter); // This will toggle it off
-                    });
-                }
-            }, 0);
-        } else {
-            filterIndicator.remove();
-        }
+        tbody.innerHTML = "";
 
         if (documents.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="empty-message">No documents available${currentCategoryFilter ? ' for category ' + currentCategoryFilter : ''}</td></tr>`;
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="empty-message">
+                        No documents found${currentCategoryFilter && currentCategoryFilter !== "All" ? ` in category "${currentCategoryFilter}"` : ''}
+                    </td>
+                </tr>
+            `;
             return;
         }
 
+        // Filter documents by category on the client side as well
+        if (currentCategoryFilter && currentCategoryFilter !== "All") {
+            documents = documents.filter(doc => 
+                doc.category_name && 
+                doc.category_name.toLowerCase() === currentCategoryFilter.toLowerCase()
+            );
+        }
+
         documents.forEach(doc => {
+            // Log document data for debugging
+            console.log('Processing document:', doc);
+            
             const row = document.createElement("tr");
             row.className = "document-card";
             
-            // Get the appropriate category icon based on the document's category
             const categoryIcon = getCategoryIcon(doc.category_name);
             
-            // Create document info cell
             const iconCell = document.createElement("td");
             iconCell.className = "doc-icon";
             iconCell.innerHTML = `<img src="${categoryIcon}" alt="${doc.category_name} Icon">`;
             
-            // Create document info cell
             const infoCell = document.createElement("td");
             infoCell.className = "doc-info";
             
-            // Handle different author data formats
             let authorDisplay = '';
-            
-            // Debug author information
-            console.log(`Author info for "${doc.title}":`, doc.author_names);
-            
             if (doc.author_names && Array.isArray(doc.author_names) && doc.author_names.length > 0) {
                 authorDisplay = doc.author_names.join(', ');
             } else if (doc.author_name) {
                 authorDisplay = doc.author_name;
-            } else if (doc.author) {
-                authorDisplay = doc.author;
-            } else if (doc.authors && Array.isArray(doc.authors)) {
-                authorDisplay = doc.authors.join(', ');
-            } else if (typeof doc.authors === 'string') {
-                authorDisplay = doc.authors;
-            } else if (doc.contributor) {
-                authorDisplay = doc.contributor;
-            } else if (doc.contributors && Array.isArray(doc.contributors)) {
-                authorDisplay = doc.contributors.join(', ');
-            } else if (doc.created_by) {
-                authorDisplay = doc.created_by;
             } else {
-                // If author_names exists but is empty, add author placeholder
                 authorDisplay = 'No Author Listed';
             }
             
-            // Prepare the document header with conditional separators
             let headerContent = `<span class="doc-title">${doc.title || 'Untitled'}</span>`;
-            
-            // Always include author section, with appropriate text
             headerContent += ` | <span class="doc-author">${authorDisplay}</span>`;
             
             if (doc.publication_date) {
                 headerContent += ` | <span class="doc-year">${new Date(doc.publication_date).getFullYear()}</span>`;
+            }
+
+            // Process topics
+            let topicsHtml = '';
+            if (doc.document_topics && Array.isArray(doc.document_topics) && doc.document_topics.length > 0) {
+                topicsHtml = doc.document_topics.map(topic => 
+                    `<span class="tag topic">${topic.topic_name}</span>`
+                ).join('');
+            } else if (doc.topics && Array.isArray(doc.topics) && doc.topics.length > 0) {
+                topicsHtml = doc.topics.map(topic => 
+                    `<span class="tag topic">${typeof topic === 'string' ? topic : topic.topic_name}</span>`
+                ).join('');
+            } else {
+                topicsHtml = '<span class="tag topic muted">No topics</span>';
             }
             
             infoCell.innerHTML = `
@@ -387,11 +371,7 @@ async function loadDocuments(page = 1) {
                 </div>
                 <div class="doc-tags">
                     <span class="tag document-type">${doc.category_name || 'Uncategorized'}</span>
-                    ${doc.topics && doc.topics.length > 0 ? 
-                        ` <span class="tag topic">${doc.topics[0]}</span>` +
-                        (doc.topics.length > 1 ? doc.topics.slice(1).map(topic => 
-                            `<span class="tag topic">${topic}</span>`).join('') : '')
-                        : ''}
+                    ${topicsHtml}
                 </div>
             `;
             
@@ -399,13 +379,40 @@ async function loadDocuments(page = 1) {
             const actionsCell = document.createElement("td");
             actionsCell.className = "actions";
             actionsCell.innerHTML = `
-                <a href="#" class="edit-icon" title="Edit Document">
+                <a href="#" class="view-icon" title="View Document" data-doc-id="${doc.id}">
+                    <i class="fas fa-eye" aria-hidden="true">👁️</i> View
+                </a>
+                <a href="#" class="edit-icon" title="Edit Document" data-doc-id="${doc.id}">
                     <i class="fas fa-edit" aria-hidden="true">✏️</i> Edit
                 </a>
-                <a href="#" class="delete-icon" title="Delete Document">
+                <a href="#" class="delete-icon" title="Delete Document" data-doc-id="${doc.id}">
                     <i class="fas fa-trash-alt" aria-hidden="true">🗑️</i> Delete
                 </a>
             `;
+            
+            // Add event listeners for edit and delete buttons
+            const editButton = actionsCell.querySelector('.edit-icon');
+            const deleteButton = actionsCell.querySelector('.delete-icon');
+            
+            editButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                showEditForm(doc);
+            });
+            
+            deleteButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openDeleteConfirmation(doc);
+            });
+            
+            // Add event listener for view button
+            const viewButton = actionsCell.querySelector('.view-icon');
+            viewButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                showDocumentPreview(doc);
+            });
             
             // Append cells to row
             row.appendChild(iconCell);
@@ -433,9 +440,11 @@ async function loadDocuments(page = 1) {
 // Helper function to get the appropriate category icon
 function getCategoryIcon(categoryName) {
     const iconMap = {
+        'All': '/admin/Components/icons/Category-icons/default_category_icon.png',
         'Confluence': '/admin/Components/icons/Category-icons/confluence.png',
         'Dissertation': '/admin/Components/icons/Category-icons/dissertation.png',
-        'Thesis': '/admin/Components/icons/Category-icons/thesis.png'
+        'Thesis': '/admin/Components/icons/Category-icons/thesis.png',
+        'Synthesis': '/admin/Components/icons/Category-icons/synthesis.png'
     };
     
     // Check if the category exists in our map
@@ -443,8 +452,8 @@ function getCategoryIcon(categoryName) {
         return iconMap[categoryName];
     }
     
-    // Use a more reliable fallback - the Confluence icon as default
-    return '/admin/Components/icons/Category-icons/confluence.png';
+    // Use a more reliable fallback - the default icon
+    return '/admin/Components/icons/Category-icons/default_category_icon.png';
 }
 
 function updatePagination() {
@@ -495,4 +504,262 @@ function updatePagination() {
         }
     });
     pageLinks.appendChild(nextButton);
+}
+
+// Function to show edit form
+function showEditForm(doc) {
+    const modal = document.getElementById('edit-modal');
+    const form = document.getElementById('edit-form');
+    
+    // Populate form fields
+    form.querySelector('#edit-title').value = doc.title;
+    form.querySelector('#edit-publication-date').value = doc.publication_date;
+    form.querySelector('#edit-abstract').value = doc.abstract || '';
+    form.querySelector('#edit-category').value = doc.category_name.toLowerCase();
+    
+    // Show current file name if exists
+    const currentFileContainer = form.querySelector('#current-file-container');
+    if (doc.file) {
+        currentFileContainer.innerHTML = `
+            <div class="current-file">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <span>${doc.file.split('/').pop()}</span>
+            </div>
+        `;
+    } else {
+        currentFileContainer.innerHTML = '<p class="no-file">No file attached</p>';
+    }
+
+    // Show modal
+    modal.style.display = 'flex';
+}
+
+// Function to handle edit form submission
+async function handleEditSubmit(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    const documentId = form.dataset.documentId;
+
+    try {
+        const response = await fetch(`/api/documents/${documentId}`, {
+            method: 'PUT',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to update document');
+        }
+
+        // Show success message
+        const successModal = document.getElementById('success-modal');
+        successModal.style.display = 'flex';
+
+        // Hide success message and refresh page after 2 seconds
+        setTimeout(() => {
+            successModal.style.display = 'none';
+            window.location.reload();
+        }, 2000);
+
+    } catch (error) {
+        console.error('Error updating document:', error);
+        alert('Error updating document. Please try again.');
+    }
+}
+
+// Function to open delete confirmation
+function openDeleteConfirmation(doc) {
+    // Create confirmation dialog if it doesn't exist
+    let confirmDialog = document.getElementById('delete-confirm-dialog');
+    if (!confirmDialog) {
+        confirmDialog = document.createElement('div');
+        confirmDialog.id = 'delete-confirm-dialog';
+        confirmDialog.className = 'modal';
+        confirmDialog.innerHTML = `
+            <div class="modal-content">
+                <h2>Confirm Delete</h2>
+                <p>Are you sure you want to delete the document "${doc.title}"?</p>
+                <p>This action cannot be undone.</p>
+                <div class="form-actions">
+                    <button id="confirm-delete" class="delete-btn">Delete</button>
+                    <button id="cancel-delete" class="cancel-btn">Cancel</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(confirmDialog);
+        
+        // Add event listeners
+        document.getElementById('cancel-delete').addEventListener('click', () => {
+            confirmDialog.style.display = 'none';
+        });
+        
+        // Close dialog when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target === confirmDialog) {
+                confirmDialog.style.display = 'none';
+            }
+        });
+    }
+    
+    // Update document ID for deletion
+    const confirmDeleteBtn = document.getElementById('confirm-delete');
+    confirmDeleteBtn.onclick = async () => {
+        try {
+            const response = await fetch(`/api/documents/${doc.id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            // Log the response for debugging
+            console.log('Delete response status:', response.status);
+            const responseData = await response.json();
+            console.log('Delete response data:', responseData);
+            
+            if (response.ok) {
+                // Close dialog
+                confirmDialog.style.display = 'none';
+                
+                // Reload documents
+                loadDocuments(currentPage);
+                
+                // Show success message
+                alert('Document deleted successfully!');
+            } else {
+                const errorMessage = responseData.message || 'Unknown error occurred';
+                console.error('Server error:', errorMessage);
+                alert(`Error deleting document: ${errorMessage}`);
+            }
+        } catch (error) {
+            console.error('Error deleting document:', error);
+            alert('Error deleting document. Please try again. Details: ' + error.message);
+        }
+    };
+    
+    // Show dialog
+    confirmDialog.style.display = 'block';
+}
+
+async function showDocumentPreview(doc) {
+    console.log('Showing preview for document:', doc);
+    
+    try {
+        // Fetch the latest document data
+        const response = await fetch(`/api/documents/${doc.id}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch document details');
+        }
+        const documentData = await response.json();
+        console.log('Fetched document details:', documentData);
+
+        const modal = document.getElementById('preview-modal');
+        if (!modal) {
+            console.error('Preview modal not found in the DOM');
+            return;
+        }
+
+        // Set document title and author
+        const titleElement = document.getElementById('preview-title');
+        const authorElement = document.getElementById('preview-author');
+        if (titleElement) titleElement.textContent = documentData.title || 'Untitled';
+        if (authorElement) authorElement.textContent = documentData.author_name || 'Not specified';
+
+        // Set document info
+        const dateElement = document.getElementById('preview-date');
+        const topicsElement = document.getElementById('preview-topics');
+        const pagesElement = document.getElementById('preview-pages');
+        const addedDateElement = document.getElementById('preview-added-date');
+        const abstractElement = document.getElementById('preview-abstract');
+
+        if (dateElement) {
+            const date = documentData.publication_date ? new Date(documentData.publication_date).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }) : 'Not specified';
+            dateElement.textContent = date;
+        }
+
+        if (topicsElement) {
+            let topics = [];
+            if (documentData.document_topics && Array.isArray(documentData.document_topics)) {
+                topics = documentData.document_topics.map(t => t.topic_name);
+            } else if (documentData.topics && Array.isArray(documentData.topics)) {
+                topics = documentData.topics.map(t => typeof t === 'string' ? t : t.topic_name);
+            }
+            topicsElement.textContent = topics.length > 0 ? topics.join(', ') : 'None';
+        }
+
+        if (pagesElement) pagesElement.textContent = documentData.pages || 'Not specified';
+        
+        if (addedDateElement) {
+            const addedDate = documentData.created_at ? new Date(documentData.created_at).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }) : new Date().toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            addedDateElement.textContent = addedDate;
+        }
+
+        if (abstractElement) abstractElement.textContent = documentData.abstract || 'No abstract available.';
+
+        // Set up read document button
+        const readButton = document.getElementById('preview-read-btn');
+        if (readButton) {
+            if (documentData.file) {
+                readButton.href = documentData.file;
+                readButton.style.display = 'inline-block';
+            } else {
+                readButton.style.display = 'none';
+            }
+        }
+
+        // Show modal
+        modal.style.display = 'flex';
+    } catch (error) {
+        console.error('Error showing document preview:', error);
+        alert('Failed to load document preview. Please try again.');
+    }
+}
+
+function createCategoryElement(category, count) {
+    const div = document.createElement('div');
+    div.className = 'category';
+    div.setAttribute('data-category', category.toLowerCase());
+
+    const iconDiv = document.createElement('div');
+    iconDiv.className = 'category-icon';
+    iconDiv.innerHTML = `<img src="${getCategoryIcon(category)}" alt="${category} icon">`;
+
+    const textDiv = document.createElement('div');
+    textDiv.className = 'category-text';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'category-name';
+    nameSpan.textContent = category;
+
+    const countSpan = document.createElement('span');
+    countSpan.className = 'category-file-count';
+    countSpan.textContent = `${count} files`;
+
+    textDiv.appendChild(nameSpan);
+    textDiv.appendChild(countSpan);
+
+    div.appendChild(iconDiv);
+    div.appendChild(textDiv);
+
+    div.addEventListener('click', () => filterByCategory(category));
+
+    return div;
 }

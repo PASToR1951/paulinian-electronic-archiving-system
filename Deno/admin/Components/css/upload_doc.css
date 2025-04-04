@@ -17,8 +17,8 @@ body {
     display: flex;
     width: 1200px; /* Makes it take full width */
     max-width: 100%; /* Ensures no unwanted restrictions */
-    background-color: white;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     border-radius: 8px;
     overflow: hidden;
     align-self: center; /* Ensures it's centered within the body */
@@ -248,6 +248,7 @@ label {
     flex-direction: column;
     gap: 10px;
     margin-bottom: 10px;
+
 }
 
 /* Align Volume and Department in One Row */

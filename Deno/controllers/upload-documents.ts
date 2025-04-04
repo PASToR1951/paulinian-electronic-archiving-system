@@ -77,9 +77,9 @@ export async function handleDocumentSubmission(req: Request): Promise<Response> 
 
         // Insert document data into the database
         const result = await client.queryObject(
-            `INSERT INTO documents (title, publication_date, volume, department, category_id, abstract, file)
-            VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-            [title, publicationDate, volume, department, categoryId, abstract, filePath]
+            `INSERT INTO documents (title, publication_date, volume, department, category_id, abstract, file, topic_ids)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+            [title, publicationDate, volume, department, categoryId, abstract, filePath, []]
         );
 
         console.log("Document inserted, id:", result.rows[0].id);
@@ -120,22 +120,41 @@ export async function handleDocumentSubmission(req: Request): Promise<Response> 
         // Insert topics and collect topic IDs
         let topicIds = [];
         for (const topic of topics) {
-            const topicResult = await client.queryObject(
-                `INSERT INTO topics (topic_name) VALUES ($1) ON CONFLICT (topic_name) DO NOTHING RETURNING id`,
+            // First check if topic exists
+            const existingTopic = await client.queryObject(
+                `SELECT id FROM topics WHERE topic_name = $1`,
                 [topic]
             );
-            const topicId = topicResult.rows[0]?.id;
+            
+            let topicId;
+            if (existingTopic.rows.length > 0) {
+                // Topic exists, use existing ID
+                topicId = existingTopic.rows[0].id;
+            } else {
+                // Topic doesn't exist, insert new one
+                const topicResult = await client.queryObject(
+                    `INSERT INTO topics (topic_name) VALUES ($1) RETURNING id`,
+                    [topic]
+                );
+                topicId = topicResult.rows[0].id;
+            }
+            
             if (topicId) {
-                topicIds.push(topicId); // Add topic ID to the array
+                topicIds.push(topicId);
+                // Insert into document_topics junction table
+                await client.queryObject(
+                    `INSERT INTO document_topics (document_id, topic_id) VALUES ($1, $2)`,
+                    [documentId, topicId]
+                );
             }
         }
 
-        // Update document with author_ids and topic_ids
+        // Update document with topic_ids
         await client.queryObject(
             `UPDATE documents 
-            SET author_ids = $1, topic_ids = $2 
-            WHERE id = $3`,
-            [authorIds, topicIds, documentId]
+            SET topic_ids = $1 
+            WHERE id = $2`,
+            [topicIds, documentId]
         );
 
         console.log("Document, authors, and topics inserted successfully");

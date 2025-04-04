@@ -80,87 +80,128 @@ async function handler(req: Request): Promise<Response> {
     }
 
     // Handle API routes
-    if (url.pathname === "/api/topics") {
-        if (req.method === "GET") {
-            return await searchTopics(req);
-        } else if (req.method === "POST") {
-            return await createTopic(req);
+    if (url.pathname.startsWith("/api/")) {
+        // Handle document submission
+        if (url.pathname === "/api/submit-document" && req.method === "POST") {
+            return await handleDocumentSubmission(req);
         }
-    }
-    if (req.method === "GET" && url.pathname === "/api/authors") {
-        return await searchAuthors(req);
-    }
-    if (url.pathname === "/submit-document" && req.method === "POST") {
-        return await handleDocumentSubmission(req);
-    }
-    if (url.pathname === "/api/categories" && req.method === "GET") {
-        try {
-            const result = await client.queryObject<CategoryRow>(`
-                SELECT c.category_name, CAST(COUNT(*) AS INTEGER) as file_count 
-                FROM documents d
-                JOIN categories c ON d.category_id = c.id
-                GROUP BY c.category_name
-            `);
 
-            // Convert BigInt values to regular numbers
-            const processedRows = result.rows.map((row: CategoryRow) => ({
-                category_name: row.category_name,
-                file_count: Number(row.file_count)
-            }));
-
-            return new Response(JSON.stringify(processedRows), {
-                headers: { "Content-Type": "application/json" },
-            });
-        } catch (error: unknown) {
-            console.error("Error fetching categories:", error);
-            return new Response(JSON.stringify({ 
-                error: "Failed to fetch categories",
-                details: error instanceof Error ? error.message : String(error)
-            }), { 
-                status: 500,
-                headers: { "Content-Type": "application/json" }
-            });
+        // Handle document routes
+        if (url.pathname.startsWith("/api/documents")) {
+            if (req.method === "GET") {
+                return await fetchDocuments(req);
+            } else if (req.method === "DELETE") {
+                const id = url.pathname.split("/").pop();
+                if (!id) {
+                    return new Response(JSON.stringify({ message: "Document ID is required" }), {
+                        status: 400,
+                        headers: { "Content-Type": "application/json" }
+                    });
+                }
+                
+                try {
+                    // Begin transaction
+                    await client.queryObject("BEGIN");
+                    
+                    try {
+                        // First, delete related records in document_topics
+                        await client.queryObject(
+                            "DELETE FROM document_topics WHERE document_id = $1",
+                            [id]
+                        );
+                        
+                        // Delete related records in saved_documents
+                        await client.queryObject(
+                            "DELETE FROM saved_documents WHERE document_id = $1",
+                            [id]
+                        );
+                        
+                        // Delete related records in user_permissions
+                        await client.queryObject(
+                            "DELETE FROM user_permissions WHERE document_id = $1",
+                            [id]
+                        );
+                        
+                        // Finally, delete the document
+                        const result = await client.queryObject(
+                            "DELETE FROM documents WHERE id = $1 RETURNING *",
+                            [id]
+                        );
+                        
+                        if (result.rows.length === 0) {
+                            await client.queryObject("ROLLBACK");
+                            console.log(`Document with ID ${id} not found`);
+                            return new Response(JSON.stringify({ message: "Document not found" }), {
+                                status: 404,
+                                headers: { "Content-Type": "application/json" }
+                            });
+                        }
+                        
+                        // Commit transaction
+                        await client.queryObject("COMMIT");
+                        console.log(`Document with ID ${id} deleted successfully`);
+                        
+                        return new Response(JSON.stringify({ message: "Document deleted successfully" }), {
+                            status: 200,
+                            headers: { "Content-Type": "application/json" }
+                        });
+                    } catch (error) {
+                        // Rollback transaction on error
+                        await client.queryObject("ROLLBACK");
+                        throw error;
+                    }
+                } catch (error) {
+                    console.error("Error deleting document:", error);
+                    return new Response(JSON.stringify({ 
+                        message: "Internal server error",
+                        details: error instanceof Error ? error.message : String(error)
+                    }), {
+                        status: 500,
+                        headers: { "Content-Type": "application/json" }
+                    });
+                }
+            }
         }
-    }
-    if (url.pathname === "/api/documents" && req.method === "GET") {
-        try {
-            const result = await client.queryObject<DocumentRow>(`
-                SELECT 
-                    d.id,
-                    d.title,
-                    d.publication_date,
-                    d.file,
-                    c.category_name,
-                    COALESCE(array_agg(DISTINCT a.full_name) FILTER (WHERE a.full_name IS NOT NULL), ARRAY[]::text[]) as author_names
-                FROM documents d
-                LEFT JOIN categories c ON d.category_id = c.id
-                LEFT JOIN Authors a ON a.author_id = ANY(d.author_ids)
-                GROUP BY d.id, d.title, d.publication_date, d.file, c.category_name
-                ORDER BY d.publication_date DESC
-            `);
+        
+        // Handle other API routes
+        if (url.pathname === "/api/topics") {
+            if (req.method === "GET") {
+                return await searchTopics(req);
+            } else if (req.method === "POST") {
+                return await createTopic(req);
+            }
+        }
+        if (req.method === "GET" && url.pathname === "/api/authors") {
+            return await searchAuthors(req);
+        }
+        if (url.pathname === "/api/categories" && req.method === "GET") {
+            try {
+                const result = await client.queryObject<CategoryRow>(`
+                    SELECT c.category_name, CAST(COUNT(*) AS INTEGER) as file_count 
+                    FROM documents d
+                    JOIN categories c ON d.category_id = c.id
+                    GROUP BY c.category_name
+                `);
 
-            // Convert BigInt values and format dates
-            const processedRows = result.rows.map((row: DocumentRow) => ({
-                id: Number(row.id),
-                title: row.title,
-                publication_date: row.publication_date ? new Date(row.publication_date).toISOString().split('T')[0] : null,
-                file: row.file,
-                category_name: row.category_name,
-                author_names: Array.isArray(row.author_names) ? row.author_names : []
-            }));
+                // Convert BigInt values to regular numbers
+                const processedRows = result.rows.map((row: CategoryRow) => ({
+                    category_name: row.category_name,
+                    file_count: Number(row.file_count)
+                }));
 
-            return new Response(JSON.stringify(processedRows), {
-                headers: { "Content-Type": "application/json" },
-            });
-        } catch (error: unknown) {
-            console.error("Error fetching documents:", error);
-            return new Response(JSON.stringify({ 
-                error: "Failed to fetch documents",
-                details: error instanceof Error ? error.message : String(error)
-            }), { 
-                status: 500,
-                headers: { "Content-Type": "application/json" }
-            });
+                return new Response(JSON.stringify(processedRows), {
+                    headers: { "Content-Type": "application/json" },
+                });
+            } catch (error: unknown) {
+                console.error("Error fetching categories:", error);
+                return new Response(JSON.stringify({ 
+                    error: "Failed to fetch categories",
+                    details: error instanceof Error ? error.message : String(error)
+                }), { 
+                    status: 500,
+                    headers: { "Content-Type": "application/json" }
+                });
+            }
         }
     }
 

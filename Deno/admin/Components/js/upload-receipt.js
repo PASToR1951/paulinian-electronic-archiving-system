@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const formData = new FormData(form);
 
         try {
-            const response = await fetch("/submit-document", {
+            const response = await fetch("/api/submit-document", {
                 method: "POST",
                 body: formData
             });

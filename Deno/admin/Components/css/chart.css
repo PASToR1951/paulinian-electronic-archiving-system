@@ -1,22 +1,26 @@
-.container {
+.chart-wrapper {
     max-width: 1000px;
     margin: auto;
 }
-h2 {
+
+.chart-wrapper h2 {
     color: #000000; 
 }
+
 .chart-container {
     background-color: #f3f3f3;
     padding: 5px;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(126, 126, 126, 0.322);
 }
+
 .chart-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1px;
 }
+
 .chart-header button {
     background-color: #000000; 
     color: #ffffff;
@@ -26,17 +30,20 @@ h2 {
     cursor: pointer;
     transition: background-color 0.3s, color 0.3s, border-color 0.3s; 
 }
+
 .chart-header button.active {
     background-color: #707070; 
     color: #ffffff; 
     border-color: #ffffff;
 }
+
 .chart-header button:hover {
     background-color: #707070;
     color: #ffffff;
     border-color: #707070; 
 }
-canvas {
+
+.chart-container canvas {
     width: 100%;
     height: auto;
     max-height: 150px; 

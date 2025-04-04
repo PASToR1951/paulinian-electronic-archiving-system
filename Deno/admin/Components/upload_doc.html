@@ -5,7 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document Submission Form</title>
     <link rel="stylesheet" href="./css/upload_doc.css">
-    </head>
+    <!-- Add PDF.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        // Initialize PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+</head>
 <body>
     <div id="side-bar"></div>
     <div id="navbar-header"></div>
@@ -123,8 +129,8 @@
                 
                 <p id="preview-year">Publishing Date: 2021</p>
                 <p id="preview-topic">Topics: History</p>
-                <p id="preview-language">Language: English</p>
-                <p id="preview-pages">Pages: 140</p>
+                
+                <p id="preview-pages">Pages: <span id="page-count">0</span></p>
                 <p id="preview-added-date">Added Date: January 15, 2021</p>
 
                 <div class="read-document-container">
