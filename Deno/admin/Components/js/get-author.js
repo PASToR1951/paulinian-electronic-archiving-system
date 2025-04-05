@@ -32,7 +32,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 if (data.length === 0) {
-                    authorList.innerHTML = "<div class='dropdown-item'>No author found</div>";
+                    // Show "Create Author" option when no author is found
+                    const createAuthorItem = document.createElement("div");
+                    createAuthorItem.classList.add("dropdown-item", "create-author");
+                    createAuthorItem.innerHTML = `<span class="create-author-text">Create Author: "${query}"</span>`;
+                    createAuthorItem.addEventListener("click", () => selectAuthor(query));
+                    authorList.appendChild(createAuthorItem);
                 } else {
                     data.forEach(author => {
                         const authorItem = document.createElement("div");

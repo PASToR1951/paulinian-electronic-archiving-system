@@ -569,7 +569,7 @@ COPY public.categories (id, category_name) FROM stdin;
 1	Thesis
 2	Dissertation
 4	Confluence
-3	Synthesis
+3	Synergy
 \.
 
 

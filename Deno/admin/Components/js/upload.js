@@ -1,8 +1,10 @@
+// Define extractedAbstract in the global scope
+let extractedAbstract = "";
+
 document.addEventListener("DOMContentLoaded", () => {
     const titleInput = document.getElementById("title");
     const authorInput = document.getElementById("authorInput");
-    const publicationDateInput = document.getElementById("publication-date");
-    const abstractInput = document.getElementById("abstract");
+    const publicationDateInput = document.getElementById("publication_date");
     const selectedAuthorsContainer = document.getElementById("selectedAuthors");
     const selectedTopicsContainer = document.getElementById("selectedTopics");
     const categorySelect = document.getElementById("category");
@@ -13,8 +15,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const previewTitle = document.getElementById("preview-title");
     const previewAuthor = document.getElementById("preview-author");
     const previewYear = document.getElementById("preview-year");
-    const previewAbstract = document.getElementById("preview-abstract");
     const previewTopic = document.getElementById("preview-topic");
+    const previewAbstract = document.getElementById("preview-abstract");
     const categoryIcon = document.getElementById("category-icon");
 
     // Function to get PDF page count
@@ -27,6 +29,56 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("Error getting PDF page count:", error);
             return 0;
         }
+    }
+
+    // Function to extract text from PDF using PDF.js
+    async function extractTextFromPDF(file) {
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            
+            // Get the first page (usually contains abstract)
+            const page = await pdf.getPage(1);
+            const textContent = await page.getTextContent();
+            
+            // Extract text from the page and clean up formatting
+            const text = textContent.items
+                .map(item => {
+                    // Remove any bold markers or special characters
+                    let cleanText = item.str.replace(/\*\*/g, '').replace(/\*/g, '');
+                    return cleanText;
+                })
+                .join(' ');
+            return text;
+        } catch (error) {
+            console.error('Error extracting text from PDF:', error);
+            return "Unable to extract abstract from PDF.";
+        }
+    }
+
+    // Function to find abstract in extracted text
+    function findAbstract(text) {
+        // Common abstract markers
+        const abstractMarkers = [
+            "abstract",
+            "summary",
+            "synopsis"
+        ];
+
+        // Split text into paragraphs
+        const paragraphs = text.split(/\n\s*\n/);
+        
+        // Look for paragraph starting with abstract markers
+        for (const paragraph of paragraphs) {
+            const lowerParagraph = paragraph.toLowerCase();
+            if (abstractMarkers.some(marker => lowerParagraph.startsWith(marker))) {
+                // Remove the marker word and clean up the text
+                return paragraph.replace(new RegExp(`^(${abstractMarkers.join('|')})[:\s]*`, 'i'), '').trim();
+            }
+        }
+
+        // If no abstract marker found, return first paragraph
+        return paragraphs[0] || "No abstract found in the document.";
     }
 
     // Update page count and added date when file is selected
@@ -44,8 +96,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 day: 'numeric' 
             });
             previewAddedDate.textContent = `Added Date: ${formattedDate}`;
+
+            // Extract text from PDF
+            const extractedText = await extractTextFromPDF(file);
+            extractedAbstract = findAbstract(extractedText);
+            
+            // Update preview
+            previewAbstract.textContent = extractedAbstract || "No abstract found in the document.";
+            
+            // Enable read document button
+            const readButton = document.getElementById("read-document");
+            if (readButton) {
+                readButton.disabled = false;
+                readButton.classList.remove("disabled-button");
+            }
         } else {
             pageCountSpan.textContent = "0";
+            previewAbstract.textContent = "Please upload a PDF file to extract the abstract.";
         }
     });
 
@@ -59,11 +126,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const date = new Date(publicationDateInput.value);
         const formattedDate = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
         previewYear.textContent = `Publishing Date: ${formattedDate}`;
-    });
-
-    // Update preview abstract
-    abstractInput.addEventListener("input", () => {
-        previewAbstract.textContent = abstractInput.value || "This is the default abstract text...";
     });
 
     // Update preview authors
@@ -113,50 +175,32 @@ document.addEventListener("DOMContentLoaded", () => {
     // Initialize preview with default values
     updateAuthorsPreview();
     updateTopicsPreview();
-    
-    // Set initial added date to current date
-    const currentDate = new Date();
-    const formattedDate = currentDate.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-    });
-    previewAddedDate.textContent = `Added Date: ${formattedDate}`;
-});
-
-// Add event listener for form submission
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('upload-form');
-    const fileInput = document.getElementById('file');
-    const readButton = document.getElementById('read-document');
 
     // Add event listener for form submission
+    const form = document.getElementById("upload-form");
     if (form) {
-        form.addEventListener('submit', handleUpload);
-    }
-
-    // Add event listener for file input
-    if (fileInput) {
-        fileInput.addEventListener('change', function() {
-            if (readButton) {
-                if (this.files && this.files[0]) {
-                    readButton.disabled = false;
-                    readButton.classList.remove('disabled-button');
-                } else {
-                    readButton.disabled = true;
-                    readButton.classList.add('disabled-button');
-                }
-            }
-        });
+        form.addEventListener("submit", handleUpload);
     }
 
     // Add event listener for read document button
+    const readButton = document.getElementById("read-document");
     if (readButton) {
         readButton.addEventListener('click', function() {
             if (fileInput && fileInput.files && fileInput.files[0]) {
                 const file = fileInput.files[0];
                 const fileURL = URL.createObjectURL(file);
                 window.open(fileURL, '_blank');
+            }
+        });
+    }
+
+    // Add event listener for close receipt button
+    const closeReceiptButton = document.getElementById("close-receipt");
+    if (closeReceiptButton) {
+        closeReceiptButton.addEventListener("click", function() {
+            const receiptModal = document.getElementById("receipt-modal");
+            if (receiptModal) {
+                receiptModal.style.display = "none";
             }
         });
     }
@@ -185,9 +229,49 @@ async function handleUpload(event) {
         const selectedAuthors = Array.from(document.querySelectorAll('.selected-author'))
             .map(el => el.textContent.replace('×', '').trim());
 
+        // Log form data for debugging
+        console.log('Form data before processing:');
+        for (let [key, value] of formData.entries()) {
+            console.log(`${key}: ${value}`);
+        }
+
+        // Ensure all required fields are present
+        const title = formData.get('title');
+        const publicationDate = formData.get('publication_date');
+        const category = formData.get('category');
+        const file = formData.get('file');
+        const volumeNo = formData.get('volume-no');
+
+        if (!title || !publicationDate || !category || !file) {
+            throw new Error('Please fill in all required fields: Title, Publication Date, Category, and File');
+        }
+
+        if (selectedAuthors.length === 0) {
+            throw new Error('Please add at least one author');
+        }
+
+        // Create document data object
+        const documentData = {
+            title: title,
+            authors: selectedAuthors,
+            category: category,
+            topics: selectedTopics,
+            volume: volumeNo,
+            publicationDate: publicationDate,
+            abstract: extractedAbstract || ''
+        };
+
         // Add selected topics and authors to formData
         formData.append('topic', JSON.stringify(selectedTopics));
         formData.append('author', JSON.stringify(selectedAuthors));
+        formData.append('abstract', extractedAbstract || '');
+        formData.append('department', 'Computer Science'); // Default department
+
+        // Log final form data for debugging
+        console.log('Final form data:');
+        for (let [key, value] of formData.entries()) {
+            console.log(`${key}: ${value}`);
+        }
 
         const response = await fetch('/api/submit-document', {
             method: 'POST',
@@ -207,97 +291,79 @@ async function handleUpload(event) {
             successModal.style.display = 'flex';
         }
 
-        // Populate receipt modal with document details
-        document.getElementById('receiptDate').textContent = new Date().toLocaleString();
-        document.getElementById('receiptTitle').textContent = formData.get('title');
-        document.getElementById('receiptAuthors').textContent = selectedAuthors.join(', ');
-        document.getElementById('receiptTopics').textContent = selectedTopics.join(', ');
-        document.getElementById('receiptCategory').textContent = formData.get('category');
-        document.getElementById('receiptYear').textContent = formData.get('publication_date');
-
-        // After 2 seconds, hide success popup and show receipt popup
+        // Use the document data we created instead of the response
         setTimeout(() => {
-            if (successModal) {
-                successModal.style.display = 'none';
-            }
-            const receiptModal = document.getElementById('receipt-modal');
-            if (receiptModal) {
-                receiptModal.style.display = 'flex';
-            }
-
-            // After showing the receipt, wait 3 seconds then redirect
-            setTimeout(() => {
-                if (result.redirect) {
-                    window.location.href = result.redirect;
-                }
-            }, 3000);
+            updateReceiptModal(documentData);
         }, 2000);
 
     } catch (error) {
-        console.error('Upload error:', error);
+        console.error('Error uploading document:', error);
         alert('Error uploading document: ' + error.message);
     } finally {
-        // Re-enable submit button and restore original text
+        // Reset submit button
         submitButton.disabled = false;
         submitButton.innerHTML = originalButtonText;
     }
 }
 
-// Close receipt function
-function closeReceipt() {
-    const receiptModal = document.getElementById('receipt-modal');
-    if (receiptModal) {
-        receiptModal.style.display = 'none';
-        // Redirect after closing receipt
-        window.location.href = '/admin/dashboard.html';
+// Update receipt modal with document details
+function updateReceiptModal(documentData) {
+    try {
+        console.log('Updating receipt modal with data:', documentData);
+        
+        // Update receipt date
+        const currentDate = new Date().toLocaleDateString();
+        document.getElementById('receiptDate').textContent = currentDate;
+
+        // Update document details
+        document.getElementById('receiptTitle').textContent = documentData.title || 'No Title';
+        document.getElementById('receiptAuthor').textContent = Array.isArray(documentData.authors) ? 
+            documentData.authors.join(', ') : documentData.authors || 'No Author';
+        document.getElementById('receiptCategory').textContent = documentData.category || 'No Category';
+        document.getElementById('receiptVolume').textContent = documentData.volume || 'N/A';
+
+        // Update category icon
+        const categoryIcon = document.getElementById('receipt-category-icon');
+        categoryIcon.src = getCategoryIcon(documentData.category);
+
+        // Update topics
+        const topicsContainer = document.getElementById('receiptTopics');
+        topicsContainer.innerHTML = ''; // Clear existing topics
+        
+        if (Array.isArray(documentData.topics) && documentData.topics.length > 0) {
+            documentData.topics.forEach((topic, index) => {
+                const topicBadge = document.createElement('div');
+                topicBadge.className = 'topic-badge';
+                topicBadge.textContent = topic;
+                topicsContainer.appendChild(topicBadge);
+            });
+        }
+
+        // Show the receipt modal
+        const receiptModal = document.getElementById('receipt-modal');
+        if (receiptModal) {
+            receiptModal.style.display = 'flex';
+        }
+
+        // Hide success modal
+        const successModal = document.getElementById('success-modal');
+        if (successModal) {
+            successModal.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error updating receipt modal:', error);
     }
 }
 
-// Print receipt function
-function printReceipt() {
-    const receiptContent = document.querySelector('.receipt-body');
-    if (!receiptContent) return;
-
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-
-    printWindow.document.write(`
-        <html>
-            <head>
-                <title>Document Upload Receipt</title>
-                <style>
-                    body { 
-                        padding: 20px;
-                        font-family: Arial, sans-serif;
-                    }
-                    .receipt-body { 
-                        max-width: 600px; 
-                        margin: 0 auto;
-                        padding: 20px;
-                        border: 1px solid #ddd;
-                        border-radius: 8px;
-                    }
-                    .receipt-header {
-                        text-align: center;
-                        margin-bottom: 20px;
-                        padding-bottom: 10px;
-                        border-bottom: 1px solid #eee;
-                    }
-                    .receipt-details p {
-                        margin: 10px 0;
-                    }
-                </style>
-            </head>
-            <body>
-                ${receiptContent.innerHTML}
-            </body>
-        </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => printWindow.print(), 500);
+// Function to get category icon path
+function getCategoryIcon(category) {
+    const categoryIcons = {
+        'thesis': './icons/Category-icons/thesis.png',
+        'dissertation': './icons/Category-icons/dissertation.png',
+        'confluence': './icons/Category-icons/confluence.png',
+        'synergy': './icons/Category-icons/synergy.png',
+        'default': './icons/Category-icons/default_category_icon.png'
+    };
+    
+    return categoryIcons[category.toLowerCase()] || categoryIcons.default;
 }
-
-// Make functions available globally
-window.closeReceipt = closeReceipt;
-window.printReceipt = printReceipt;

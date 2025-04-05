@@ -9,7 +9,7 @@
         confluence: '/admin/components/icons/category-icons/confluence.png',
         dissertation: '/admin/components/icons/category-icons/dissertation.png',
         thesis: '/admin/components/icons/category-icons/thesis.png',
-        synthesis: '/admin/components/icons/category-icons/synthesis.png',
+        synergy: '/admin/components/icons/category-icons/synergy.png',
     };
 
     // Set up an event listener for when the category changes

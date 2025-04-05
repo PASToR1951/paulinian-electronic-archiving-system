@@ -224,8 +224,8 @@ td:first-child {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    width: 100%;
-    margin-bottom: 10px;
+    padding: 10px 15px;
+    border-bottom: 1px solid #e0e0e0;
 }
 
 .label {
@@ -254,6 +254,7 @@ td:first-child {
     width: auto;
     height: auto;
     gap: 8px;
+    position: relative; /* For dropdown positioning */
 }
 
 .category:hover {
@@ -364,6 +365,7 @@ td:first-child {
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid transparent;
+    position: relative; /* For dropdown positioning */
 }
 
 .category:hover {
@@ -384,6 +386,55 @@ td:first-child {
 
 .category.active .category-file-count {
     color: #1890ff;
+}
+
+/* Volume dropdown styling */
+.volume-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    border: 1px solid #e8e8e8;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    display: none;
+    z-index: 1000;
+    min-width: 150px;
+}
+
+.volume-dropdown.show {
+    display: block;
+}
+
+.volume-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.volume-item:hover {
+    background-color: #f5f5f5;
+}
+
+.volume-item.active {
+    background-color: #e6f7ff;
+    color: #1890ff;
+}
+
+.volume-indicator {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #1890ff;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 500;
 }
 
 /* Document info cells styling */
@@ -412,6 +463,12 @@ td:first-child {
 
 .doc-author {
     color: #666;
+}
+
+.doc-volume {
+    color: #1890ff;
+    font-weight: 500;
+    margin: 0 8px;
 }
 
 .doc-year {
@@ -922,4 +979,72 @@ td:first-child {
 
 .view-icon:hover {
     color: #45a049;
+}
+
+.volume-filter-container {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+}
+
+.volume-filter-label {
+    margin-right: 10px;
+    font-weight: 500;
+    color: #555;
+}
+
+.volume-filter-dropdown {
+    position: relative;
+    min-width: 150px;
+}
+
+.volume-filter-selected {
+    padding: 8px 12px;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.volume-filter-selected:after {
+    content: '▼';
+    font-size: 10px;
+    margin-left: 8px;
+}
+
+.volume-filter-options {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+    z-index: 1000;
+    min-width: 150px;
+}
+
+.volume-filter-dropdown.active .volume-filter-options {
+    display: block;
+}
+
+.volume-filter-option {
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.volume-filter-option:hover {
+    background-color: #f5f5f5;
+}
+
+.volume-filter-option.active {
+    background-color: #e3f2fd;
+    color: #1976d2;
 }

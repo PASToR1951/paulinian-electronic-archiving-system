@@ -203,6 +203,53 @@ async function handler(req: Request): Promise<Response> {
                 });
             }
         }
+
+        // Handle volumes endpoint
+        if (url.pathname === "/api/volumes" && req.method === "GET") {
+            const category = url.searchParams.get('category');
+            if (!category || category === 'All') {
+                return new Response(JSON.stringify({ error: 'Category parameter is required' }), {
+                    status: 400,
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            }
+
+            try {
+                const volumes = await client.queryObject(`
+                    SELECT DISTINCT d.volume 
+                    FROM documents d
+                    JOIN categories c ON d.category_id = c.id
+                    WHERE LOWER(c.category_name) = LOWER($1)
+                    AND d.volume IS NOT NULL 
+                    AND d.volume != '' 
+                    ORDER BY 
+                        CASE 
+                            WHEN d.volume ~ '^[0-9]+$' THEN CAST(d.volume AS INTEGER)
+                            ELSE 999999
+                        END,
+                        d.volume`,
+                    [category]
+                );
+
+                console.log(`Found volumes for category ${category}:`, volumes.rows);
+                const typedRows = volumes.rows as { volume: string }[];
+                return new Response(JSON.stringify(typedRows.map(row => row.volume)), {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            } catch (error) {
+                console.error('Error fetching volumes:', error);
+                return new Response(JSON.stringify({ error: 'Failed to fetch volumes' }), {
+                    status: 500,
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            }
+        }
+        
+        // If we get here, the API route wasn't handled
+        return new Response(JSON.stringify({ error: "API endpoint not found" }), {
+            status: 404,
+            headers: { "Content-Type": "application/json" }
+        });
     }
 
     // Serve static files

@@ -16,134 +16,108 @@
     <div id="side-bar"></div>
     <div id="navbar-header"></div>
 
-    <div class="container">
-        <div class="left-panel">
-            <h2>Add New Document</h2>
-            <form id="upload-form" method="POST" enctype="multipart/form-data">
-
-                <label for="title">Title</label>
-                <input type="text" id="title" name="title" required><br><br>
-
-                <label for="author">Author</label>
-                
-                    <div class="dropdown">
-                        <input type="text" id="authorInput" name="authorInput" placeholder="Type to search authors...">
-
-                        <div class="dropdown-list" id="authorList"></div>
+    <div class="main-content">
+        <div class="container">
+            <div class="left-panel">
+                <h2>Add New Document</h2>
+                <form id="upload-form" method="POST" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="title">Title</label>
+                        <input type="text" id="title" name="title" required placeholder="Enter document title">
                     </div>
-                    <div class="select-container"> 
-                        <div class="selected-authors" id="selectedAuthors"></div>
-                </div><br>
 
-                <label for="publication-date">Publication Date</label>
-                <input type="date" id="publication-date" name="publication_date" value="2024-01-01" required><br><br>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="authorInput">Author</label>
+                            <div class="dropdown">
+                                <input type="text" id="authorInput" name="authorInput" placeholder="Type to search authors...">
+                                <div class="dropdown-list" id="authorList"></div>
+                            </div>
+                            <div class="select-container">
+                                <div class="selected-authors" id="selectedAuthors"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="publication_date">Publication Date</label>
+                            <input type="date" id="publication_date" name="publication_date" required>
+                        </div>
+                    </div>
 
-                <div class="dropdown-container">
-                    <div class="dropdown-group">
-                        <div>
-                            <label for="volume-no">Volume</label>
-                            <select id="volume-no" name="volume-no" required>
-                                <option value="none"></option>
-                                <option value="Volume-1">1</option>
-                                <option value="Volume-2">2</option>
-                                <option value="Volume-3">3</option>
-                                <option value="Volume-4">4</option>
+                    <div class="form-group">
+                        <label for="volume-no">Volume</label>
+                        <input type="text" id="volume-no" name="volume-no" required placeholder="Enter volume number">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="topicInput">Topic</label>
+                            <div class="dropdown">
+                                <input type="text" id="topicInput" name="topicInput" placeholder="Type to search topics...">
+                                <div class="dropdown-list" id="topicList"></div>
+                            </div>
+                            <div class="select-container">
+                                <div class="selected-topics" id="selectedTopics"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="category">Category</label>
+                            <select id="category" name="category" required>
+                                <option value="default">Select Category</option>
+                                <option value="thesis">Thesis</option>
+                                <option value="dissertation">Dissertation</option>
+                                <option value="confluence">Confluence</option>
+                                <option value="synergy">Synergy</option>
                             </select>
                         </div>
-                        <div>
-                            <label for="department">Department</label>
-                            <select id="department" name="department" required>
-                                
-                                <option value="cbit">College of Business and Information Technology</option>
-                                <option value="cons">College of Nursing</option>
-                                <option value="casee">College of Arts and Science Education</option>
-                                <option value="baed">Basic Education</option>
-                                <option value="faculty">Faculty</option>
-                                <option value="staff">Staff</option>
-                                <option value="grad_school">Grade School</option>
-                            </select>
-                        </div>
                     </div>
-                    <div class="category">
-                        <label for="category">Category</label>
-                        <select id="category" name="category" required>
-                            <option value="default">Select Category</option>
-                            <option value="thesis">Thesis</option>
-                            <option value="dissertation">Dissertation</option>
-                            <option value="confluence">Confluence</option>
-                            <option value="synthesis">Synthesis</option>
-                        </select>
+
+                    <div class="upload-icons-container">
+                        <label for="file" class="upload-file">
+                            <div class="upload-box">
+                                <!-- SVG for File Upload -->
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-paperclip"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 7l-6.5 6.5a1.5 1.5 0 0 0 3 3l6.5 -6.5a3 3 0 0 0 -6 -6l-6.5 6.5a4.5 4.5 0 0 0 9 9l6.5 -6.5" /></svg>
+                                <p>Attach File</p>
+                            </div>
+                            <input type="file" id="file" name="file" accept=".pdf" style="display: none;" required>
+                        </label>
                     </div>
-                </div>
-
-                <label for="topic">Topic</label>
-                <div class="dropdown">
-                    <input type="text" id="topicInput" name="topicInput" placeholder="Type to search topics...">
-                    <div class="dropdown-list" id="topicList"></div>
-                </div>
-                <div class="select-container">
-                    <div class="selected-topics" id="selectedTopics"></div>
-                </div>
-                <br>
-                
-                <label for="abstract">Abstract / Summary</label>
-                <textarea id="abstract" name="abstract" rows="4" required></textarea><br><br>
-
-                <div class="upload-icons-container">
-                    <label for="file" class="upload-file">
-                        <div class="upload-box">
-                            <!-- SVG for File Upload -->
-                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-paperclip"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 7l-6.5 6.5a1.5 1.5 0 0 0 3 3l6.5 -6.5a3 3 0 0 0 -6 -6l-6.5 6.5a4.5 4.5 0 0 0 9 9l6.5 -6.5" /></svg>
-                            <p>Attach File</p>
-                        </div>
-                        <input type="file" id="file" name="file" style="display: none;">
-                    </label>
                     
-                    <!-- <label for="cover" class="upload-cover">
-                        <div class="upload-box">
-                            
-                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-photo-scan"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 8h.01" /><path d="M6 13l2.644 -2.644a1.21 1.21 0 0 1 1.712 0l3.644 3.644" /><path d="M13 13l1.644 -1.644a1.21 1.21 0 0 1 1.712 0l1.644 1.644" /><path d="M4 8v-2a2 2 0 0 1 2 -2h2" /><path d="M4 16v2a2 2 0 0 0 2 2h2" /><path d="M16 4h2a2 2 0 0 1 2 2v2" /><path d="M16 20h2a2 2 0 0 0 2 -2v-2" /></svg>
-                            <p>Upload Cover Photo</p>
-                        </div>
-                        <input type="file" id="cover" name="cover" style="display: none;">
-                    </label> -->
-                    
-                </div>
-                <div class="submit-container">
-                    <button type="submit">SUBMIT</button>
-                </div>
-            </form>
-        </div>
-        <div class="right-panel">
-            <div class="preview-header">
-                <h2>Preview</h2>
+                    <div class="submit-container">
+                        <button type="submit">SUBMIT</button>
+                    </div>
+                </form>
             </div>
-            <div class="preview-content">
-                <div class="preview-header-content">
-                    <img id="category-icon" src="icons/Category-icons/default_category_icon.png" alt="Category Icon" class="category-icon">
-                    <div class="title-author-container">
-                        <p><strong id="preview-title">Title of Document</strong></p>
-                        <p id="preview-author">by Author Name</p>
+            <div class="right-panel">
+                <div class="preview-header">
+                    <h2>Preview</h2>
+                </div>
+                <div class="preview-content">
+                    <div class="preview-header-content">
+                        <img id="category-icon" src="icons/Category-icons/default_category_icon.png" alt="Category Icon" class="category-icon">
+                        <div class="title-author-container">
+                            <p><strong id="preview-title">Title of Document</strong></p>
+                            <p id="preview-author">by Author Name</p>
+                        </div>
                     </div>
-                </div>
-                
-                <p id="preview-year">Publishing Date: 2021</p>
-                <p id="preview-topic">Topics: History</p>
-                
-                <p id="preview-pages">Pages: <span id="page-count">0</span></p>
-                <p id="preview-added-date">Added Date: January 15, 2021</p>
+                    
+                    <p id="preview-year">Publishing Date: 2021</p>
+                    <p id="preview-topic">Topics: History</p>
+                    
+                    <p id="preview-pages">Pages: <span id="page-count">0</span></p>
+                    <p id="preview-added-date">Added Date: January 15, 2021</p>
 
-                <div class="read-document-container">
-                    <button id="read-document" class="disabled-button" disabled>Read Document</button>
-                </div>
+                    <div class="read-document-container">
+                        <button id="read-document" class="disabled-button" disabled>Read Document</button>
+                    </div>
 
-
-                <div class="abstract-preview">
-                    <p><strong>Abstract</strong></p>
-                    <p id="preview-abstract">This is the default abstract text...</p>
+                    <div class="abstract-preview">
+                        <p><strong>Abstract</strong></p>
+                        <div class="abstract-content">
+                            <p id="preview-abstract">Abstract will be extracted from the PDF file.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
-</div>
         </div>
     </div>
 
@@ -161,29 +135,37 @@
 
     <!-- Receipt Popup Modal -->
     <div id="receipt-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <h2>Upload Receipt</h2>
-            <div class="receipt-body">
-                <div class="receipt-header">
-                    <p class="text-muted">Date: <span id="receiptDate"></span></p>
+        <div class="modal-content document-preview">
+            <div class="document-preview-container">
+                <div class="document-icon">
+                    <img id="receipt-category-icon" src="icons/Category-icons/default_category_icon.png" alt="Category Icon">
                 </div>
-                <div class="receipt-details">
-                    <p><strong>Document Title:</strong> <span id="receiptTitle"></span></p>
-                    <p><strong>Authors:</strong> <span id="receiptAuthors"></span></p>
-                    <p><strong>Topics:</strong> <span id="receiptTopics"></span></p>
-                    <p><strong>Category:</strong> <span id="receiptCategory"></span></p>
-                    <p><strong>Year:</strong> <span id="receiptYear"></span></p>
+                <div class="document-details">
+                    <h2 id="receiptTitle" class="document-title">Document_title</h2>
+                    
+                    <div class="document-metadata">
+                        <div class="author-badge" id="receiptAuthor">Document_Author</div>
+                        <div class="category-badge" id="receiptCategory">Category</div>
+                    </div>
+                    
+                    <div class="document-topics" id="receiptTopics">
+                        <!-- Topics will be added dynamically -->
+                    </div>
+
+                    <div class="additional-info">
+                        <p>Upload Date: <span id="receiptDate"></span></p>
+                        <p>Volume: <span id="receiptVolume"></span></p>
+                    </div>
                 </div>
             </div>
-            <div class="modal-buttons">
-                <button onclick="closeReceipt()" class="btn-secondary">Close</button>
-                <button onclick="printReceipt()" class="btn-primary">Print Receipt</button>
+            <div class="modal-footer">
+                <button id="close-receipt" class="close-btn">Close</button>
             </div>
         </div>
     </div>
 
     <script>
-        fetch('navbar_header.html')
+        fetch('./navbar_header.html')
             .then(response => response.text())
             .then(data => {
                 document.getElementById('navbar-header').innerHTML = data;
@@ -191,7 +173,6 @@
             .catch(error => console.error('Error loading header:', error));
     </script>
     <script src="./js/side_bar.js"></script>
-
     <script src="./js/get-author.js"></script>
     <script src="./js/get-topics.js"></script>
     <script type="module" src="./js/upload.js"></script>

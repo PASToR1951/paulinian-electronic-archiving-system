@@ -1,12 +1,33 @@
 import { Router } from "https://deno.land/x/oak/mod.ts";
-import { fetchCategories, fetchDocuments } from "../controllers/document-Controller.ts";
+import { fetchCategories, fetchDocuments, fetchVolumesByCategory } from "../controllers/document-Controller.ts";
 import { client } from "../data/denopost_conn.ts";
 import { RouterContext } from "https://deno.land/x/oak/mod.ts";
 
 const router = new Router();
 
-router.get("/api/categories", fetchCategories);
-router.get("/api/documents", fetchDocuments);
+// Categories endpoint
+router.get("/api/categories", async (ctx) => {
+    const response = await fetchCategories();
+    ctx.response.body = await response.json();
+    ctx.response.status = response.status;
+    ctx.response.headers = response.headers;
+});
+
+// Documents endpoint
+router.get("/api/documents", async (ctx) => {
+    const response = await fetchDocuments(ctx.request);
+    ctx.response.body = await response.json();
+    ctx.response.status = response.status;
+    ctx.response.headers = response.headers;
+});
+
+// Volumes endpoint
+router.get("/api/volumes", async (ctx) => {
+    const response = await fetchVolumesByCategory(ctx.request);
+    ctx.response.body = await response.json();
+    ctx.response.status = response.status;
+    ctx.response.headers = response.headers;
+});
 
 // Update document
 router.put("/api/documents/:id", async (ctx: RouterContext<"/api/documents/:id">) => {

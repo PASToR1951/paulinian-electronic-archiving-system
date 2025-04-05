@@ -29,7 +29,7 @@ async function updateWorksSummary() {
         updateCategoryCount('Confluence', categoryCounts['Confluence']);
         updateCategoryCount('Dissertation', categoryCounts['Dissertation']);
         updateCategoryCount('Thesis', categoryCounts['Thesis']);
-        updateCategoryCount('Synthesis', categoryCounts['Synthesis']);
+        updateCategoryCount('Synergy', categoryCounts['Synergy']);
         
         // Update total works count
         const totalCountElement = document.querySelector('.total-count');

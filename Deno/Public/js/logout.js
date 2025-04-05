@@ -18,16 +18,22 @@ function preventBackNavigation() {
 async function handleLogout(event) {
     event.preventDefault();
     try {
+        // Clear all stored data
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Remove any cookies
+        document.cookie.split(";").forEach(function(c) { 
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+        });
+
+        // Call the logout endpoint
         const response = await fetch('/logout', {
             method: 'GET',
             credentials: 'include'
         });
         
         if (response.ok) {
-            // Clear all browser data
-            localStorage.clear();
-            sessionStorage.clear();
-            
             // Force redirect to index
             window.location.replace('/index.html');
         } else {

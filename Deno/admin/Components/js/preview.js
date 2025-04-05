@@ -28,8 +28,8 @@ function getCategoryIcon(category) {
             return "images/dissertation_icon.png";  // Example icon for Dissertation
         case "thesis":
             return "images/thesis_icon.png";  // Example icon for Thesis
-        case "synthesis":
-            return "images/synthesis_icon.png";  // Example icon for Synthesis
+        case "synergy":
+            return "images/synergy_icon.png";  // Example icon for Synergy
         default:
             return "images/default_icon.png";  
     }
