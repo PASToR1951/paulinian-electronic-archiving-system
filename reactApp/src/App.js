@@ -1,17 +1,10 @@
-import { useEffect, useState } from "react";
-import { fetchData } from "./api";
+import React from 'react';
+import AuthorList from './Components/AuthorList.js';
 
 function App() {
-    const [data, setData] = useState(null);
-
-    useEffect(() => {
-        fetchData().then(setData);
-    }, []);
-
     return (
         <div>
-            <h1>React ↔ Deno</h1>
-            <p>{data ? data.message : "Loading..."}</p>
+            <AuthorList />
         </div>
     );
 }

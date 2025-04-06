@@ -4,6 +4,7 @@ const pageSize = 10;
 let totalEntries = 0;
 let currentCategoryFilter = null; // Track current category filter
 let currentVolumeFilter = null; // Track current volume filter
+let currentSortOrder = 'latest'; // Track current sort order
 
 async function loadCategories() {
     try {
@@ -227,33 +228,33 @@ function filterByVolume(categoryName, volume) {
 window.filterByCategory = function(categoryName) {
     console.log(`Filtering by category: ${categoryName}`);
     
-    // Toggle filter if clicking the same category again
-    if (currentCategoryFilter === categoryName) {
-        console.log("Clearing category filter");
-        currentCategoryFilter = null;
+        // Toggle filter if clicking the same category again
+        if (currentCategoryFilter === categoryName) {
+            console.log("Clearing category filter");
+            currentCategoryFilter = null;
         currentVolumeFilter = null; // Clear volume filter too
-        document.querySelectorAll('.category').forEach(cat => {
-            cat.classList.remove('active');
-        });
-    } else {
-        console.log(`Setting filter to: ${categoryName}`);
-        currentCategoryFilter = categoryName;
-        currentVolumeFilter = null; // Reset volume filter when changing category
-        
-        // Highlight the selected category
-        document.querySelectorAll('.category').forEach(cat => {
-            if (cat.getAttribute('data-category') === categoryName) {
-                cat.classList.add('active');
-                console.log(`Activated category: ${categoryName}`);
-            } else {
+            document.querySelectorAll('.category').forEach(cat => {
                 cat.classList.remove('active');
-            }
-        });
-    }
-    
-    // Reset to first page and reload documents with filter
-    currentPage = 1;
-    loadDocuments(currentPage);
+            });
+        } else {
+            console.log(`Setting filter to: ${categoryName}`);
+            currentCategoryFilter = categoryName;
+        currentVolumeFilter = null; // Reset volume filter when changing category
+            
+            // Highlight the selected category
+            document.querySelectorAll('.category').forEach(cat => {
+            if (cat.getAttribute('data-category') === categoryName) {
+                    cat.classList.add('active');
+                    console.log(`Activated category: ${categoryName}`);
+                } else {
+                    cat.classList.remove('active');
+                }
+            });
+        }
+        
+        // Reset to first page and reload documents with filter
+        currentPage = 1;
+        loadDocuments(currentPage);
     
     // Update the filter indicator
     updateFilterIndicator();
@@ -264,34 +265,44 @@ async function loadDocuments(page = 1) {
     try {
         let url = `/api/documents?page=${page}&size=${pageSize}`;
         
-        // Add category parameter if a filter is active and it's not "All"
-        if (currentCategoryFilter && currentCategoryFilter !== "All") {
+        // Apply category filter if set
+        if (currentCategoryFilter && currentCategoryFilter !== 'All') {
             url += `&category=${encodeURIComponent(currentCategoryFilter)}`;
-            console.log(`Applying category filter: ${currentCategoryFilter}`);
         }
         
-        // Add volume parameter if a volume filter is active
+        // Apply volume filter if set
         if (currentVolumeFilter) {
             url += `&volume=${encodeURIComponent(currentVolumeFilter)}`;
-            console.log(`Applying volume filter: ${currentVolumeFilter}`);
         }
         
-        console.log(`Fetching documents from: ${url}`);
+        // Apply sort order
+        url += `&sort=${currentSortOrder}`;
         
+        console.log('Fetching documents from:', url);
         const response = await fetch(url);
+        
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = await response.json();
         
-        console.log('Received document data:', data);
+        const responseData = await response.text();
+        const documents = JSON.parse(responseData);
         
-        let documents = Array.isArray(data) ? data : [];
+        // Sort documents based on publication date
+        documents.sort((a, b) => {
+            const dateA = new Date(a.publication_date);
+            const dateB = new Date(b.publication_date);
+            return currentSortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+        });
+        
+        console.log('Received document data:', documents);
+        
+        let documentsToDisplay = Array.isArray(documents) ? documents : [];
         
         const tbody = document.querySelector("#docs-table tbody");
         tbody.innerHTML = "";
 
-        if (documents.length === 0) {
+        if (documentsToDisplay.length === 0) {
             let filterMessage = '';
             if (currentCategoryFilter && currentCategoryFilter !== "All") {
                 filterMessage += ` in category "${currentCategoryFilter}"`;
@@ -311,7 +322,7 @@ async function loadDocuments(page = 1) {
 
         // Filter documents by category and volume on the client side
         if (currentCategoryFilter && currentCategoryFilter !== "All") {
-            documents = documents.filter(doc => 
+            documentsToDisplay = documentsToDisplay.filter(doc => 
                 doc.category_name && 
                 doc.category_name.toLowerCase() === currentCategoryFilter.toLowerCase()
             );
@@ -319,13 +330,13 @@ async function loadDocuments(page = 1) {
         
         // Apply volume filter if set
         if (currentVolumeFilter) {
-            documents = documents.filter(doc => 
+            documentsToDisplay = documentsToDisplay.filter(doc => 
                 doc.volume && 
                 doc.volume.toString() === currentVolumeFilter.toString()
             );
         }
 
-        documents.forEach(doc => {
+        documentsToDisplay.forEach(doc => {
             // Log document data for debugging
             console.log('Processing document:', doc);
             
@@ -388,14 +399,16 @@ async function loadDocuments(page = 1) {
             const actionsCell = document.createElement("td");
             actionsCell.className = "actions";
             actionsCell.innerHTML = `
+                <div class="action-buttons">
                 <a href="#" class="view-icon" title="View Document" data-doc-id="${doc.id}">
-                    <i class="fas fa-eye" aria-hidden="true">👁️</i> View
+                        👁️ <span>View</span>
                 </a>
                 <a href="#" class="edit-icon" title="Edit Document" data-doc-id="${doc.id}">
-                    <i class="fas fa-edit" aria-hidden="true">✏️</i> Edit
+                        ✏️ <span>Edit</span>
                 </a>
+                </div>
                 <a href="#" class="delete-icon" title="Delete Document" data-doc-id="${doc.id}">
-                    <i class="fas fa-trash-alt" aria-hidden="true">🗑️</i> Delete
+                    🗑️
                 </a>
             `;
             
@@ -406,7 +419,7 @@ async function loadDocuments(page = 1) {
             editButton.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                showEditForm(doc);
+                editDocument(doc.id);
             });
             
             deleteButton.addEventListener('click', (e) => {
@@ -431,7 +444,7 @@ async function loadDocuments(page = 1) {
             tbody.appendChild(row);
         });
 
-        totalEntries = documents.length;
+        totalEntries = documentsToDisplay.length;
         updatePagination();
     } catch (error) {
         console.error("Error loading documents:", error);
@@ -515,89 +528,136 @@ function updatePagination() {
     pageLinks.appendChild(nextButton);
 }
 
-// Function to show edit form
-function showEditForm(doc) {
+// Edit Document
+async function editDocument(documentId) {
+    try {
+        // Show loading state
     const modal = document.getElementById('edit-modal');
-    const form = document.getElementById('edit-form');
+        modal.style.display = 'flex';
+        
+        // Fetch document details
+        const response = await fetch(`/api/documents/${documentId}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log('Fetched document data:', data);
     
     // Populate form fields
-    form.querySelector('#edit-title').value = doc.title;
-    form.querySelector('#edit-publication-date').value = doc.publication_date;
-    form.querySelector('#edit-abstract').value = doc.abstract || '';
-    form.querySelector('#edit-category').value = doc.category_name.toLowerCase();
-    
-    // Show current file name if exists
-    const currentFileContainer = form.querySelector('#current-file-container');
-    if (doc.file) {
+        document.getElementById('edit-title').value = data.title || '';
+        document.getElementById('edit-author').value = data.author || '';
+        document.getElementById('edit-publication-date').value = data.publication_date || '';
+        document.getElementById('edit-volume').value = data.volume || '';
+        document.getElementById('edit-category').value = data.category ? data.category.toLowerCase() : '';
+        
+        // Display current file
+        const currentFileContainer = document.getElementById('current-file-container');
+        if (data.file) {
         currentFileContainer.innerHTML = `
             <div class="current-file">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                    <polyline points="10 9 9 9 8 9"></polyline>
-                </svg>
-                <span>${doc.file.split('/').pop()}</span>
+                    <span>Current file: ${data.file.split('/').pop()}</span>
             </div>
         `;
     } else {
-        currentFileContainer.innerHTML = '<p class="no-file">No file attached</p>';
-    }
-
-    // Show modal
-    modal.style.display = 'flex';
-}
-
-// Function to handle edit form submission
-async function handleEditSubmit(event) {
-    event.preventDefault();
-    const form = event.target;
+            currentFileContainer.innerHTML = '<p>No file attached</p>';
+        }
+        
+        // Handle form submission
+        const form = document.getElementById('edit-form');
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            
     const formData = new FormData(form);
-    const documentId = form.dataset.documentId;
+            formData.append('documentId', documentId);
 
     try {
-        const response = await fetch(`/api/documents/${documentId}`, {
+                const updateResponse = await fetch('/api/documents/update', {
             method: 'PUT',
             body: formData
         });
 
-        if (!response.ok) {
-            throw new Error('Failed to update document');
-        }
-
-        // Show success message
-        const successModal = document.getElementById('success-modal');
-        successModal.style.display = 'flex';
-
-        // Hide success message and refresh page after 2 seconds
-        setTimeout(() => {
-            successModal.style.display = 'none';
-            window.location.reload();
-        }, 2000);
-
+                if (!updateResponse.ok) {
+                    throw new Error(`HTTP error! status: ${updateResponse.status}`);
+                }
+                
+                // Close modal and refresh documents
+                closeEditModal();
+                loadDocuments(currentPage);
     } catch (error) {
         console.error('Error updating document:', error);
         alert('Error updating document. Please try again.');
     }
+        };
+    } catch (error) {
+        console.error('Error fetching document:', error);
+        alert('Error fetching document details. Please try again.');
+        closeEditModal();
+    }
+}
+
+// Close edit modal
+function closeEditModal() {
+    const modal = document.getElementById('edit-modal');
+    modal.style.display = 'none';
+    document.getElementById('edit-form').reset();
 }
 
 // Function to open delete confirmation
 function openDeleteConfirmation(doc) {
+    console.log('Opening delete confirmation for document:', doc);
+    
     // Create confirmation dialog if it doesn't exist
     let confirmDialog = document.getElementById('delete-confirm-dialog');
     if (!confirmDialog) {
         confirmDialog = document.createElement('div');
         confirmDialog.id = 'delete-confirm-dialog';
         confirmDialog.className = 'modal';
+        confirmDialog.style.cssText = `
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        `;
+        
         confirmDialog.innerHTML = `
-            <div class="modal-content">
-                <h2>Confirm Delete</h2>
+            <div class="modal-content" style="
+                background-color: white;
+                padding: 20px;
+                border-radius: 5px;
+                max-width: 400px;
+                width: 90%;
+                position: relative;
+            ">
+                <h2 style="margin-top: 0;">Confirm Delete</h2>
                 <p>Are you sure you want to delete the document "${doc.title}"?</p>
                 <p>This action cannot be undone.</p>
-                <div class="form-actions">
-                    <button id="confirm-delete" class="delete-btn">Delete</button>
-                    <button id="cancel-delete" class="cancel-btn">Cancel</button>
+                <div class="form-actions" style="
+                    display: flex;
+                    justify-content: flex-end;
+                    gap: 10px;
+                    margin-top: 20px;
+                ">
+                    <button id="cancel-delete" class="cancel-btn" style="
+                        padding: 8px 16px;
+                        border: 1px solid #ccc;
+                        border-radius: 4px;
+                        background-color: #f8f9fa;
+                        cursor: pointer;
+                    ">Cancel</button>
+                    <button id="confirm-delete" class="delete-btn" style="
+                        padding: 8px 16px;
+                        border: none;
+                        border-radius: 4px;
+                        background-color: #dc3545;
+                        color: white;
+                        cursor: pointer;
+                    ">Delete</button>
                 </div>
             </div>
         `;
@@ -620,6 +680,7 @@ function openDeleteConfirmation(doc) {
     const confirmDeleteBtn = document.getElementById('confirm-delete');
     confirmDeleteBtn.onclick = async () => {
         try {
+            console.log('Sending delete request for document:', doc.id);
             const response = await fetch(`/api/documents/${doc.id}`, {
                 method: 'DELETE',
                 headers: {
@@ -653,7 +714,7 @@ function openDeleteConfirmation(doc) {
     };
     
     // Show dialog
-    confirmDialog.style.display = 'block';
+    confirmDialog.style.display = 'flex';
 }
 
 async function showDocumentPreview(doc) {
@@ -668,6 +729,10 @@ async function showDocumentPreview(doc) {
         const documentData = await response.json();
         console.log('Fetched document details:', documentData);
 
+        // Get the first document if an array is returned
+        const data = Array.isArray(documentData) ? documentData[0] : documentData;
+        console.log('Processing document data:', data);
+
         const modal = document.getElementById('preview-modal');
         if (!modal) {
             console.error('Preview modal not found in the DOM');
@@ -677,8 +742,34 @@ async function showDocumentPreview(doc) {
         // Set document title and author
         const titleElement = document.getElementById('preview-title');
         const authorElement = document.getElementById('preview-author');
-        if (titleElement) titleElement.textContent = documentData.title || 'Untitled';
-        if (authorElement) authorElement.textContent = documentData.author_name || 'Not specified';
+        if (titleElement) titleElement.textContent = data.title || doc.title || 'Untitled';
+        if (authorElement) {
+            let authorText = '';
+            if (data.author_names && Array.isArray(data.author_names)) {
+                authorText = data.author_names.join(', ');
+            } else if (data.author_name) {
+                authorText = data.author_name;
+            } else if (doc.author_name) {
+                authorText = doc.author_name;
+            } else {
+                authorText = 'Not specified';
+            }
+            authorElement.textContent = authorText;
+        }
+
+        // Set category icon
+        const categoryIcon = document.getElementById('preview-category-icon');
+        if (categoryIcon) {
+            const categoryName = data.category_name || doc.category_name;
+            if (categoryName) {
+                const iconPath = `/admin/Components/icons/Category-icons/${categoryName.toLowerCase()}.png`;
+                categoryIcon.src = iconPath;
+                categoryIcon.alt = `${categoryName} Icon`;
+            } else {
+                categoryIcon.src = '/admin/Components/icons/Category-icons/default_category_icon.png';
+                categoryIcon.alt = 'Default Category Icon';
+            }
+        }
 
         // Set document info
         const dateElement = document.getElementById('preview-date');
@@ -688,7 +779,8 @@ async function showDocumentPreview(doc) {
         const abstractElement = document.getElementById('preview-abstract');
 
         if (dateElement) {
-            const date = documentData.publication_date ? new Date(documentData.publication_date).toLocaleDateString('en-US', {
+            const pubDate = data.publication_date || doc.publication_date;
+            const date = pubDate ? new Date(pubDate).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric'
@@ -698,18 +790,23 @@ async function showDocumentPreview(doc) {
 
         if (topicsElement) {
             let topics = [];
-            if (documentData.document_topics && Array.isArray(documentData.document_topics)) {
-                topics = documentData.document_topics.map(t => t.topic_name);
-            } else if (documentData.topics && Array.isArray(documentData.topics)) {
-                topics = documentData.topics.map(t => typeof t === 'string' ? t : t.topic_name);
+            if (data.document_topics && Array.isArray(data.document_topics)) {
+                topics = data.document_topics.map(t => t.topic_name);
+            } else if (data.topics && Array.isArray(data.topics)) {
+                topics = data.topics.map(t => typeof t === 'string' ? t : t.topic_name);
+            } else if (doc.topics && Array.isArray(doc.topics)) {
+                topics = doc.topics;
             }
             topicsElement.textContent = topics.length > 0 ? topics.join(', ') : 'None';
         }
 
-        if (pagesElement) pagesElement.textContent = documentData.pages || 'Not specified';
+        if (pagesElement) {
+            pagesElement.textContent = data.pages || doc.pages || 'Not specified';
+        }
         
         if (addedDateElement) {
-            const addedDate = documentData.created_at ? new Date(documentData.created_at).toLocaleDateString('en-US', {
+            const createdAt = data.created_at || doc.created_at;
+            const addedDate = createdAt ? new Date(createdAt).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric'
@@ -721,13 +818,23 @@ async function showDocumentPreview(doc) {
             addedDateElement.textContent = addedDate;
         }
 
-        if (abstractElement) abstractElement.textContent = documentData.abstract || 'No abstract available.';
+        // Set abstract with proper formatting
+        if (abstractElement) {
+            if (data.abstract) {
+                abstractElement.innerHTML = `<p>${data.abstract}</p>`;
+            } else if (doc.abstract) {
+                abstractElement.innerHTML = `<p>${doc.abstract}</p>`;
+            } else {
+                abstractElement.innerHTML = '<p>No abstract available.</p>';
+            }
+        }
 
         // Set up read document button
         const readButton = document.getElementById('preview-read-btn');
         if (readButton) {
-            if (documentData.file) {
-                readButton.href = documentData.file;
+            const filePath = data.file || doc.file;
+            if (filePath) {
+                readButton.href = filePath;
                 readButton.style.display = 'inline-block';
             } else {
                 readButton.style.display = 'none';
@@ -736,11 +843,41 @@ async function showDocumentPreview(doc) {
 
         // Show modal
         modal.style.display = 'flex';
+
+        // Remove any existing click event listeners
+        const existingHandler = modal._clickHandler;
+        if (existingHandler) {
+            modal.removeEventListener('click', existingHandler);
+        }
+
+        // Add click event listener to close modal when clicking outside
+        modal._clickHandler = function(event) {
+            if (event.target === modal) {
+                closePreviewModal();
+            }
+        };
+        modal.addEventListener('click', modal._clickHandler);
+
     } catch (error) {
         console.error('Error showing document preview:', error);
         alert('Failed to load document preview. Please try again.');
     }
 }
+
+// Function to close preview modal
+function closePreviewModal() {
+    const modal = document.getElementById('preview-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Add event listener for escape key to close modal
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closePreviewModal();
+    }
+});
 
 function createCategoryElement(category, count) {
     const div = document.createElement('div');
@@ -1126,9 +1263,14 @@ function setupDepartmentFilter() {
 
 // Setup sort functionality
 function setupSort() {
-    console.log("Setting up sort functionality");
-    // This is a placeholder for sort setup
-    // Implement sort functionality as needed
+    const sortDropdown = document.getElementById('sort-order');
+    if (sortDropdown) {
+        sortDropdown.addEventListener('change', (event) => {
+            currentSortOrder = event.target.value;
+            currentPage = 1; // Reset to first page when sort changes
+            loadDocuments(currentPage);
+        });
+    }
 }
 
 // Load sidebar
@@ -1376,4 +1518,91 @@ function getAvailableVolumesForCategory(category) {
     
     // Convert to array and sort
     return Array.from(volumes).sort((a, b) => a - b);
+}
+
+function createDocumentRow(doc) {
+    console.log('Processing document:', doc);
+    const row = document.createElement('tr');
+    
+    // Get category icon
+    const categoryIcon = getCategoryIcon(doc.category_name);
+    
+    // Format dates
+    const publicationDate = doc.publication_date ? new Date(doc.publication_date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    }) : 'Not specified';
+    
+    const addedDate = doc.created_at ? new Date(doc.created_at).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    }) : 'Not specified';
+
+    row.innerHTML = `
+        <td class="doc-icon">
+            <img src="${categoryIcon}" alt="${doc.category_name} Icon">
+        </td>
+        <td class="doc-info">
+            <div class="doc-header">
+                <span class="doc-title">${doc.title || 'Untitled'}</span>
+                ${doc.volume ? ` | <span class="doc-volume">Volume ${doc.volume}</span>` : ''}
+                | <span class="doc-author">${doc.author_name || 'No Author Listed'}</span>
+                | <span class="doc-date">Published: ${publicationDate}</span>
+                | <span class="doc-added-date">Added: ${addedDate}</span>
+            </div>
+            <div class="doc-tags">
+                <span class="tag document-type">${doc.category_name || 'Uncategorized'}</span>
+                ${doc.topics && doc.topics.length > 0 ? 
+                    doc.topics.map(topic => `<span class="tag topic">${topic}</span>`).join('') : 
+                    '<span class="tag topic muted">No topics</span>'}
+            </div>
+        </td>
+        <td class="actions">
+            <div class="action-buttons">
+                <a href="#" class="view-icon" title="View Document" data-doc-id="${doc.id}">
+                    👁️ <span>View</span>
+                </a>
+                <a href="#" class="edit-icon" title="Edit Document" data-doc-id="${doc.id}">
+                    ✏️ <span>Edit</span>
+                </a>
+                <a href="#" class="delete-icon" title="Delete Document" data-doc-id="${doc.id}">
+                    🗑️ <span>Delete</span>
+                </a>
+            </div>
+        </td>
+    `;
+
+    // Add event listeners
+    const viewButton = row.querySelector('.view-icon');
+    const editButton = row.querySelector('.edit-icon');
+    const deleteButton = row.querySelector('.delete-icon');
+
+    if (viewButton) {
+        viewButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            showDocumentPreview(doc);
+        });
+    }
+
+    if (editButton) {
+        editButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            editDocument(doc.id);
+        });
+    }
+
+    if (deleteButton) {
+        deleteButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Delete button clicked for document:', doc);
+            openDeleteConfirmation(doc);
+        });
+    }
+
+    return row;
 }

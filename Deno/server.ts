@@ -10,6 +10,7 @@ import { searchAuthors } from "./controllers/author-Controller.ts";
 import { searchTopics, createTopic } from "./controllers/topic-Controller.ts";
 import { fetchCategories, fetchDocuments } from "./controllers/document-Controller.ts";
 import { checkAuth } from "./middleware/auth_middleware.ts";
+import { handleGetAuthors, handleGetAuthorById, handleGetDocumentsByAuthor } from "./routes/authors.ts";
 
 const env = await load({ envPath: "./.env" });
 console.log("Loaded Environment Variables:", env);
@@ -49,21 +50,53 @@ interface DocumentRow {
 
 async function handler(req: Request): Promise<Response> {
     const url = new URL(req.url);
-    console.log(`Received ${req.method} request for ${url.pathname}`);
+    const path = url.pathname;
+    const method = req.method;
+
+    console.log(`Request: ${method} ${path}`);
+
+    // CORS headers
+    const corsHeaders = {
+        "Access-Control-Allow-Origin": "http://localhost:3001",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Credentials": "true"
+    };
+
+    // Handle CORS preflight requests
+    if (method === "OPTIONS") {
+        return new Response(null, {
+            status: 204,
+            headers: corsHeaders,
+        });
+    }
+
+    // Add CORS headers to all responses
+    const addCorsHeaders = (response: Response): Response => {
+        const headers = new Headers(response.headers);
+        Object.entries(corsHeaders).forEach(([key, value]) => {
+            headers.set(key, value);
+        });
+        return new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers,
+        });
+    };
 
     // Handle login and logout routes
-    if (url.pathname === "/login" && req.method === "POST") {
+    if (path === "/login" && method === "POST") {
         return handleLoginRequest(req);
     }
-    if (url.pathname === "/logout" && req.method === "GET") {
+    if (path === "/logout" && method === "GET") {
         return handleLogout(req);
     }
-    if (url.pathname === "/sidebar" && req.method === "GET") {
+    if (path === "/sidebar" && method === "GET") {
         return handleSidebar(req);
     }
 
     // Check if the requested path is a protected route
-    if (protectedRoutes.includes(url.pathname)) {
+    if (protectedRoutes.includes(path)) {
         const isAuthenticated = await checkAuth(req);
         if (!isAuthenticated) {
             // Redirect to index if not authenticated
@@ -80,18 +113,35 @@ async function handler(req: Request): Promise<Response> {
     }
 
     // Handle API routes
-    if (url.pathname.startsWith("/api/")) {
+    if (path.startsWith("/api/")) {
+        // Authors API
+        if (path === "/api/authors" && method === "GET") {
+            return addCorsHeaders(await handleGetAuthors());
+        }
+        
+        const authorIdMatch = path.match(/^\/api\/authors\/(\d+)$/);
+        if (authorIdMatch && method === "GET") {
+            const authorId = parseInt(authorIdMatch[1]);
+            return addCorsHeaders(await handleGetAuthorById(authorId));
+        }
+        
+        const authorDocumentsMatch = path.match(/^\/api\/authors\/(\d+)\/documents$/);
+        if (authorDocumentsMatch && method === "GET") {
+            const authorId = parseInt(authorDocumentsMatch[1]);
+            return addCorsHeaders(await handleGetDocumentsByAuthor(authorId));
+        }
+
         // Handle document submission
-        if (url.pathname === "/api/submit-document" && req.method === "POST") {
+        if (path === "/api/submit-document" && method === "POST") {
             return await handleDocumentSubmission(req);
         }
 
         // Handle document routes
-        if (url.pathname.startsWith("/api/documents")) {
-            if (req.method === "GET") {
+        if (path.startsWith("/api/documents")) {
+            if (method === "GET") {
                 return await fetchDocuments(req);
-            } else if (req.method === "DELETE") {
-                const id = url.pathname.split("/").pop();
+            } else if (method === "DELETE") {
+                const id = path.split("/").pop();
                 if (!id) {
                     return new Response(JSON.stringify({ message: "Document ID is required" }), {
                         status: 400,
@@ -164,17 +214,17 @@ async function handler(req: Request): Promise<Response> {
         }
         
         // Handle other API routes
-        if (url.pathname === "/api/topics") {
-            if (req.method === "GET") {
+        if (path === "/api/topics") {
+            if (method === "GET") {
                 return await searchTopics(req);
-            } else if (req.method === "POST") {
+            } else if (method === "POST") {
                 return await createTopic(req);
             }
         }
-        if (req.method === "GET" && url.pathname === "/api/authors") {
+        if (method === "GET" && path === "/api/authors") {
             return await searchAuthors(req);
         }
-        if (url.pathname === "/api/categories" && req.method === "GET") {
+        if (path === "/api/categories" && method === "GET") {
             try {
                 const result = await client.queryObject<CategoryRow>(`
                     SELECT c.category_name, CAST(COUNT(*) AS INTEGER) as file_count 
@@ -205,7 +255,7 @@ async function handler(req: Request): Promise<Response> {
         }
 
         // Handle volumes endpoint
-        if (url.pathname === "/api/volumes" && req.method === "GET") {
+        if (path === "/api/volumes" && method === "GET") {
             const category = url.searchParams.get('category');
             if (!category || category === 'All') {
                 return new Response(JSON.stringify({ error: 'Category parameter is required' }), {
@@ -254,7 +304,7 @@ async function handler(req: Request): Promise<Response> {
 
     // Serve static files
     try {
-        let filePath = url.pathname;
+        let filePath = path;
         
         // Handle root path
         if (filePath === "/") {

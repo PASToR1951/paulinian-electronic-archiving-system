@@ -1,6 +1,18 @@
 import { client } from "../data/denopost_conn.ts"; // Database connection
 import { ensureDir } from "https://deno.land/std@0.224.0/fs/mod.ts";
 
+interface DocumentResult {
+    id: number;
+}
+
+interface TopicResult {
+    id: number;
+}
+
+interface AuthorResult {
+    author_id: string;
+}
+
 export async function handleDocumentSubmission(req: Request): Promise<Response> {
     console.log("Received request: POST /submit-document");
 
@@ -10,20 +22,21 @@ export async function handleDocumentSubmission(req: Request): Promise<Response> 
 
         // Extract form values
         const title = formData.get("title")?.toString();
-        const publicationDate = formData.get("publication_date")?.toString(); // Changed from "year"
+        const publicationDate = formData.get("publication_date")?.toString();
         const volume = formData.get("volume-no")?.toString();
         const department = formData.get("department")?.toString();
-        const categoryName = formData.get("category")?.toString(); // Category name
+        const categoryName = formData.get("category")?.toString();
         const abstract = formData.get("abstract")?.toString();
         const file = formData.get("file") as File;
 
         // Extract authors and topics
-        let authors = [];
-        let topics = [];
+        let authors: string[] = [];
+        let topics: string[] = [];
 
         try {
             authors = JSON.parse(formData.get("author")?.toString() || "[]");
             topics = JSON.parse(formData.get("topic")?.toString() || "[]");
+            console.log("Parsed topics:", topics);
         } catch (error) {
             console.error("Error parsing authors or topics:", error);
             return new Response(JSON.stringify({ message: "Invalid authors or topics format" }), {
@@ -47,126 +60,119 @@ export async function handleDocumentSubmission(req: Request): Promise<Response> 
             });
         }
 
-        // Fetch the category_id from the categories table based on category name (case-insensitive search)
-        let categoryId: number | null = null;
-        if (categoryName) {
-            const categoryResult = await client.queryObject(
-                `SELECT id FROM categories WHERE category_name ILIKE $1`, // Using ILIKE for case-insensitive match
-                [categoryName]
-            );
-            if (categoryResult.rows.length > 0) {
-                categoryId = categoryResult.rows[0].id;
-            } else {
-                console.error("Category not found in the database");
-                return new Response(JSON.stringify({ message: "Category not found" }), {
-                    status: 400,
-                    headers: { "Content-Type": "application/json" },
-                });
-            }
-        }
+        // Start transaction
+        await client.queryObject("BEGIN");
 
-        // Ensure file storage directory exists
-        const uploadDir = "./filepathpdf";
-        await ensureDir(uploadDir);
-
-        // Save the file
-        const filePath = `${uploadDir}/${file.name}`;
-        const fileData = new Uint8Array(await file.arrayBuffer());
-        await Deno.writeFile(filePath, fileData);
-        console.log(`File saved at: ${filePath}`);
-
-        // Insert document data into the database
-        const result = await client.queryObject(
-            `INSERT INTO documents (title, publication_date, volume, department, category_id, abstract, file, topic_ids)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
-            [title, publicationDate, volume, department, categoryId, abstract, filePath, []]
-        );
-
-        console.log("Document inserted, id:", result.rows[0].id);
-        const documentId = result.rows[0].id;
-
-        // Insert authors and collect author IDs
-        let authorIds = [];
-        if (authors.length > 0) {
-            for (const author of authors) {
-                // First check if the author already exists - using full_name field
-                let authorId;
-                const existingAuthor = await client.queryObject(
-                    `SELECT author_id FROM authors WHERE full_name = $1`,
-                    [author]
+        try {
+            // Fetch the category_id
+            let categoryId: number | null = null;
+            if (categoryName) {
+                const categoryResult = await client.queryObject<{ id: number }>(
+                    `SELECT id FROM categories WHERE category_name ILIKE $1`,
+                    [categoryName]
                 );
-                
-                if (existingAuthor.rows.length > 0) {
-                    // Author exists, get their ID
-                    authorId = existingAuthor.rows[0].author_id;
-                    console.log(`Using existing author "${author}" with ID ${authorId}`);
+                if (categoryResult.rows.length > 0) {
+                    categoryId = categoryResult.rows[0].id;
                 } else {
-                    // Author doesn't exist, insert them - set required fields with defaults
-                    const authorResult = await client.queryObject(
-                        `INSERT INTO authors (full_name, affiliation, department) 
-                         VALUES ($1, 'Unknown Affiliation', 'Unknown Department') 
-                         RETURNING author_id`,
-                        [author]
-                    );
-                    authorId = authorResult.rows[0].author_id;
-                    console.log(`Created new author "${author}" with ID ${authorId}`);
+                    await client.queryObject("ROLLBACK");
+                    return new Response(JSON.stringify({ message: "Category not found" }), {
+                        status: 400,
+                        headers: { "Content-Type": "application/json" },
+                    });
                 }
-                
-                // Always add the ID to our array
-                authorIds.push(authorId);
             }
-        }
 
-        // Insert topics and collect topic IDs
-        let topicIds = [];
-        for (const topic of topics) {
-            // First check if topic exists
-            const existingTopic = await client.queryObject(
-                `SELECT id FROM topics WHERE topic_name = $1`,
-                [topic]
+            // Save the file
+            const uploadDir = "./filepathpdf";
+            await ensureDir(uploadDir);
+            const filePath = `${uploadDir}/${file.name}`;
+            const fileData = new Uint8Array(await file.arrayBuffer());
+            await Deno.writeFile(filePath, fileData);
+
+            // Insert document
+            const documentResult = await client.queryObject<DocumentResult>(
+                `INSERT INTO documents (title, publication_date, volume, department, category_id, abstract, file)
+                VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+                [title, publicationDate, volume, department, categoryId, abstract, filePath]
             );
-            
-            let topicId;
-            if (existingTopic.rows.length > 0) {
-                // Topic exists, use existing ID
-                topicId = existingTopic.rows[0].id;
-            } else {
-                // Topic doesn't exist, insert new one
-                const topicResult = await client.queryObject(
-                    `INSERT INTO topics (topic_name) VALUES ($1) RETURNING id`,
-                    [topic]
+
+            const documentId = documentResult.rows[0].id;
+            console.log("Document inserted with ID:", documentId);
+
+            // Process topics
+            for (const topicName of topics) {
+                // Check if topic exists or create new one
+                let topicResult = await client.queryObject<TopicResult>(
+                    `INSERT INTO topics (topic_name) 
+                     VALUES ($1) 
+                     ON CONFLICT (topic_name) DO UPDATE SET topic_name = EXCLUDED.topic_name 
+                     RETURNING id`,
+                    [topicName]
                 );
-                topicId = topicResult.rows[0].id;
-            }
-            
-            if (topicId) {
-                topicIds.push(topicId);
+
+                const topicId = topicResult.rows[0].id;
+                console.log(`Topic "${topicName}" has ID: ${topicId}`);
+
                 // Insert into document_topics junction table
                 await client.queryObject(
-                    `INSERT INTO document_topics (document_id, topic_id) VALUES ($1, $2)`,
+                    `INSERT INTO document_topics (document_id, topic_id) 
+                     VALUES ($1, $2) 
+                     ON CONFLICT (document_id, topic_id) DO NOTHING`,
                     [documentId, topicId]
                 );
             }
+
+            // Process authors
+            const authorIds = [];
+            for (const authorName of authors) {
+                let authorResult = await client.queryObject<AuthorResult>(
+                    `SELECT author_id FROM authors WHERE full_name = $1`,
+                    [authorName]
+                );
+
+                let authorId: string;
+                if (authorResult.rows.length > 0) {
+                    authorId = authorResult.rows[0].author_id;
+                    console.log(`Using existing author "${authorName}" with ID ${authorId}`);
+                } else {
+                    const newAuthorResult = await client.queryObject<AuthorResult>(
+                        `INSERT INTO authors (full_name, affiliation, department) 
+                         VALUES ($1, 'SPUP', $2) RETURNING author_id`,
+                        [authorName, department]
+                    );
+                    authorId = newAuthorResult.rows[0].author_id;
+                    console.log(`Created new author "${authorName}" with ID ${authorId}`);
+                }
+                authorIds.push(authorId);
+            }
+
+            // Update document with author_ids
+            await client.queryObject(
+                `UPDATE documents SET author_ids = $1 WHERE id = $2`,
+                [authorIds, documentId]
+            );
+
+            await client.queryObject("COMMIT");
+
+            return new Response(JSON.stringify({ 
+                message: "Document uploaded and data inserted successfully!",
+                documentId: documentId,
+                topics: topics,
+                authors: authors
+            }), {
+                status: 200,
+                headers: { "Content-Type": "application/json" },
+            });
+
+        } catch (error: unknown) {
+            await client.queryObject("ROLLBACK");
+            throw error;
         }
 
-        // Update document with topic_ids
-        await client.queryObject(
-            `UPDATE documents 
-            SET topic_ids = $1 
-            WHERE id = $2`,
-            [topicIds, documentId]
-        );
-
-        console.log("Document, authors, and topics inserted successfully");
-
-        return new Response(JSON.stringify({ message: "Document uploaded and data inserted successfully!" }), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-        });
-
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("Error processing form:", error);
-        return new Response(JSON.stringify({ message: "Internal Server Error", error: error.message }), {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        return new Response(JSON.stringify({ message: "Internal Server Error", error: errorMessage }), {
             status: 500,
             headers: { "Content-Type": "application/json" },
         });

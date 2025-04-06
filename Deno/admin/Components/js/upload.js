@@ -37,48 +37,132 @@ document.addEventListener("DOMContentLoaded", () => {
             const arrayBuffer = await file.arrayBuffer();
             const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
             
-            // Get the first page (usually contains abstract)
-            const page = await pdf.getPage(1);
-            const textContent = await page.getTextContent();
+            // Search through pages for abstract
+            const maxPagesToSearch = Math.min(5, pdf.numPages);
+            let abstractText = "";
+            let isAbstractSection = false;
+            let abstractStartPage = -1;
+            let abstractEndFound = false;
+            let lastLineWasIncomplete = false;
             
-            // Extract text from the page and clean up formatting
-            const text = textContent.items
-                .map(item => {
-                    // Remove any bold markers or special characters
-                    let cleanText = item.str.replace(/\*\*/g, '').replace(/\*/g, '');
-                    return cleanText;
-                })
-                .join(' ');
-            return text;
+            for (let pageNum = 1; pageNum <= maxPagesToSearch && !abstractEndFound; pageNum++) {
+                const page = await pdf.getPage(pageNum);
+                const textContent = await page.getTextContent();
+                
+                // Join text items into lines while preserving their positions
+                const lines = [];
+                let currentLine = [];
+                let lastY = null;
+                
+                // Sort items by vertical position (top to bottom) and horizontal position (left to right)
+                const sortedItems = textContent.items.sort((a, b) => {
+                    const yDiff = Math.abs(a.transform[5] - b.transform[5]);
+                    if (yDiff > 2) {
+                        return b.transform[5] - a.transform[5];
+                    }
+                    return a.transform[4] - b.transform[4];
+                });
+                
+                // Group items into lines
+                for (const item of sortedItems) {
+                    if (lastY === null || Math.abs(item.transform[5] - lastY) <= 2) {
+                        currentLine.push(item);
+                    } else {
+                        if (currentLine.length > 0) {
+                            lines.push(currentLine);
+                        }
+                        currentLine = [item];
+                    }
+                    lastY = item.transform[5];
+                }
+                if (currentLine.length > 0) {
+                    lines.push(currentLine);
+                }
+                
+                // Convert lines to text while preserving formatting
+                const pageLines = lines.map(line => {
+                    const text = line.map(item => item.str).join('');
+                    return text.trim();
+                }).filter(line => line.length > 0);
+                
+                const pageText = pageLines.join('\n');
+                
+                // Check if this page contains the abstract
+                if (!isAbstractSection) {
+                    const abstractStart = findAbstractStart(pageText);
+                    if (abstractStart) {
+                        isAbstractSection = true;
+                        abstractStartPage = pageNum;
+                        abstractText = abstractStart;
+                        lastLineWasIncomplete = !abstractStart.endsWith('.') && 
+                                              !abstractStart.endsWith('?') && 
+                                              !abstractStart.endsWith('!');
+                    }
+                } else {
+                    const endMarkerRegex = new RegExp(
+                        "^\\s*(introduction|keywords?:?|index terms:?|background|acknowledg(e|ement|ments)|1\\.?|i\\.?|chapter|section|references)\\b",
+                        "im"
+                    );
+                    const endMatch = pageText.match(endMarkerRegex);
+
+                    if (endMatch) {
+                        const markerPosition = pageText.indexOf(endMatch[0]);
+                        const abstractPart = pageText.substring(0, markerPosition).trim();
+
+                        if (abstractPart.length > 30) {
+                            abstractText += (lastLineWasIncomplete ? ' ' : '\n') + abstractPart;
+                            abstractEndFound = true;
+                            break;
+                        }
+                    } else if (pageNum === abstractStartPage) {
+                        // Same page as abstract start, content already added
+                        continue;
+                    } else {
+                        // Add content only if it appears to be continuation of the abstract
+                        const cleanedText = pageText.replace(/^[\d\s\w]+$|Page \d+|^\d+$/gm, '').trim();
+                        if (cleanedText && 
+                            (lastLineWasIncomplete || /^[a-z,;)]/.test(cleanedText) || /[a-z][.?!]$/.test(abstractText)) && 
+                            !cleanedText.toLowerCase().includes('acknowledge') &&
+                            !cleanedText.includes('©') && 
+                            !cleanedText.includes('copyright') &&
+                            !/^\s*\d+\s*$/.test(cleanedText)) {
+                            abstractText += (lastLineWasIncomplete ? ' ' : '\n') + cleanedText;
+                            lastLineWasIncomplete = !cleanedText.endsWith('.') && 
+                                                  !cleanedText.endsWith('?') && 
+                                                  !cleanedText.endsWith('!');
+                        } else {
+                            abstractEndFound = true;
+                        }
+                    }
+                }
+            }
+            
+            // Clean up the abstract text
+            if (abstractText) {
+                abstractText = abstractText
+                    .replace(/^ABSTRACT\s*[:.]?\s*/i, '') // Remove "ABSTRACT" header
+                    .replace(/\n{3,}/g, '\n\n') // Normalize multiple line breaks
+                    .replace(/\s+/g, ' ') // Normalize spaces
+                    .replace(/\n\s*\n/g, '\n') // Remove empty lines
+                    .replace(/acknowledgements?.*$/is, '') // Remove any acknowledgement section
+                    .replace(/\s+/g, ' ') // Normalize spaces again after cleanup
+                    .trim();
+                
+                // Split into paragraphs more accurately
+                const paragraphs = abstractText
+                    .split(/(?<=[.?!])\s+(?=[A-Z])/g) // keep only full-stop + capital start
+                    .map(p => p.trim())
+                    .filter(p => p.length > 0 && !p.match(/^(keywords?|chapter|section|index terms|acknowledge)/i));
+                
+                return `<div class="abstract-text">${paragraphs.map(p => 
+                    `<p>${p}</p>`).join('')}</div>`;
+            }
+            
+            return "No abstract found in the document.";
         } catch (error) {
             console.error('Error extracting text from PDF:', error);
             return "Unable to extract abstract from PDF.";
         }
-    }
-
-    // Function to find abstract in extracted text
-    function findAbstract(text) {
-        // Common abstract markers
-        const abstractMarkers = [
-            "abstract",
-            "summary",
-            "synopsis"
-        ];
-
-        // Split text into paragraphs
-        const paragraphs = text.split(/\n\s*\n/);
-        
-        // Look for paragraph starting with abstract markers
-        for (const paragraph of paragraphs) {
-            const lowerParagraph = paragraph.toLowerCase();
-            if (abstractMarkers.some(marker => lowerParagraph.startsWith(marker))) {
-                // Remove the marker word and clean up the text
-                return paragraph.replace(new RegExp(`^(${abstractMarkers.join('|')})[:\s]*`, 'i'), '').trim();
-            }
-        }
-
-        // If no abstract marker found, return first paragraph
-        return paragraphs[0] || "No abstract found in the document.";
     }
 
     // Update page count and added date when file is selected
@@ -97,22 +181,29 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             previewAddedDate.textContent = `Added Date: ${formattedDate}`;
 
-            // Extract text from PDF
-            const extractedText = await extractTextFromPDF(file);
-            extractedAbstract = findAbstract(extractedText);
-            
-            // Update preview
-            previewAbstract.textContent = extractedAbstract || "No abstract found in the document.";
-            
-            // Enable read document button
-            const readButton = document.getElementById("read-document");
-            if (readButton) {
-                readButton.disabled = false;
-                readButton.classList.remove("disabled-button");
+            try {
+                // Extract text and abstract from PDF
+                const extractedText = await extractTextFromPDF(file);
+                console.log('Extracted abstract:', extractedText); // Debug log
+                
+                // Update preview and global variable
+                extractedAbstract = extractedText;
+                previewAbstract.innerHTML = extractedText;
+                
+                // Enable read document button
+                const readButton = document.getElementById("read-document");
+                if (readButton) {
+                    readButton.disabled = false;
+                    readButton.classList.remove("disabled-button");
+                }
+            } catch (error) {
+                console.error('Error processing PDF:', error);
+                previewAbstract.textContent = "Error extracting abstract from the document.";
             }
         } else {
             pageCountSpan.textContent = "0";
             previewAbstract.textContent = "Please upload a PDF file to extract the abstract.";
+            extractedAbstract = "";
         }
     });
 
@@ -366,4 +457,79 @@ function getCategoryIcon(category) {
     };
     
     return categoryIcons[category.toLowerCase()] || categoryIcons.default;
+}
+
+// Update the CSS for abstract formatting
+const abstractStyles = `
+    .abstract-content {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        font-family: "Times New Roman", Times, serif;
+        font-size: 12pt;
+        line-height: 1.6;
+        font-weight: normal !important;
+    }
+    
+    .abstract-text {
+        text-align: justify;
+        hyphens: auto;
+        font-weight: normal !important;
+    }
+    
+    .abstract-text p {
+        margin: 0 0 1em 0;
+        text-indent: 0.5in;
+        font-weight: normal !important;
+        font-family: inherit;
+    }
+    
+    .abstract-text p:first-child {
+        text-indent: 0;
+        font-weight: normal !important;
+    }
+    
+    #preview-abstract {
+        color: #333;
+        font-weight: normal !important;
+    }
+    
+    #preview-abstract * {
+        font-weight: normal !important;
+    }
+`;
+
+// Add styles to document
+const styleSheet = document.createElement("style");
+styleSheet.textContent = abstractStyles;
+document.head.appendChild(styleSheet);
+
+// Function to find the start of the abstract
+function findAbstractStart(text) {
+    const abstractMarkers = [
+        "abstract",
+        "abstract:",
+        "ABSTRACT",
+        "ABSTRACT:",
+        "Abstract",
+        "Abstract:",
+        "A B S T R A C T",
+        "A B S T R A C T:"
+    ];
+    
+    const lowerText = text.toLowerCase();
+    for (const marker of abstractMarkers) {
+        const index = lowerText.indexOf(marker.toLowerCase());
+        if (index !== -1) {
+            // Get the text after the abstract marker
+            const startIndex = index + marker.length;
+            let abstractText = text.substring(startIndex).trim();
+            
+            // Remove any leading colons or spaces
+            abstractText = abstractText.replace(/^[:.\s]+/, '').trim();
+            
+            return abstractText;
+        }
+    }
+    return null;
 }

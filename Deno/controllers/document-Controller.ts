@@ -1,4 +1,17 @@
 import { client } from "../data/denopost_conn.ts";
+import { Request } from "https://deno.land/x/oak@v17.1.4/request.ts";
+
+interface DocumentRow {
+    id: number;
+    title: string;
+    publication_date: string;
+    file: string;
+    volume: string;
+    abstract: string;
+    category_name: string;
+    author_names: string[];
+    topics: Array<{ topic_name: string; topic_id: number; }>;
+}
 
 // Fetch categories
 export const fetchCategories = async () => {
@@ -39,9 +52,18 @@ export const fetchDocuments = async (req: Request): Promise<Response> => {
                 d.publication_date,
                 d.file,
                 d.volume,
+                d.abstract,
                 c.category_name,
                 COALESCE(array_agg(DISTINCT a.full_name) FILTER (WHERE a.full_name IS NOT NULL), ARRAY[]::text[]) as author_names,
-                COALESCE(array_agg(DISTINCT t.topic_name) FILTER (WHERE t.topic_name IS NOT NULL), ARRAY[]::text[]) as topics
+                COALESCE(
+                    json_agg(
+                        DISTINCT jsonb_build_object(
+                            'topic_name', t.topic_name,
+                            'topic_id', t.id
+                        )
+                    ) FILTER (WHERE t.topic_name IS NOT NULL),
+                    '[]'::json
+                ) as topics
             FROM documents d
             LEFT JOIN categories c ON d.category_id = c.id
             LEFT JOIN Authors a ON a.author_id = ANY(d.author_ids)
@@ -50,12 +72,12 @@ export const fetchDocuments = async (req: Request): Promise<Response> => {
         `;
 
         // Add WHERE clause for category filter
-        let whereClause = [];
-        let params = [];
+        const whereClause = [];
+        const params = [];
         let paramIndex = 1;
 
         if (category && category !== "All") {
-            whereClause.push(`LOWER(c.category_name) = LOWER($${paramIndex}) AND c.category_name IS NOT NULL`);
+            whereClause.push(`LOWER(c.category_name) = LOWER($${paramIndex})`);
             params.push(category);
             paramIndex++;
         }
@@ -71,38 +93,34 @@ export const fetchDocuments = async (req: Request): Promise<Response> => {
             query += ` WHERE ${whereClause.join(' AND ')}`;
         }
 
-        query += ` GROUP BY d.id, d.title, d.publication_date, d.file, d.volume, c.category_name
+        query += ` GROUP BY d.id, d.title, d.publication_date, d.file, d.volume, d.abstract, c.category_name
                   ORDER BY d.publication_date DESC`;
 
         console.log("Executing query:", query);
-        console.log("Category filter:", category);
-        console.log("Volume filter:", volume);
+        console.log("Query parameters:", params);
 
-        const result = params.length > 0
-            ? await client.queryObject(query, params)
-            : await client.queryObject(query);
-
-        // Convert BigInt values and format dates
-        const processedRows = result.rows.map((row: any) => ({
-            id: Number(row.id),
-            title: row.title,
-            publication_date: row.publication_date ? new Date(row.publication_date).toISOString().split('T')[0] : null,
-            file: row.file,
-            volume: row.volume,
-            category_name: row.category_name,
-            author_names: Array.isArray(row.author_names) ? row.author_names : [],
-            topics: Array.isArray(row.topics) ? row.topics : []
+        const result = await client.queryObject<DocumentRow>(query, params);
+        
+        // Transform the result to ensure topics are properly formatted
+        const documents = result.rows.map(doc => ({
+            ...doc,
+            topics: Array.isArray(doc.topics) ? doc.topics.map(t => t.topic_name) : []
         }));
 
-        console.log(`Found ${processedRows.length} documents${category && category !== "All" ? ` for category ${category}` : ''}${volume ? ` and volume ${volume}` : ''}`);
-        return new Response(JSON.stringify(processedRows), {
-            headers: { "Content-Type": "application/json" },
+        return new Response(JSON.stringify(documents), {
+            status: 200,
+            headers: {
+                "Content-Type": "application/json"
+            }
         });
+
     } catch (error) {
         console.error("Error fetching documents:", error);
-        return new Response(JSON.stringify({ error: "Failed to fetch documents" }), {
+        return new Response(JSON.stringify({ message: "Error fetching documents" }), {
             status: 500,
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json"
+            }
         });
     }
 };

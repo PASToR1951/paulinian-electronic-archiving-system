@@ -1,7 +1,9 @@
-import { Router } from "https://deno.land/x/oak/mod.ts";
+import { Router } from "https://deno.land/x/oak@v17.1.4/mod.ts";
+import type { RouterContext } from "https://deno.land/x/oak@v17.1.4/router.ts";
+import { helpers } from "https://deno.land/x/oak@v17.1.4/mod.ts";
+import { Response } from "https://deno.land/x/oak@v17.1.4/response.ts";
 import { fetchCategories, fetchDocuments, fetchVolumesByCategory } from "../controllers/document-Controller.ts";
 import { client } from "../data/denopost_conn.ts";
-import { RouterContext } from "https://deno.land/x/oak/mod.ts";
 
 const router = new Router();
 
@@ -14,11 +16,32 @@ router.get("/api/categories", async (ctx) => {
 });
 
 // Documents endpoint
-router.get("/api/documents", async (ctx) => {
-    const response = await fetchDocuments(ctx.request);
-    ctx.response.body = await response.json();
-    ctx.response.status = response.status;
-    ctx.response.headers = response.headers;
+router.get("/api/documents", async (ctx: RouterContext<"/api/documents">) => {
+    try {
+        const response = await fetchDocuments(ctx.request);
+        const responseData = await response.text();
+        const documents = JSON.parse(responseData);
+        
+        // For each document, fetch its topics
+        for (const doc of documents) {
+            const topicsResult = await client.queryObject<{ topic_name: string }>(
+                `SELECT t.topic_name 
+                 FROM topics t
+                 JOIN document_topics dt ON t.id = dt.topic_id
+                 WHERE dt.document_id = $1`,
+                [doc.id]
+            );
+            doc.topics = topicsResult.rows.map(row => row.topic_name);
+        }
+        
+        ctx.response.body = documents;
+        ctx.response.status = response.status;
+        ctx.response.headers = response.headers;
+    } catch (error) {
+        console.error("Error fetching documents:", error);
+        ctx.response.status = 500;
+        ctx.response.body = { message: "Internal server error" };
+    }
 });
 
 // Volumes endpoint
@@ -32,8 +55,15 @@ router.get("/api/volumes", async (ctx) => {
 // Update document
 router.put("/api/documents/:id", async (ctx: RouterContext<"/api/documents/:id">) => {
     try {
-        const id = ctx.params.id;
-        const body = await ctx.request.body({ type: "json" }).value;
+        // Convert Oak context to native Request
+        const req = new Request(ctx.request.url, {
+            method: ctx.request.method,
+            headers: ctx.request.headers,
+            body: await ctx.request.body({ type: "json" }).value
+        });
+        
+        // Get the request body using the native Request type
+        const body = await req.json();
         
         // Validate required fields
         if (!body.title || !body.author || !body.publication_date || !body.category) {
@@ -42,36 +72,116 @@ router.put("/api/documents/:id", async (ctx: RouterContext<"/api/documents/:id">
             return;
         }
         
-        // Update document in database
-        const result = await client.queryObject(
-            `UPDATE documents 
-             SET title = $1, 
-                 author = $2, 
-                 publication_date = $3, 
-                 category = $4, 
-                 abstract = $5, 
-                 topics = $6,
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE id = $7
-             RETURNING *`,
-            [
-                body.title,
-                body.author,
-                body.publication_date,
-                body.category,
-                body.abstract || null,
-                body.topics || null,
-                id
-            ]
-        );
+        // Begin transaction
+        await client.queryObject("BEGIN");
         
-        if (result.rows.length === 0) {
-            ctx.response.status = 404;
-            ctx.response.body = { message: "Document not found" };
-            return;
+        try {
+            // Update document in database
+            const result = await client.queryObject<{
+                id: number;
+                title: string;
+                author: string;
+                publication_date: string;
+                category: string;
+                abstract: string | null;
+                volume: string | null;
+                updated_at: string;
+            }>(
+                `UPDATE documents 
+                 SET title = $1, 
+                     author = $2, 
+                     publication_date = $3, 
+                     category = $4, 
+                     abstract = $5, 
+                     volume = $6,
+                     updated_at = CURRENT_TIMESTAMP
+                 WHERE id = $7
+                 RETURNING *`,
+                [
+                    body.title,
+                    Array.isArray(body.author) ? body.author.join(", ") : body.author,
+                    body.publication_date,
+                    body.category,
+                    body.abstract || null,
+                    body.volume || null,
+                    ctx.params.id
+                ]
+            );
+            
+            if (result.rows.length === 0) {
+                await client.queryObject("ROLLBACK");
+                ctx.response.status = 404;
+                ctx.response.body = { message: "Document not found" };
+                return;
+            }
+
+            // Handle topics
+            if (body.topics && Array.isArray(body.topics)) {
+                // First, delete existing document_topics
+                await client.queryObject(
+                    "DELETE FROM document_topics WHERE document_id = $1",
+                    [ctx.params.id]
+                );
+
+                // Insert new topics
+                for (const topicName of body.topics) {
+                    // Check if topic exists
+                    let topicResult = await client.queryObject<{ id: number }>(
+                        `SELECT id FROM topics WHERE topic_name = $1`,
+                        [topicName]
+                    );
+
+                    let topicId: number;
+                    if (topicResult.rows.length > 0) {
+                        topicId = topicResult.rows[0].id;
+                    } else {
+                        // Create new topic
+                        const newTopicResult = await client.queryObject<{ id: number }>(
+                            `INSERT INTO topics (topic_name) VALUES ($1) RETURNING id`,
+                            [topicName]
+                        );
+                        topicId = newTopicResult.rows[0].id;
+                    }
+
+                    // Link topic to document
+                    await client.queryObject(
+                        `INSERT INTO document_topics (document_id, topic_id) VALUES ($1, $2)
+                         ON CONFLICT (document_id, topic_id) DO NOTHING`,
+                        [ctx.params.id, topicId]
+                    );
+                }
+            }
+
+            // Commit transaction
+            await client.queryObject("COMMIT");
+            
+            // Fetch updated document with topics
+            const updatedDoc = await client.queryObject<{
+                id: number;
+                title: string;
+                author: string;
+                publication_date: string;
+                category: string;
+                abstract: string | null;
+                volume: string | null;
+                updated_at: string;
+                topics: string[];
+            }>(
+                `SELECT d.*, 
+                    array_agg(DISTINCT t.topic_name) FILTER (WHERE t.topic_name IS NOT NULL) as topics
+                 FROM documents d
+                 LEFT JOIN document_topics dt ON d.id = dt.document_id
+                 LEFT JOIN topics t ON dt.topic_id = t.id
+                 WHERE d.id = $1
+                 GROUP BY d.id`,
+                [ctx.params.id]
+            );
+
+            ctx.response.body = updatedDoc.rows[0];
+        } catch (error) {
+            await client.queryObject("ROLLBACK");
+            throw error;
         }
-        
-        ctx.response.body = result.rows[0];
     } catch (error) {
         console.error("Error updating document:", error);
         ctx.response.status = 500;
@@ -80,7 +190,7 @@ router.put("/api/documents/:id", async (ctx: RouterContext<"/api/documents/:id">
 });
 
 // Delete document
-router.delete("/api/documents/:id", async (context: RouterContext) => {
+router.delete("/api/documents/:id", async (context: RouterContext<"/api/documents/:id">) => {
     try {
         const id = context.params?.id;
         if (!id) {
@@ -114,7 +224,16 @@ router.delete("/api/documents/:id", async (context: RouterContext) => {
             );
             
             // Finally, delete the document
-            const result = await client.queryObject(
+            const result = await client.queryObject<{
+                id: number;
+                title: string;
+                author: string;
+                publication_date: string;
+                category: string;
+                abstract: string | null;
+                volume: string | null;
+                updated_at: string;
+            }>(
                 "DELETE FROM documents WHERE id = $1 RETURNING *",
                 [id]
             );
