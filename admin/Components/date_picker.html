@@ -3,25 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Date Range Picker</title>
+    <link rel="stylesheet" href="./css/daterangepicker.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
-    <title>Document </title>
 </head>
 <body>
-    <div id="reportrange" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
-        <i class="fa fa-calendar"></i>&nbsp;
-        <span></span> <i class="fa fa-caret-down"></i>
-    </div>
-    <script>$('#demo').daterangepicker({
-        "showDropdowns": true,
-        "timePicker": true,
-        "autoApply": true,
-        "startDate": "02/13/2025",
-        "endDate": "02/19/2025"
-    }, function(start, end, label) {
-      console.log('New date range selected: ' + start.format('YYYY-MM-DD') + ' to ' + end.format('YYYY-MM-DD') + ' (predefined range: ' + label + ')');
-    });</script>
+    <header class="page-header">
+        <div class="header-content">
+            <div id="reportrange">
+                <span></span>
+                <i class="fa fa-calendar"></i>
+            </div>
+        </div>
+    </header>
+
+    <script>
+        $(function() {
+            var today = moment();
+            var start = moment().subtract(1, 'month').startOf('month');
+            var minYear = moment().subtract(3, 'years').startOf('year');
+
+            function cb(start, end) {
+                $('#reportrange span').html(start.format('MMMM D, YYYY') + ' - ' + end.format('MMMM D, YYYY'));
+            }
+
+            $('#reportrange').daterangepicker({
+                startDate: start,
+                endDate: today,
+                minDate: minYear, // Restrict selection to the past 3 years
+                maxDate: today, // Cannot pick beyond today
+                showDropdowns: true, // Allow picking months and years
+                ranges: {
+                    'This Year': [moment().startOf('year'), today],
+                    'Last Year': [moment().subtract(1, 'year').startOf('year'), moment().subtract(1, 'year').endOf('year')],
+                    'Last 3 Years': [moment().subtract(3, 'year').startOf('year'), today]
+                },
+                locale: {
+                    format: 'MMMM D, YYYY'
+                }
+            }, cb);
+
+            cb(start, today);
+        });
+    </script>
 </body>
 </html>

@@ -13,21 +13,23 @@
 <body>
     <header class="page-header">
         <div class="header-content">
-            <div class="left-section">
-                <div id="reportrange" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
-                    <i class="fa fa-calendar"></i>&nbsp;
-                    <span></span> <i class="fa fa-caret-down"></i>
-                </div>
+            <div id="reportrange">
+                <span></span>
+                <i class="fa fa-calendar"></i>
+            </div>
+            <div class="search-bar">
+                <i class="fa fa-search"></i>
+                <input type="text" placeholder="Search...">
             </div>
         </div>
     </header>
 
     <script>
         $(function() {
-            var today = moment(); // Current date
-            var start = moment().subtract(1, 'month').startOf('month'); // Default: Start of last month
-            var minYear = moment().subtract(3, 'years').startOf('year'); // Allow selection up to 3 years ago
-            
+            var today = moment();
+            var start = moment().subtract(1, 'month').startOf('month');
+            var minYear = moment().subtract(3, 'years').startOf('year');
+
             function cb(start, end) {
                 $('#reportrange span').html(start.format('MMMM D, YYYY') + ' - ' + end.format('MMMM D, YYYY'));
             }
