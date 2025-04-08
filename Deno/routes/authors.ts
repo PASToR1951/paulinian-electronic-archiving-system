@@ -7,7 +7,7 @@ export async function getAllAuthors() {
   try {
     const result = await client.queryObject(`
       SELECT 
-        a.id, 
+        a.author_id, 
         a.name, 
         a.department, 
         a.email,
@@ -21,11 +21,11 @@ export async function getAllAuthors() {
       FROM 
         authors a
       LEFT JOIN 
-        document_authors da ON a.id = da.author_id
+        document_authors da ON a.author_id = da.author_id
       LEFT JOIN 
         documents d ON da.document_id = d.id
       GROUP BY 
-        a.id, a.name, a.department, a.email, a.affiliation, a.year_of_graduation, 
+        a.author_id, a.name, a.department, a.email, a.affiliation, a.year_of_graduation, 
         a.linkedin, a.bio, a.orcid_id, a.profile_picture
       ORDER BY 
         a.name
@@ -41,11 +41,11 @@ export async function getAllAuthors() {
 /**
  * Get a single author by ID
  */
-export async function getAuthorById(id: number) {
+export async function getAuthorById(id: string) {
   try {
     const result = await client.queryObject(`
       SELECT 
-        a.id, 
+        a.author_id, 
         a.name, 
         a.department, 
         a.email,
@@ -53,13 +53,13 @@ export async function getAuthorById(id: number) {
       FROM 
         authors a
       LEFT JOIN 
-        document_authors da ON a.id = da.author_id
+        document_authors da ON a.author_id = da.author_id
       LEFT JOIN 
         documents d ON da.document_id = d.id
       WHERE 
-        a.id = $1
+        a.author_id = $1
       GROUP BY 
-        a.id, a.name, a.department, a.email
+        a.author_id, a.name, a.department, a.email
     `, [id]);
 
     if (result.rows.length === 0) {
@@ -139,7 +139,7 @@ export async function handleGetAuthors() {
  */
 export async function handleGetAuthorById(id: number) {
   try {
-    const author = await getAuthorById(id);
+    const author = await getAuthorById(id.toString());
     
     if (!author) {
       return new Response(JSON.stringify({ error: "Author not found" }), {
@@ -222,8 +222,8 @@ export async function createAuthor(authorData: {
 /**
  * Update an existing author
  */
-export async function updateAuthor(id: number, authorData: {
-  name?: string;
+export async function updateAuthor(id: string, authorData: {
+  full_name?: string;
   department?: string;
   email?: string;
   affiliation?: string;
@@ -256,7 +256,7 @@ export async function updateAuthor(id: number, authorData: {
     const result = await client.queryObject(`
       UPDATE authors 
       SET ${fields.join(", ")}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $${paramCount}
+      WHERE author_id = $${paramCount}
       RETURNING *
     `, values);
 
@@ -274,30 +274,16 @@ export async function updateAuthor(id: number, authorData: {
 /**
  * Delete an author
  */
-export async function deleteAuthor(id: number) {
+export async function deleteAuthor(id: string) {
   try {
-    // First check if author exists and has no associated documents
-    const checkResult = await client.queryObject(`
-      SELECT COUNT(d.id) as doc_count
-      FROM authors a
-      LEFT JOIN document_authors da ON a.id = da.author_id
-      LEFT JOIN documents d ON da.document_id = d.id
-      WHERE a.id = $1
-      GROUP BY a.id
+    // Delete the author directly
+    const result = await client.queryObject(`
+      DELETE FROM authors WHERE author_id = $1 RETURNING author_id
     `, [id]);
 
-    if (checkResult.rows.length === 0) {
+    if (result.rows.length === 0) {
       throw new Error("Author not found");
     }
-
-    if (checkResult.rows[0].doc_count > 0) {
-      throw new Error("Cannot delete author with associated documents");
-    }
-
-    // Delete the author
-    const result = await client.queryObject(`
-      DELETE FROM authors WHERE id = $1 RETURNING id
-    `, [id]);
 
     return result.rows[0];
   } catch (error) {
@@ -333,7 +319,7 @@ export async function handleCreateAuthor(req: Request) {
 /**
  * Handle PUT request to update an author
  */
-export async function handleUpdateAuthor(id: number, req: Request) {
+export async function handleUpdateAuthor(id: string, req: Request) {
   try {
     const authorData = await req.json();
     const updatedAuthor = await updateAuthor(id, authorData);
@@ -356,7 +342,7 @@ export async function handleUpdateAuthor(id: number, req: Request) {
 /**
  * Handle DELETE request to delete an author
  */
-export async function handleDeleteAuthor(id: number) {
+export async function handleDeleteAuthor(id: string) {
   try {
     await deleteAuthor(id);
     return new Response(null, { status: 204 });

@@ -32,18 +32,11 @@ export const fetchAuthors = async () => {
     }
     
     const data = await response.json();
+    console.log('API Response:', data);
     console.log(`Successfully fetched ${data.length} authors`);
     
-    // Map the response to match what the React app expects
-    const mappedAuthors = data.map(author => ({
-      id: author.author_id || author.id,
-      name: author.full_name || author.name,
-      department: author.department || '',
-      email: author.email || '',
-      document_count: author.document_count || 0
-    }));
-    
-    return mappedAuthors;
+    // Return the data directly since it already matches our interface
+    return data;
   } catch (error) {
     console.error('Error fetching authors:', error);
     if (error.name === 'AbortError') {

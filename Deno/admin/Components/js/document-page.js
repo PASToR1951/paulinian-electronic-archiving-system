@@ -1,6 +1,6 @@
 // Globals
 let currentPage = 1;
-const pageSize = 10;
+const pageSize = 5;
 let totalEntries = 0;
 let currentCategoryFilter = null; // Track current category filter
 let currentVolumeFilter = null; // Track current volume filter
@@ -567,15 +567,20 @@ function updatePagination() {
     const entriesInfo = document.getElementById("entries-info");
     const pageLinks = document.getElementById("page-links");
 
-    entriesInfo.textContent = `Showing ${Math.min((currentPage - 1) * pageSize + 1, totalEntries)} to ${Math.min(currentPage * pageSize, totalEntries)} of ${totalEntries} entries`;
+    if (!entriesInfo || !pageLinks) return;
 
-    // Clear pagination before adding new buttons
+    // Update entries info
+    const startEntry = Math.min((currentPage - 1) * pageSize + 1, totalEntries);
+    const endEntry = Math.min(currentPage * pageSize, totalEntries);
+    entriesInfo.textContent = `Showing ${startEntry} to ${endEntry} of ${totalEntries} entries`;
+
+    // Clear existing pagination
     pageLinks.innerHTML = "";
 
     // Previous button
     const prevButton = document.createElement("button");
     prevButton.textContent = "< prev";
-    prevButton.classList.add("prev-button");
+    prevButton.className = "pagination-btn prev-button" + (currentPage === 1 ? " disabled" : "");
     prevButton.disabled = currentPage === 1;
     prevButton.addEventListener("click", () => {
         if (currentPage > 1) {
@@ -585,24 +590,50 @@ function updatePagination() {
     });
     pageLinks.appendChild(prevButton);
 
-    // Page number buttons
-    for (let i = 1; i <= totalPages; i++) {
-        const button = document.createElement("button");
-        button.textContent = i;
-        button.classList.add("page-number");
-        if (i === currentPage) button.classList.add("active");
-        button.addEventListener("click", () => {
-            currentPage = i;
-            loadDocuments(currentPage);
-        });
-        pageLinks.appendChild(button);
+    // Page numbers
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages || 1, startPage + 4);
+
+    // Adjust start page if we're near the end
+    if (endPage - startPage < 4) {
+        startPage = Math.max(1, endPage - 4);
+    }
+
+    // First page and ellipsis
+    if (startPage > 1) {
+        const firstButton = createPageButton(1);
+        pageLinks.appendChild(firstButton);
+        if (startPage > 2) {
+            const ellipsis = document.createElement("span");
+            ellipsis.textContent = "...";
+            ellipsis.className = "pagination-ellipsis";
+            pageLinks.appendChild(ellipsis);
+        }
+    }
+
+    // Page numbers
+    for (let i = startPage; i <= endPage; i++) {
+        const pageButton = createPageButton(i);
+        pageLinks.appendChild(pageButton);
+    }
+
+    // Last page and ellipsis
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            const ellipsis = document.createElement("span");
+            ellipsis.textContent = "...";
+            ellipsis.className = "pagination-ellipsis";
+            pageLinks.appendChild(ellipsis);
+        }
+        const lastButton = createPageButton(totalPages);
+        pageLinks.appendChild(lastButton);
     }
 
     // Next button
     const nextButton = document.createElement("button");
     nextButton.textContent = "next >";
-    nextButton.classList.add("next-button");
-    nextButton.disabled = currentPage === totalPages;
+    nextButton.className = "pagination-btn next-button" + (currentPage === (totalPages || 1) ? " disabled" : "");
+    nextButton.disabled = currentPage === (totalPages || 1);
     nextButton.addEventListener("click", () => {
         if (currentPage < totalPages) {
             currentPage++;
@@ -610,13 +641,85 @@ function updatePagination() {
         }
     });
     pageLinks.appendChild(nextButton);
+
+    // Add additional styles to ensure consistent display
+    pageLinks.style.display = 'flex';
+    pageLinks.style.justifyContent = 'center';
+    pageLinks.style.marginTop = '20px';
+    entriesInfo.style.display = 'block';
+    entriesInfo.style.textAlign = 'center';
+    entriesInfo.style.marginBottom = '10px';
 }
+
+// Helper function to create page number buttons
+function createPageButton(pageNum) {
+    const button = document.createElement("button");
+    button.textContent = pageNum;
+    button.className = "pagination-btn page-number" + (pageNum === currentPage ? " active" : "");
+    button.addEventListener("click", () => {
+        if (pageNum !== currentPage) {
+            currentPage = pageNum;
+            loadDocuments(currentPage);
+        }
+    });
+    return button;
+}
+
+// Add pagination styles
+const paginationStyle = document.createElement('style');
+paginationStyle.textContent = `
+    #page-links {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 20px;
+        justify-content: center;
+    }
+
+    .pagination-btn {
+        padding: 8px 12px;
+        border: 1px solid #e0e0e0;
+        background-color: white;
+        color: #333;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+    }
+
+    .pagination-btn:hover:not(.disabled):not(.active) {
+        background-color: #f5f5f5;
+        border-color: #1976d2;
+    }
+
+    .pagination-btn.active {
+        background-color: #1976d2;
+        color: white;
+        border-color: #1976d2;
+    }
+
+    .pagination-btn.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .pagination-ellipsis {
+        color: #666;
+        padding: 0 4px;
+    }
+
+    #entries-info {
+        text-align: center;
+        color: #666;
+        margin-bottom: 10px;
+    }
+`;
+document.head.appendChild(paginationStyle);
 
 // Edit Document
 async function editDocument(documentId) {
     try {
-        // Show loading state
     const modal = document.getElementById('edit-modal');
+        modal.style.zIndex = '2000';
         modal.style.display = 'flex';
         
         // Fetch document details
@@ -673,8 +776,8 @@ async function editDocument(documentId) {
     }
         };
     } catch (error) {
-        console.error('Error fetching document:', error);
-        alert('Error fetching document details. Please try again.');
+        console.error('Error editing document:', error);
+        alert('Error editing document details. Please try again.');
         closeEditModal();
     }
 }
@@ -690,7 +793,6 @@ function closeEditModal() {
 function openDeleteConfirmation(doc) {
     console.log('Opening delete confirmation for document:', doc);
     
-    // Create confirmation dialog if it doesn't exist
     let confirmDialog = document.getElementById('delete-confirm-dialog');
     if (!confirmDialog) {
         confirmDialog = document.createElement('div');
@@ -704,7 +806,7 @@ function openDeleteConfirmation(doc) {
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
+            z-index: 2000;
             justify-content: center;
             align-items: center;
         `;
@@ -822,6 +924,9 @@ async function showDocumentPreview(doc) {
             console.error('Preview modal not found in the DOM');
             return;
         }
+
+        // Ensure modal is above dropdown
+        modal.style.zIndex = '2000';
 
         // Set document title and author
         const titleElement = document.getElementById('preview-title');
@@ -1637,6 +1742,7 @@ style.textContent = `
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         margin: 4px 0;
+        z-index: 100;
     }
 
     .similar-docs-list {
@@ -1740,6 +1846,8 @@ style.textContent = `
             "edit delete";
         gap: 8px;
         min-width: 140px;
+        position: relative;
+        z-index: 101;
     }
 
     .similar-doc-item .view-icon,
@@ -1753,7 +1861,7 @@ style.textContent = `
         gap: 4px;
         transition: background-color 0.2s;
         white-space: nowrap;
-        z-index: 1;
+        z-index: 102;
     }
 
     .similar-doc-item .view-icon {
@@ -1785,6 +1893,45 @@ style.textContent = `
 
     .similar-doc-item .delete-icon:hover {
         background-color: #ffebee;
+    }
+
+    /* Modal styles with higher z-index */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        justify-content: center;
+        align-items: center;
+    }
+
+    #preview-modal,
+    #edit-modal,
+    #delete-confirm-dialog {
+        z-index: 2000;
+    }
+
+    .modal-content {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        max-width: 800px;
+        width: 90%;
+        position: relative;
+        z-index: 2001;
+    }
+
+    /* Ensure modal form elements stay on top */
+    .modal input,
+    .modal select,
+    .modal textarea,
+    .modal button {
+        position: relative;
+        z-index: 2002;
     }
 `;
 document.head.appendChild(style);

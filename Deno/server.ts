@@ -130,9 +130,9 @@ async function handler(req: Request): Promise<Response> {
             }
         }
         
-        const authorIdMatch = path.match(/^\/api\/authors\/(\d+)$/);
+        const authorIdMatch = path.match(/^\/api\/authors\/([a-f0-9-]+)$/i);
         if (authorIdMatch) {
-            const authorId = parseInt(authorIdMatch[1]);
+            const authorId = authorIdMatch[1];
             if (method === "GET") {
                 return addCorsHeaders(await handleGetAuthorById(authorId));
             } else if (method === "PUT") {
