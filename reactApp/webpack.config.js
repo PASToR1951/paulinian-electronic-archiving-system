@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default {
-  entry: './src/main.js',
+  entry: './src/index.tsx',
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'bundle.js',
@@ -42,9 +42,12 @@ export default {
     ]
   },
   resolve: {
-    extensions: ['.js', '.jsx', '.ts', '.tsx'],
+    extensions: ['.tsx', '.ts', '.js', '.jsx'],
     alias: {
       '@': path.resolve(__dirname, 'src'),
+      '@admin': path.resolve(__dirname, 'admin'),
+      '@/components': path.resolve(__dirname, 'src/components'),
+      '@/lib': path.resolve(__dirname, 'src/lib'),
     }
   },
   plugins: [
@@ -56,13 +59,19 @@ export default {
     static: {
       directory: path.join(__dirname, 'dist'),
     },
-    historyApiFallback: true,
-    port: 3001,
+    historyApiFallback: {
+      index: '/admin/Components/author-list.html'
+    },
+    port: 3003,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true,
-        timeout: 30000, // 30 seconds timeout
+        secure: false,
+        logLevel: 'debug',
+        onProxyReq: (proxyReq, req, res) => {
+          console.log('Proxying request to:', proxyReq.path);
+        },
         onError: (err, req, res) => {
           console.error('Proxy error:', err);
           res.writeHead(500, {
@@ -71,6 +80,11 @@ export default {
           res.end(JSON.stringify({ error: 'Proxy error', details: err.message }));
         }
       }
+    },
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization',
     }
   }
 };

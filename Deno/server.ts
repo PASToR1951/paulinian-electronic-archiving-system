@@ -10,7 +10,14 @@ import { searchAuthors } from "./controllers/author-Controller.ts";
 import { searchTopics, createTopic } from "./controllers/topic-Controller.ts";
 import { fetchCategories, fetchDocuments } from "./controllers/document-Controller.ts";
 import { checkAuth } from "./middleware/auth_middleware.ts";
-import { handleGetAuthors, handleGetAuthorById, handleGetDocumentsByAuthor } from "./routes/authors.ts";
+import { 
+  handleGetAuthors, 
+  handleGetAuthorById, 
+  handleGetDocumentsByAuthor,
+  handleCreateAuthor,
+  handleUpdateAuthor,
+  handleDeleteAuthor
+} from "./routes/authors.ts";
 
 const env = await load({ envPath: "./.env" });
 console.log("Loaded Environment Variables:", env);
@@ -57,9 +64,9 @@ async function handler(req: Request): Promise<Response> {
 
     // CORS headers
     const corsHeaders = {
-        "Access-Control-Allow-Origin": "http://localhost:3001",
+        "Access-Control-Allow-Origin": "http://localhost:3003",
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, Cache-Control",
         "Access-Control-Allow-Credentials": "true"
     };
 
@@ -115,14 +122,24 @@ async function handler(req: Request): Promise<Response> {
     // Handle API routes
     if (path.startsWith("/api/")) {
         // Authors API
-        if (path === "/api/authors" && method === "GET") {
-            return addCorsHeaders(await handleGetAuthors());
+        if (path === "/api/authors") {
+            if (method === "GET") {
+                return addCorsHeaders(await searchAuthors(req));
+            } else if (method === "POST") {
+                return addCorsHeaders(await handleCreateAuthor(req));
+            }
         }
         
         const authorIdMatch = path.match(/^\/api\/authors\/(\d+)$/);
-        if (authorIdMatch && method === "GET") {
+        if (authorIdMatch) {
             const authorId = parseInt(authorIdMatch[1]);
-            return addCorsHeaders(await handleGetAuthorById(authorId));
+            if (method === "GET") {
+                return addCorsHeaders(await handleGetAuthorById(authorId));
+            } else if (method === "PUT") {
+                return addCorsHeaders(await handleUpdateAuthor(authorId, req));
+            } else if (method === "DELETE") {
+                return addCorsHeaders(await handleDeleteAuthor(authorId));
+            }
         }
         
         const authorDocumentsMatch = path.match(/^\/api\/authors\/(\d+)\/documents$/);
@@ -220,9 +237,6 @@ async function handler(req: Request): Promise<Response> {
             } else if (method === "POST") {
                 return await createTopic(req);
             }
-        }
-        if (method === "GET" && path === "/api/authors") {
-            return await searchAuthors(req);
         }
         if (path === "/api/categories" && method === "GET") {
             try {

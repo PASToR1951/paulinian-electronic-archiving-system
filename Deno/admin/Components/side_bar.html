@@ -53,23 +53,7 @@
                     </div>
                     <span class="icon-text">Author List</span>
                 </a>
-                
-                <a href="/admin/Components/create-news-article.html" class="icon-wrapper">
-                    <div class="icon">
-                        <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-news"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M16 6h3a1 1 0 0 1 1 1v11a2 2 0 0 1 -4 0v-13a1 1 0 0 0 -1 -1h-10a1 1 0 0 0 -1 1v12a3 3 0 0 0 3 3h11" /><path d="M8 8l4 0" /><path d="M8 12l4 0" /><path d="M8 16l4 0" /></svg>
-                    </div>
-                    <span class="icon-text">Author Lists</span>
-                </a>
-
-                <a href="/admin/Components/add_author.html" class="icon-wrapper">
-                    <div class="icon">
-                        <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-pencil-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" /><path d="M13.5 6.5l4 4" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>
-                    </div>
-                    <span class="icon-text">Add New Author</span>
-                </a>
-
-                
-
+            
                 <a href="/admin/Components/Document-Permissions.html" class="icon-wrapper">
                     <div class="icon">
                         <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-lock-access"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 8v-2a2 2 0 0 1 2 -2h2" /><path d="M4 16v2a2 2 0 0 0 2 2h2" /><path d="M16 4h2a2 2 0 0 1 2 2v2" /><path d="M16 20h2a2 2 0 0 0 2 -2v-2" /><path d="M8 11m0 1a1 1 0 0 1 1 -1h6a1 1 0 0 1 1 1v3a1 1 0 0 1 -1 1h-6a1 1 0 0 1 -1 -1z" /><path d="M10 11v-2a2 2 0 1 1 4 0v2" /></svg>
@@ -118,5 +102,26 @@
     </nav>
     <script src="/public/js/sidebar.js"></script>
     <script src="/public/js/logout.js"></script>
+    <script>
+        // Get the current page URL
+        const currentPage = window.location.pathname;
+        
+        // Find all navigation links
+        const navLinks = document.querySelectorAll('a.icon-wrapper');
+        
+        // Remove active class from all links
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+        });
+        
+        // Add active class to the current page's link
+        navLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (href && currentPage.includes(href)) {
+                link.classList.add('active');
+                console.log('Active link:', href);
+            }
+        });
+    </script>
 </body>
 </html>

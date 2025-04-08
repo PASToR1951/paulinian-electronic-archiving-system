@@ -11,6 +11,12 @@ export async function getAllAuthors() {
         a.name, 
         a.department, 
         a.email,
+        a.affiliation,
+        a.year_of_graduation,
+        a.linkedin,
+        a.bio,
+        a.orcid_id,
+        a.profile_picture,
         COUNT(d.id) as document_count
       FROM 
         authors a
@@ -19,7 +25,8 @@ export async function getAllAuthors() {
       LEFT JOIN 
         documents d ON da.document_id = d.id
       GROUP BY 
-        a.id, a.name, a.department, a.email
+        a.id, a.name, a.department, a.email, a.affiliation, a.year_of_graduation, 
+        a.linkedin, a.bio, a.orcid_id, a.profile_picture
       ORDER BY 
         a.name
     `);
@@ -165,6 +172,201 @@ export async function handleGetDocumentsByAuthor(authorId: number) {
   } catch (error) {
     console.error(`Error in handleGetDocumentsByAuthor for ID ${authorId}:`, error);
     return new Response(JSON.stringify({ error: "Failed to fetch documents" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+
+/**
+ * Create a new author
+ */
+export async function createAuthor(authorData: {
+  name: string;
+  department?: string;
+  email?: string;
+  affiliation?: string;
+  year_of_graduation?: number;
+  linkedin?: string;
+  bio?: string;
+  orcid_id?: string;
+  profile_picture?: string;
+}) {
+  try {
+    const result = await client.queryObject(`
+      INSERT INTO authors (
+        name, department, email, affiliation, year_of_graduation,
+        linkedin, bio, orcid_id, profile_picture
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9
+      ) RETURNING *
+    `, [
+      authorData.name,
+      authorData.department,
+      authorData.email,
+      authorData.affiliation,
+      authorData.year_of_graduation,
+      authorData.linkedin,
+      authorData.bio,
+      authorData.orcid_id,
+      authorData.profile_picture
+    ]);
+
+    return result.rows[0];
+  } catch (error) {
+    console.error("Error creating author:", error);
+    throw error;
+  }
+}
+
+/**
+ * Update an existing author
+ */
+export async function updateAuthor(id: number, authorData: {
+  name?: string;
+  department?: string;
+  email?: string;
+  affiliation?: string;
+  year_of_graduation?: number;
+  linkedin?: string;
+  bio?: string;
+  orcid_id?: string;
+  profile_picture?: string;
+}) {
+  try {
+    const fields = [];
+    const values = [];
+    let paramCount = 1;
+
+    // Build dynamic update query based on provided fields
+    Object.entries(authorData).forEach(([key, value]) => {
+      if (value !== undefined) {
+        fields.push(`${key} = $${paramCount}`);
+        values.push(value);
+        paramCount++;
+      }
+    });
+
+    if (fields.length === 0) {
+      throw new Error("No fields to update");
+    }
+
+    values.push(id); // Add ID as the last parameter
+
+    const result = await client.queryObject(`
+      UPDATE authors 
+      SET ${fields.join(", ")}, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $${paramCount}
+      RETURNING *
+    `, values);
+
+    if (result.rows.length === 0) {
+      throw new Error("Author not found");
+    }
+
+    return result.rows[0];
+  } catch (error) {
+    console.error(`Error updating author with ID ${id}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Delete an author
+ */
+export async function deleteAuthor(id: number) {
+  try {
+    // First check if author exists and has no associated documents
+    const checkResult = await client.queryObject(`
+      SELECT COUNT(d.id) as doc_count
+      FROM authors a
+      LEFT JOIN document_authors da ON a.id = da.author_id
+      LEFT JOIN documents d ON da.document_id = d.id
+      WHERE a.id = $1
+      GROUP BY a.id
+    `, [id]);
+
+    if (checkResult.rows.length === 0) {
+      throw new Error("Author not found");
+    }
+
+    if (checkResult.rows[0].doc_count > 0) {
+      throw new Error("Cannot delete author with associated documents");
+    }
+
+    // Delete the author
+    const result = await client.queryObject(`
+      DELETE FROM authors WHERE id = $1 RETURNING id
+    `, [id]);
+
+    return result.rows[0];
+  } catch (error) {
+    console.error(`Error deleting author with ID ${id}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Handle POST request to create a new author
+ */
+export async function handleCreateAuthor(req: Request) {
+  try {
+    const authorData = await req.json();
+    const newAuthor = await createAuthor(authorData);
+    return new Response(JSON.stringify(newAuthor), {
+      status: 201,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("Error in handleCreateAuthor:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return new Response(JSON.stringify({ 
+      error: "Failed to create author",
+      details: errorMessage 
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+
+/**
+ * Handle PUT request to update an author
+ */
+export async function handleUpdateAuthor(id: number, req: Request) {
+  try {
+    const authorData = await req.json();
+    const updatedAuthor = await updateAuthor(id, authorData);
+    return new Response(JSON.stringify(updatedAuthor), {
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error(`Error in handleUpdateAuthor for ID ${id}:`, error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return new Response(JSON.stringify({ 
+      error: "Failed to update author",
+      details: errorMessage 
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+
+/**
+ * Handle DELETE request to delete an author
+ */
+export async function handleDeleteAuthor(id: number) {
+  try {
+    await deleteAuthor(id);
+    return new Response(null, { status: 204 });
+  } catch (error) {
+    console.error(`Error in handleDeleteAuthor for ID ${id}:`, error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return new Response(JSON.stringify({ 
+      error: "Failed to delete author",
+      details: errorMessage 
+    }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });

@@ -22,14 +22,33 @@ export const fetchAuthors = async () => {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      console.error('Server response:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        errorData
+      });
       throw new Error(`HTTP error! status: ${response.status}, details: ${errorData.details || 'No details available'}`);
     }
     
     const data = await response.json();
     console.log(`Successfully fetched ${data.length} authors`);
-    return data;
+    
+    // Map the response to match what the React app expects
+    const mappedAuthors = data.map(author => ({
+      id: author.author_id || author.id,
+      name: author.full_name || author.name,
+      department: author.department || '',
+      email: author.email || '',
+      document_count: author.document_count || 0
+    }));
+    
+    return mappedAuthors;
   } catch (error) {
     console.error('Error fetching authors:', error);
+    if (error.name === 'AbortError') {
+      throw new Error('Request timed out after 25 seconds');
+    }
     throw error;
   }
 };

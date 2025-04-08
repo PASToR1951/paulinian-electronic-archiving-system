@@ -155,40 +155,26 @@ async function setupVolumeDropdown(categoryElement, categoryName) {
         // Add dropdown to category
         categoryElement.appendChild(dropdown);
         
-        // Track if category is selected
-        let isCategorySelected = false;
-        let isFirstClick = true;
-        
-        // Handle category click
+        // Handle category click - only for filtering, not for showing dropdown
         categoryElement.addEventListener('click', (event) => {
             // If clicking on the dropdown or volume indicator, don't process
             if (event.target.closest('.volume-dropdown') || event.target.closest('.volume-indicator')) {
                 return;
             }
             
-            // First click - select the category
-            if (isFirstClick) {
-                isFirstClick = false;
-                isCategorySelected = true;
-                filterByCategory(categoryName);
-                
-                // Close any open dropdowns
-                document.querySelectorAll('.volume-dropdown.show').forEach(d => {
-                    d.classList.remove('show');
-                });
-            } 
-            // Second click or subsequent clicks - toggle the dropdown
-            else {
-                dropdown.classList.toggle('show');
-            }
+            // Filter by category
+            filterByCategory(categoryName);
+            
+            // Close any open dropdowns
+            document.querySelectorAll('.volume-dropdown.show').forEach(d => {
+                d.classList.remove('show');
+            });
         });
         
         // Reset category selection when clicking another category
         document.querySelectorAll('.category').forEach(cat => {
             if (cat !== categoryElement) {
                 cat.addEventListener('click', () => {
-                    isFirstClick = true;
-                    isCategorySelected = false;
                     dropdown.classList.remove('show');
                 });
             }
@@ -198,10 +184,6 @@ async function setupVolumeDropdown(categoryElement, categoryName) {
         document.addEventListener('click', (event) => {
             if (!categoryElement.contains(event.target)) {
                 dropdown.classList.remove('show');
-                if (!event.target.closest('.category')) {
-                    isFirstClick = true;
-                    isCategorySelected = false;
-                }
             }
         });
     } catch (error) {
@@ -213,12 +195,25 @@ async function setupVolumeDropdown(categoryElement, categoryName) {
 function filterByVolume(categoryName, volume) {
     console.log(`Filtering by volume: ${volume} in category: ${categoryName}`);
     
+    // Set the category filter if not already set
+    if (categoryName && categoryName !== 'All' && currentCategoryFilter !== categoryName) {
+        currentCategoryFilter = categoryName;
+        // Update category visual state
+            document.querySelectorAll('.category').forEach(cat => {
+            if (cat.getAttribute('data-category') === categoryName) {
+                    cat.classList.add('active');
+                } else {
+                    cat.classList.remove('active');
+                }
+            });
+    }
+            
     // Set the volume filter
     currentVolumeFilter = volume;
     
     // Reset to first page and reload documents with filter
-    currentPage = 1;
-    loadDocuments(currentPage);
+            currentPage = 1;
+            loadDocuments(currentPage);
     
     // Update the filter indicator
     updateFilterIndicator();
@@ -228,39 +223,39 @@ function filterByVolume(categoryName, volume) {
 window.filterByCategory = function(categoryName) {
     console.log(`Filtering by category: ${categoryName}`);
     
-        // Toggle filter if clicking the same category again
-        if (currentCategoryFilter === categoryName) {
-            console.log("Clearing category filter");
-            currentCategoryFilter = null;
+    // Toggle filter if clicking the same category again
+    if (currentCategoryFilter === categoryName) {
+        console.log("Clearing category filter");
+        currentCategoryFilter = null;
         currentVolumeFilter = null; // Clear volume filter too
-            document.querySelectorAll('.category').forEach(cat => {
-                cat.classList.remove('active');
-            });
-        } else {
-            console.log(`Setting filter to: ${categoryName}`);
-            currentCategoryFilter = categoryName;
+        document.querySelectorAll('.category').forEach(cat => {
+            cat.classList.remove('active');
+        });
+    } else {
+        console.log(`Setting filter to: ${categoryName}`);
+        currentCategoryFilter = categoryName;
         currentVolumeFilter = null; // Reset volume filter when changing category
-            
-            // Highlight the selected category
-            document.querySelectorAll('.category').forEach(cat => {
-            if (cat.getAttribute('data-category') === categoryName) {
-                    cat.classList.add('active');
-                    console.log(`Activated category: ${categoryName}`);
-                } else {
-                    cat.classList.remove('active');
-                }
-            });
-        }
         
-        // Reset to first page and reload documents with filter
-        currentPage = 1;
-        loadDocuments(currentPage);
+        // Highlight the selected category
+        document.querySelectorAll('.category').forEach(cat => {
+            if (cat.getAttribute('data-category') === categoryName) {
+                cat.classList.add('active');
+                console.log(`Activated category: ${categoryName}`);
+            } else {
+                cat.classList.remove('active');
+            }
+        });
+    }
     
+    // Reset to first page and reload documents with filter
+    currentPage = 1;
+    loadDocuments(currentPage);
+
     // Update the filter indicator
     updateFilterIndicator();
 }
 
-// Update the loadDocuments function to include volume filtering
+// Update the loadDocuments function to group documents by title
 async function loadDocuments(page = 1) {
     try {
         let url = `/api/documents?page=${page}&size=${pageSize}`;
@@ -288,16 +283,25 @@ async function loadDocuments(page = 1) {
         const responseData = await response.text();
         const documents = JSON.parse(responseData);
         
-        // Sort documents based on publication date
-        documents.sort((a, b) => {
-            const dateA = new Date(a.publication_date);
-            const dateB = new Date(b.publication_date);
-            return currentSortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+        // Group documents by title
+        const groupedDocuments = documents.reduce((acc, doc) => {
+            if (!acc[doc.title]) {
+                acc[doc.title] = [];
+            }
+            acc[doc.title].push(doc);
+            return acc;
+        }, {});
+
+        // Sort each group by volume
+        Object.values(groupedDocuments).forEach(group => {
+            group.sort((a, b) => {
+                const volA = parseInt(a.volume) || 0;
+                const volB = parseInt(b.volume) || 0;
+                return volA - volB;
+            });
         });
         
-        console.log('Received document data:', documents);
-        
-        let documentsToDisplay = Array.isArray(documents) ? documents : [];
+        let documentsToDisplay = Object.values(groupedDocuments).map(group => group[0]); // Take first document from each group
         
         const tbody = document.querySelector("#docs-table tbody");
         tbody.innerHTML = "";
@@ -320,29 +324,23 @@ async function loadDocuments(page = 1) {
             return;
         }
 
-        // Filter documents by category and volume on the client side
+        // Filter documents by category on the client side
         if (currentCategoryFilter && currentCategoryFilter !== "All") {
             documentsToDisplay = documentsToDisplay.filter(doc => 
                 doc.category_name && 
                 doc.category_name.toLowerCase() === currentCategoryFilter.toLowerCase()
             );
         }
-        
-        // Apply volume filter if set
-        if (currentVolumeFilter) {
-            documentsToDisplay = documentsToDisplay.filter(doc => 
-                doc.volume && 
-                doc.volume.toString() === currentVolumeFilter.toString()
-            );
-        }
 
         documentsToDisplay.forEach(doc => {
-            // Log document data for debugging
-            console.log('Processing document:', doc);
-            
             const row = document.createElement("tr");
             row.className = "document-card";
+            row.setAttribute('data-category', doc.category_name || '');
+            row.setAttribute('data-volume', doc.volume || '');
+            row.setAttribute('data-title', doc.title || '');
+            row.style.cursor = 'pointer';
             
+            // Create the main document row without action buttons
             const categoryIcon = getCategoryIcon(doc.category_name);
             
             const iconCell = document.createElement("td");
@@ -371,18 +369,10 @@ async function loadDocuments(page = 1) {
                 headerContent += ` | <span class="doc-year">${new Date(doc.publication_date).getFullYear()}</span>`;
             }
 
-            // Process topics
-            let topicsHtml = '';
-            if (doc.document_topics && Array.isArray(doc.document_topics) && doc.document_topics.length > 0) {
-                topicsHtml = doc.document_topics.map(topic => 
-                    `<span class="tag topic">${topic.topic_name}</span>`
-                ).join('');
-            } else if (doc.topics && Array.isArray(doc.topics) && doc.topics.length > 0) {
-                topicsHtml = doc.topics.map(topic => 
-                    `<span class="tag topic">${typeof topic === 'string' ? topic : topic.topic_name}</span>`
-                ).join('');
-            } else {
-                topicsHtml = '<span class="tag topic muted">No topics</span>';
+            // Add volume count badge if there are multiple volumes
+            const volumeCount = groupedDocuments[doc.title].length;
+            if (volumeCount > 1) {
+                headerContent += ` <span class="volume-count-badge">${volumeCount} Volumes</span>`;
             }
             
             infoCell.innerHTML = `
@@ -391,55 +381,139 @@ async function loadDocuments(page = 1) {
                 </div>
                 <div class="doc-tags">
                     <span class="tag document-type">${doc.category_name || 'Uncategorized'}</span>
-                    ${topicsHtml}
+                    ${getTopicsHtml(doc)}
                 </div>
             `;
-            
-            // Create actions cell
-            const actionsCell = document.createElement("td");
-            actionsCell.className = "actions";
-            actionsCell.innerHTML = `
-                <div class="action-buttons">
-                <a href="#" class="view-icon" title="View Document" data-doc-id="${doc.id}">
-                        👁️ <span>View</span>
-                </a>
-                <a href="#" class="edit-icon" title="Edit Document" data-doc-id="${doc.id}">
-                        ✏️ <span>Edit</span>
-                </a>
-                </div>
-                <a href="#" class="delete-icon" title="Delete Document" data-doc-id="${doc.id}">
-                    🗑️
-                </a>
-            `;
-            
-            // Add event listeners for edit and delete buttons
-            const editButton = actionsCell.querySelector('.edit-icon');
-            const deleteButton = actionsCell.querySelector('.delete-icon');
-            
-            editButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                editDocument(doc.id);
-            });
-            
-            deleteButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                openDeleteConfirmation(doc);
-            });
-            
-            // Add event listener for view button
-            const viewButton = actionsCell.querySelector('.view-icon');
-            viewButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                showDocumentPreview(doc);
-            });
             
             // Append cells to row
             row.appendChild(iconCell);
             row.appendChild(infoCell);
-            row.appendChild(actionsCell);
+            
+            // Add click handler for the entire row
+            row.addEventListener('click', async (e) => {
+                // Don't trigger if clicking on action buttons
+                if (e.target.closest('.action-buttons')) {
+                    return;
+                }
+
+                // Check if there's an existing dropdown for this row
+                const existingDropdown = document.querySelector('.similar-docs-dropdown');
+                if (existingDropdown) {
+                    // If clicking the same row that has the dropdown open, close it
+                    const rowRect = row.getBoundingClientRect();
+                    const dropdownTop = parseInt(existingDropdown.style.top) - window.scrollY;
+                    if (Math.abs(dropdownTop - rowRect.bottom) < 2) { // Using small threshold for floating point differences
+                        existingDropdown.remove();
+                        return;
+                    }
+                }
+
+                // Remove any existing dropdowns
+                document.querySelectorAll('.similar-docs-dropdown').forEach(dropdown => {
+                    dropdown.remove();
+                });
+
+                const similarDocs = groupedDocuments[doc.title];
+                const dropdownContainer = document.createElement('div');
+                dropdownContainer.className = 'similar-docs-dropdown';
+                
+                const listContainer = document.createElement('div');
+                listContainer.className = 'similar-docs-list';
+                
+                // For single volume documents, just show the current document
+                const docsToShow = similarDocs || [doc];
+                
+                docsToShow.forEach(similarDoc => {
+                    const docItem = document.createElement('div');
+                    docItem.className = 'similar-doc-item';
+                    
+                    const categoryIcon = getCategoryIcon(similarDoc.category_name);
+                    
+                    docItem.innerHTML = `
+                        <div class="doc-icon">
+                            <img src="${categoryIcon}" alt="${similarDoc.category_name} Icon">
+                        </div>
+                        <div class="doc-info">
+                            <div class="doc-header">
+                                <span class="doc-title">${similarDoc.title || 'Untitled'}</span>
+                                ${similarDoc.volume ? `<span class="doc-volume">Volume ${similarDoc.volume}</span>` : ''}
+                                <span class="doc-author">${similarDoc.author_names ? similarDoc.author_names.join(', ') : 'No Author'}</span>
+                                <span class="doc-year">${new Date(similarDoc.publication_date).getFullYear()}</span>
+                            </div>
+                            <div class="doc-tags">
+                                <span class="tag document-type">${similarDoc.category_name || 'Uncategorized'}</span>
+                                ${getTopicsHtml(similarDoc)}
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <div class="action-buttons">
+                                <a href="#" class="view-icon" title="View Document">
+                                    👁️ <span>View</span>
+                                </a>
+                                <a href="#" class="edit-icon" title="Edit Document">
+                                    ✏️ <span>Edit</span>
+                                </a>
+                                <a href="#" class="delete-icon" title="Delete Document">
+                                    🗑️
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add event listeners for buttons
+                    const viewButton = docItem.querySelector('.view-icon');
+                    viewButton.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        showDocumentPreview(similarDoc);
+                    });
+                    
+                    const editButton = docItem.querySelector('.edit-icon');
+            editButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                        editDocument(similarDoc.id);
+            });
+            
+                    const deleteButton = docItem.querySelector('.delete-icon');
+            deleteButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                        openDeleteConfirmation(similarDoc);
+                    });
+                    
+                    listContainer.appendChild(docItem);
+                });
+                
+                dropdownContainer.appendChild(listContainer);
+                
+                // Position the dropdown
+                const table = document.querySelector('#docs-table');
+                const tableRect = table.getBoundingClientRect();
+                const rowRect = row.getBoundingClientRect();
+                
+                dropdownContainer.style.position = 'absolute';
+                dropdownContainer.style.top = `${rowRect.bottom + window.scrollY}px`;
+                dropdownContainer.style.left = `${tableRect.left}px`;
+                dropdownContainer.style.width = `${tableRect.width}px`;
+                dropdownContainer.style.zIndex = '1000';
+                
+                // Add to document body
+                document.body.appendChild(dropdownContainer);
+                
+                // Close dropdown when clicking outside
+                const closeDropdown = (event) => {
+                    if (!dropdownContainer.contains(event.target) && !row.contains(event.target)) {
+                        dropdownContainer.remove();
+                        document.removeEventListener('click', closeDropdown);
+                    }
+                };
+                
+                // Add event listener with a slight delay
+                setTimeout(() => {
+                    document.addEventListener('click', closeDropdown);
+                }, 100);
+            });
             
             tbody.appendChild(row);
         });
@@ -448,15 +522,25 @@ async function loadDocuments(page = 1) {
         updatePagination();
     } catch (error) {
         console.error("Error loading documents:", error);
-        
-        // Display error message in the table
         const tbody = document.querySelector("#docs-table tbody");
         if (tbody) {
             tbody.innerHTML = `<tr><td colspan="5" class="empty-message">Error loading documents</td></tr>`;
-        } else {
-            console.error("Could not find tbody element");
         }
     }
+}
+
+// Helper function to get topics HTML
+function getTopicsHtml(doc) {
+    if (doc.document_topics && Array.isArray(doc.document_topics) && doc.document_topics.length > 0) {
+        return doc.document_topics.map(topic => 
+            `<span class="tag topic">${topic.topic_name}</span>`
+        ).join('');
+    } else if (doc.topics && Array.isArray(doc.topics) && doc.topics.length > 0) {
+        return doc.topics.map(topic => 
+            `<span class="tag topic">${typeof topic === 'string' ? topic : topic.topic_name}</span>`
+        ).join('');
+    }
+    return '<span class="tag topic muted">No topics</span>';
 }
 
 // Helper function to get the appropriate category icon
@@ -1445,164 +1529,263 @@ async function loadPageHeader() {
     }
 }
 
-// Function to setup volume filter for a category
-function setupVolumeFilter(category) {
-    const volumeFilter = document.querySelector(`.category[data-category="${category}"] .volume-filter-dropdown`);
-    if (!volumeFilter) return;
-
-    const selected = volumeFilter.querySelector('.volume-filter-selected');
-    const options = volumeFilter.querySelector('.volume-filter-options');
+// Function to show volume dropdown for a document row
+function showVolumeDropdown(row, category, volume) {
+    // Remove any existing dropdowns
+    document.querySelectorAll('.row-volume-dropdown').forEach(dropdown => {
+        dropdown.remove();
+    });
     
-    // Clear existing options
-    options.innerHTML = '';
+    // Create volume dropdown container
+    const volumeDropdownContainer = document.createElement("div");
+    volumeDropdownContainer.className = "row-volume-dropdown";
+    
+    // Create volume indicator
+    const volumeIndicator = document.createElement("div");
+    volumeIndicator.className = "row-volume-indicator";
+    volumeIndicator.textContent = volume ? `Volume ${volume}` : "No Volume";
+    volumeDropdownContainer.appendChild(volumeIndicator);
+    
+    // Create dropdown
+    const dropdown = document.createElement("div");
+    dropdown.className = "row-volume-options";
     
     // Add "All Volumes" option
-    const allOption = document.createElement('div');
-    allOption.className = 'volume-filter-option';
-    allOption.dataset.volume = 'all';
-    allOption.textContent = 'All Volumes';
-    options.appendChild(allOption);
-
-    // Get available volumes for this category
-    const availableVolumes = getAvailableVolumesForCategory(category);
+    const allVolumesItem = document.createElement("div");
+    allVolumesItem.className = "row-volume-item";
+    allVolumesItem.textContent = "All Volumes";
+    allVolumesItem.addEventListener("click", (event) => {
+        event.stopPropagation();
+        // Keep the category filter but clear volume filter
+        currentVolumeFilter = null;
+        loadDocuments(currentPage);
+        volumeDropdownContainer.remove();
+        
+        // Update active state
+        dropdown.querySelectorAll(".row-volume-item").forEach(item => {
+            item.classList.remove("active");
+        });
+        allVolumesItem.classList.add("active");
+    });
+    dropdown.appendChild(allVolumesItem);
     
-    // Add available volume options
-    availableVolumes.forEach(volume => {
-        const option = document.createElement('div');
-        option.className = 'volume-filter-option';
-        option.dataset.volume = volume;
-        option.textContent = `Volume ${volume}`;
-        options.appendChild(option);
-    });
-
-    // Toggle dropdown
-    selected.addEventListener('click', () => {
-        options.classList.toggle('show');
-    });
-
-    // Handle option selection
-    options.addEventListener('click', (e) => {
-        if (e.target.classList.contains('volume-filter-option')) {
-            const volume = e.target.dataset.volume;
-            selected.textContent = volume === 'all' ? 'All Volumes' : `Volume ${volume}`;
-            options.classList.remove('show');
+    // Add volume option for this document
+    if (volume) {
+        const volumeItem = document.createElement("div");
+        volumeItem.className = "row-volume-item";
+        volumeItem.textContent = `Volume ${volume}`;
+        volumeItem.addEventListener("click", (event) => {
+            event.stopPropagation();
+            // Keep the category filter and set volume filter
+            currentVolumeFilter = volume;
+            loadDocuments(currentPage);
+            volumeDropdownContainer.remove();
             
-            // Update current filters
-            currentFilters.volume = volume;
-            
-            // Reload documents with new filters
-            loadDocuments();
-        }
-    });
-
+            // Update active state
+            dropdown.querySelectorAll(".row-volume-item").forEach(item => {
+                item.classList.remove("active");
+            });
+            volumeItem.classList.add("active");
+        });
+        dropdown.appendChild(volumeItem);
+    }
+    
+    // Add dropdown to container
+    volumeDropdownContainer.appendChild(dropdown);
+    
+    // Position the dropdown near the row
+    const rowRect = row.getBoundingClientRect();
+    volumeDropdownContainer.style.position = 'absolute';
+    volumeDropdownContainer.style.top = `${rowRect.bottom + window.scrollY}px`;
+    volumeDropdownContainer.style.left = `${rowRect.left + window.scrollX}px`;
+    
+    // Add to document body
+    document.body.appendChild(volumeDropdownContainer);
+    
+    // Show dropdown
+    dropdown.classList.add("show");
+    
     // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!volumeFilter.contains(e.target)) {
-            options.classList.remove('show');
+    const closeDropdown = (event) => {
+        if (!volumeDropdownContainer.contains(event.target) && !row.contains(event.target)) {
+            volumeDropdownContainer.remove();
+            document.removeEventListener('click', closeDropdown);
         }
-    });
+    };
+    
+    // Add event listener with a slight delay to avoid immediate closing
+    setTimeout(() => {
+        document.addEventListener('click', closeDropdown);
+    }, 100);
 }
 
-// Function to get available volumes for a category
-function getAvailableVolumesForCategory(category) {
-    // Get all documents for this category
-    const categoryDocs = documents.filter(doc => doc.category === category);
-    
-    // Extract unique volume numbers
-    const volumes = new Set();
-    categoryDocs.forEach(doc => {
-        if (doc.volume) {
-            volumes.add(doc.volume);
-        }
-    });
-    
-    // Convert to array and sort
-    return Array.from(volumes).sort((a, b) => a - b);
-}
-
-function createDocumentRow(doc) {
-    console.log('Processing document:', doc);
-    const row = document.createElement('tr');
-    
-    // Get category icon
-    const categoryIcon = getCategoryIcon(doc.category_name);
-    
-    // Format dates
-    const publicationDate = doc.publication_date ? new Date(doc.publication_date).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    }) : 'Not specified';
-    
-    const addedDate = doc.created_at ? new Date(doc.created_at).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    }) : 'Not specified';
-
-    row.innerHTML = `
-        <td class="doc-icon">
-            <img src="${categoryIcon}" alt="${doc.category_name} Icon">
-        </td>
-        <td class="doc-info">
-            <div class="doc-header">
-                <span class="doc-title">${doc.title || 'Untitled'}</span>
-                ${doc.volume ? ` | <span class="doc-volume">Volume ${doc.volume}</span>` : ''}
-                | <span class="doc-author">${doc.author_name || 'No Author Listed'}</span>
-                | <span class="doc-date">Published: ${publicationDate}</span>
-                | <span class="doc-added-date">Added: ${addedDate}</span>
-            </div>
-            <div class="doc-tags">
-                <span class="tag document-type">${doc.category_name || 'Uncategorized'}</span>
-                ${doc.topics && doc.topics.length > 0 ? 
-                    doc.topics.map(topic => `<span class="tag topic">${topic}</span>`).join('') : 
-                    '<span class="tag topic muted">No topics</span>'}
-            </div>
-        </td>
-        <td class="actions">
-            <div class="action-buttons">
-                <a href="#" class="view-icon" title="View Document" data-doc-id="${doc.id}">
-                    👁️ <span>View</span>
-                </a>
-                <a href="#" class="edit-icon" title="Edit Document" data-doc-id="${doc.id}">
-                    ✏️ <span>Edit</span>
-                </a>
-                <a href="#" class="delete-icon" title="Delete Document" data-doc-id="${doc.id}">
-                    🗑️ <span>Delete</span>
-                </a>
-            </div>
-        </td>
-    `;
-
-    // Add event listeners
-    const viewButton = row.querySelector('.view-icon');
-    const editButton = row.querySelector('.edit-icon');
-    const deleteButton = row.querySelector('.delete-icon');
-
-    if (viewButton) {
-        viewButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            showDocumentPreview(doc);
-        });
+// Add CSS styles for the similar documents dropdown
+const style = document.createElement('style');
+style.textContent = `
+    .volume-count-badge {
+        background-color: #1976d2;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.8em;
+        margin-left: 8px;
     }
 
-    if (editButton) {
-        editButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            editDocument(doc.id);
-        });
+    .similar-docs-dropdown {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        margin: 4px 0;
     }
 
-    if (deleteButton) {
-        deleteButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('Delete button clicked for document:', doc);
-            openDeleteConfirmation(doc);
-        });
+    .similar-docs-list {
+        max-height: 300px;
+        overflow-y: auto;
     }
 
-    return row;
-}
+    .similar-doc-item {
+        display: grid;
+        grid-template-columns: 40px 1fr auto;
+        align-items: center;
+        padding: 16px;
+        border: 2px solid transparent;
+        border-bottom: 1px solid #f0f0f0;
+        transition: all 0.2s ease;
+        gap: 16px;
+        cursor: pointer;
+    }
+
+    .similar-doc-item:last-child {
+        border-bottom: 2px solid transparent;
+    }
+
+    .similar-doc-item:hover {
+        border: 2px solid #1976d2;
+        background-color: #f8f9fa;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .similar-doc-item .doc-icon {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .similar-doc-item .doc-icon img {
+        width: 32px;
+        height: 32px;
+        object-fit: contain;
+    }
+
+    .similar-doc-item .doc-info {
+        min-width: 0;
+    }
+
+    .similar-doc-item .doc-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 4px;
+    }
+
+    .similar-doc-item .doc-title {
+        font-weight: 500;
+        color: #333;
+    }
+
+    .similar-doc-item .doc-volume {
+        color: #1976d2;
+    }
+
+    .similar-doc-item .doc-author,
+    .similar-doc-item .doc-year {
+        color: #666;
+    }
+
+    .similar-doc-item .doc-tags {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .similar-doc-item .tag {
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.85em;
+        background-color: #f0f0f0;
+        color: #666;
+    }
+
+    .similar-doc-item .tag.document-type {
+        background-color: #e3f2fd;
+        color: #1976d2;
+    }
+
+    .similar-doc-item .actions {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        justify-content: flex-end;
+    }
+
+    .similar-doc-item .action-buttons {
+        display: grid;
+        grid-template-areas:
+            "view delete"
+            "edit delete";
+        gap: 8px;
+        min-width: 140px;
+    }
+
+    .similar-doc-item .view-icon,
+    .similar-doc-item .edit-icon,
+    .similar-doc-item .delete-icon {
+        padding: 8px 12px;
+        border-radius: 4px;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: background-color 0.2s;
+        white-space: nowrap;
+        z-index: 1;
+    }
+
+    .similar-doc-item .view-icon {
+        color: #1976d2;
+        grid-area: view;
+    }
+
+    .similar-doc-item .edit-icon {
+        color: #00796b;
+        grid-area: edit;
+    }
+
+    .similar-doc-item .delete-icon {
+        color: #d32f2f;
+        grid-area: delete;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .similar-doc-item .view-icon:hover {
+        background-color: #e3f2fd;
+    }
+
+    .similar-doc-item .edit-icon:hover {
+        background-color: #e0f2f1;
+    }
+
+    .similar-doc-item .delete-icon:hover {
+        background-color: #ffebee;
+    }
+`;
+document.head.appendChild(style);
+

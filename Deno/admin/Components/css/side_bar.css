@@ -105,7 +105,20 @@
 }
 
 .icon-wrapper:hover {
-    background-color: #66e96d;
+    background-color: #12c539;
+    color: white;
+}
+
+/* Active state for the icon wrapper */
+a.icon-wrapper.active {
+    background-color: #12c539 !important;
+    color: white !important;
+}
+
+/* Hover state for the icon wrapper */
+a.icon-wrapper:hover {
+    background-color: #12c539;
+    color: white;
 }
 
 .icon {

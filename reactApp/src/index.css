@@ -27,10 +27,11 @@ code {
 }
 
 .author-card {
-  background-color: white;
+  border: 1px solid #e0e0e0;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   padding: 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
@@ -47,13 +48,14 @@ code {
 }
 
 .author-info {
-  color: #666;
   margin-bottom: 15px;
+  color: #666;
 }
 
 .author-documents {
   font-size: 0.9rem;
   color: #888;
+  font-style: italic;
 }
 
 .loading {
@@ -66,6 +68,9 @@ code {
 .error {
   text-align: center;
   padding: 40px;
-  color: #e74c3c;
+  color: #d32f2f;
   font-size: 1.2rem;
+  background-color: #ffebee;
+  border-radius: 8px;
+  margin: 20px;
 } 

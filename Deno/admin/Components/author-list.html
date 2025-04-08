@@ -4,124 +4,76 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Author List</title>
-    <link rel="stylesheet" href="css/documents_page.css">
     <link rel="stylesheet" href="css/side_bar.css">
-    <link rel="stylesheet" href="css/navbar_header.css">
     <link rel="stylesheet" href="css/page_header.css">
+    <link rel="stylesheet" href="css/navbar_header.css">
     <style>
-        .author-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            background-color: white;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
         }
-
-        .author-table th,
-        .author-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
+        #side-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            z-index: 1000;
+            width: 250px;
         }
-
-        .author-table th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            color: #333;
+        #navbar-header {
+            position: fixed;
+            top: 0;
+            left: 0; /* Start from the left edge */
+            right: 0;
+            height: 60px;
+            z-index: 999;
+            width: 100%; /* Full width */
         }
-
-        .author-table tr:hover {
+        #page-header {
+            position: fixed;
+            top: 60px; /* Height of the navbar */
+            left: 0; /* Start from the left edge */
+            right: 0;
+            z-index: 998;
+            width: 100%; /* Full width */
+        }
+        #root {
+            margin-left: 250px; /* Width of the sidebar */
+            margin-top: 120px; /* Height of the navbar + page header */
+            min-height: calc(100vh - 120px);
             background-color: #f5f5f5;
-        }
-
-        .author-actions {
             display: flex;
-            gap: 8px;
+            justify-content: center;
         }
-
-        .action-button {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.2s;
+        /* Ensure the React app container is centered */
+        #root .container {
+            max-width: 1200px;
+            width: 100%;
         }
-
-        .edit-button {
-            background-color: #ffd60a;
-            color: #000;
+        
+        /* Override navbar header styles to ensure full width */
+        #navbar-header .header {
+            width: 100%;
+            max-width: none;
         }
-
-        .edit-button:hover {
-            background-color: #e6c009;
-        }
-
-        .delete-button {
-            background-color: #ef233c;
-            color: white;
-        }
-
-        .delete-button:hover {
-            background-color: #d61e34;
-        }
-
-        .search-container {
-            margin: 20px 0;
-            display: flex;
-            gap: 10px;
-        }
-
-        .search-input {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            width: 300px;
-        }
-
-        .search-input:focus {
-            outline: none;
-            border-color: #66e96d;
+        
+        #navbar-header .logo {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
         }
     </style>
 </head>
 <body>
     <div id="side-bar"></div>
     <div id="navbar-header"></div>
-
-    <div class="docs-container">
-        <div id="page-header"></div>
-
-        <div class="search-container">
-            <input type="text" class="search-input" placeholder="Search authors..." id="searchInput">
-        </div>
-
-        <table class="author-table">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Department</th>
-                    <th>Email</th>
-                    <th>Document Count</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="authorTableBody">
-                <!-- Authors will be loaded here dynamically -->
-            </tbody>
-        </table>
-    </div>
+    <div id="page-header"></div>
+    
+    <div id="root"></div>
 
     <script>
         // Load components
-        fetch('./page_header.html')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('page-header').innerHTML = data;
-            })
-            .catch(error => console.error('Error loading header:', error));
-
         fetch('./side_bar.html')
             .then(response => response.text())
             .then(data => {
@@ -135,73 +87,14 @@
                 document.getElementById('navbar-header').innerHTML = data;
             })
             .catch(error => console.error('Error loading navbar:', error));
-
-        // Load authors
-        async function loadAuthors() {
-            try {
-                const response = await fetch('/api/authors');
-                if (!response.ok) throw new Error('Failed to fetch authors');
-                
-                const authors = await response.json();
-                const tableBody = document.getElementById('authorTableBody');
-                tableBody.innerHTML = '';
-
-                authors.forEach(author => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${author.name}</td>
-                        <td>${author.department || '-'}</td>
-                        <td>${author.email || '-'}</td>
-                        <td>${author.document_count}</td>
-                        <td class="author-actions">
-                            <button class="action-button edit-button" onclick="editAuthor(${author.id})">Edit</button>
-                            <button class="action-button delete-button" onclick="deleteAuthor(${author.id})">Delete</button>
-                        </td>
-                    `;
-                    tableBody.appendChild(row);
-                });
-            } catch (error) {
-                console.error('Error loading authors:', error);
-            }
-        }
-
-        // Search functionality
-        document.getElementById('searchInput').addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll('#authorTableBody tr');
             
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(searchTerm) ? '' : 'none';
-            });
-        });
-
-        // Edit author
-        function editAuthor(id) {
-            window.location.href = `/admin/Components/add_author.html?id=${id}`;
-        }
-
-        // Delete author
-        async function deleteAuthor(id) {
-            if (!confirm('Are you sure you want to delete this author?')) return;
-            
-            try {
-                const response = await fetch(`/api/authors/${id}`, {
-                    method: 'DELETE'
-                });
-                
-                if (!response.ok) throw new Error('Failed to delete author');
-                
-                // Reload the authors list
-                loadAuthors();
-            } catch (error) {
-                console.error('Error deleting author:', error);
-                alert('Failed to delete author. Please try again.');
-            }
-        }
-
-        // Load authors when the page loads
-        document.addEventListener('DOMContentLoaded', loadAuthors);
+        fetch('./page_header.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('page-header').innerHTML = data;
+            })
+            .catch(error => console.error('Error loading page header:', error));
     </script>
+    <script src="http://localhost:3003/bundle.js"></script>
 </body>
 </html> 

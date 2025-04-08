@@ -1,10 +1,10 @@
 import React from 'react';
-import AuthorList from './Components/AuthorList.js';
+import AuthorListPage from '../admin/pages/author-list.tsx';
 
 function App() {
     return (
-        <div>
-            <AuthorList />
+        <div className="App">
+            <AuthorListPage />
         </div>
     );
 }
