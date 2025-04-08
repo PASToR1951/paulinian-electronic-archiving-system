@@ -238,7 +238,8 @@ window.filterByCategory = function(categoryName) {
         
         // Highlight the selected category
         document.querySelectorAll('.category').forEach(cat => {
-            if (cat.getAttribute('data-category') === categoryName) {
+            const catName = cat.getAttribute('data-category');
+            if (catName && catName.toLowerCase() === categoryName.toLowerCase()) {
                 cat.classList.add('active');
                 console.log(`Activated category: ${categoryName}`);
             } else {
@@ -472,7 +473,7 @@ async function loadDocuments(page = 1) {
             editButton.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                        editDocument(similarDoc.id);
+                        editDocument(similarDoc.document_id || similarDoc.id);
             });
             
                     const deleteButton = docItem.querySelector('.delete-icon');
@@ -715,12 +716,163 @@ paginationStyle.textContent = `
 `;
 document.head.appendChild(paginationStyle);
 
-// Edit Document
+// Author search functionality
+let authorSearchTimeout;
+const authorInput = document.getElementById('edit-author');
+const authorList = document.getElementById('edit-author-list');
+const selectedAuthors = document.getElementById('edit-selected-authors');
+
+authorInput.addEventListener('input', function() {
+    clearTimeout(authorSearchTimeout);
+    const query = this.value.trim();
+    
+    if (query === '') {
+        authorList.innerHTML = '';
+        return;
+    }
+    
+    authorList.innerHTML = '<div class="dropdown-item">Searching...</div>';
+    
+    authorSearchTimeout = setTimeout(async () => {
+        try {
+            const response = await fetch(`/api/authors?q=${encodeURIComponent(query)}`);
+            const data = await response.json();
+            
+            authorList.innerHTML = '';
+            
+            if (!Array.isArray(data)) {
+                console.error('Unexpected API response:', data);
+                authorList.innerHTML = '<div class="dropdown-item text-danger">Unexpected response</div>';
+                return;
+            }
+            
+            if (data.length === 0) {
+                // Show "Create Author" option when no author is found
+                const createAuthorItem = document.createElement('div');
+                createAuthorItem.classList.add('dropdown-item', 'create-author');
+                createAuthorItem.innerHTML = `<span class="create-author-text">Create Author: "${query}"</span>`;
+                createAuthorItem.addEventListener('click', () => addSelectedAuthor({ full_name: query }));
+                authorList.appendChild(createAuthorItem);
+            } else {
+                data.forEach(author => {
+                    const item = document.createElement('div');
+                    item.className = 'dropdown-item';
+                    item.textContent = author.name || author.full_name;
+                    item.addEventListener('click', () => {
+                        addSelectedAuthor(author);
+                        authorInput.value = '';
+                        authorList.innerHTML = '';
+                    });
+                    authorList.appendChild(item);
+                });
+            }
+        } catch (error) {
+            console.error('Error searching authors:', error);
+            authorList.innerHTML = '<div class="dropdown-item text-danger">Error searching authors</div>';
+        }
+    }, 300);
+});
+
+function addSelectedAuthor(author) {
+    const authorTag = document.createElement('div');
+    authorTag.className = 'selected-author';
+    authorTag.innerHTML = `
+        ${author.name || author.full_name}
+        <span class="remove-author" data-id="${author.author_id}">&times;</span>
+    `;
+    
+    authorTag.querySelector('.remove-author').addEventListener('click', () => {
+        authorTag.remove();
+    });
+    
+    selectedAuthors.appendChild(authorTag);
+    authorInput.value = '';
+}
+
+// Topic search functionality
+let topicSearchTimeout;
+const topicInput = document.getElementById('edit-topic');
+const topicList = document.getElementById('edit-topic-list');
+const selectedTopics = document.getElementById('edit-selected-topics');
+
+topicInput.addEventListener('input', function() {
+    clearTimeout(topicSearchTimeout);
+    const query = this.value.trim();
+    
+    if (query === '') {
+        topicList.innerHTML = '';
+        return;
+    }
+    
+    topicList.innerHTML = '<div class="dropdown-item">Searching...</div>';
+    
+    topicSearchTimeout = setTimeout(async () => {
+        try {
+            const response = await fetch(`/api/topics/search?q=${encodeURIComponent(query)}`);
+            const topics = await response.json();
+            
+            topicList.innerHTML = '';
+            
+            if (topics.length === 0) {
+                topicList.innerHTML = '<div class="dropdown-item">No topics found</div>';
+                return;
+            }
+            
+            topics.forEach(topic => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                item.textContent = topic.topic_name;
+                item.addEventListener('click', () => {
+                    addSelectedTopic(topic);
+                    topicInput.value = '';
+                    topicList.innerHTML = '';
+                });
+                topicList.appendChild(item);
+            });
+        } catch (error) {
+            console.error('Error searching topics:', error);
+            topicList.innerHTML = '<div class="dropdown-item">Error searching topics</div>';
+        }
+    }, 300);
+});
+
+function addSelectedTopic(topic) {
+    const topicTag = document.createElement('div');
+    topicTag.className = 'selected-topic';
+    topicTag.innerHTML = `
+        ${topic.topic_name}
+        <span class="remove-topic" data-id="${topic.topic_id}">&times;</span>
+    `;
+    
+    topicTag.querySelector('.remove-topic').addEventListener('click', () => {
+        topicTag.remove();
+    });
+    
+    selectedTopics.appendChild(topicTag);
+}
+
+// File upload functionality
+const uploadBox = document.querySelector('.upload-box');
+const fileInput = document.getElementById('edit-file');
+
+uploadBox.addEventListener('click', () => {
+    fileInput.click();
+});
+
+fileInput.addEventListener('change', function() {
+    if (this.files.length > 0) {
+        const fileName = this.files[0].name;
+        uploadBox.querySelector('p').textContent = fileName;
+    }
+});
+
+// Edit document functionality
 async function editDocument(documentId) {
     try {
     const modal = document.getElementById('edit-modal');
-        modal.style.zIndex = '2000';
         modal.style.display = 'flex';
+        
+        console.log('Fetching document with ID:', documentId);
         
         // Fetch document details
         const response = await fetch(`/api/documents/${documentId}`);
@@ -729,52 +881,157 @@ async function editDocument(documentId) {
         }
         const data = await response.json();
         console.log('Fetched document data:', data);
-    
-    // Populate form fields
-        document.getElementById('edit-title').value = data.title || '';
-        document.getElementById('edit-author').value = data.author || '';
-        document.getElementById('edit-publication-date').value = data.publication_date || '';
-        document.getElementById('edit-volume').value = data.volume || '';
-        document.getElementById('edit-category').value = data.category ? data.category.toLowerCase() : '';
         
-        // Display current file
+        // Handle both single object and array responses
+        const documentData = Array.isArray(data) ? data[0] : data;
+        
+        if (!documentData) {
+            throw new Error('No document data received');
+        }
+        
+        // Populate form fields with null checks
+        const titleInput = document.getElementById('edit-title');
+        if (titleInput) titleInput.value = documentData.title || '';
+        
+        const dateInput = document.getElementById('edit-publication-date');
+        if (dateInput && documentData.publication_date) {
+            // Format date to YYYY-MM-DD for input
+            const date = new Date(documentData.publication_date);
+            const formattedDate = date.toISOString().split('T')[0];
+            dateInput.value = formattedDate;
+        }
+        
+        const volumeInput = document.getElementById('edit-volume');
+        if (volumeInput) volumeInput.value = documentData.volume || '';
+        
+        const categorySelect = document.getElementById('edit-category');
+        if (categorySelect && documentData.category_name) {
+            categorySelect.value = documentData.category_name.toLowerCase();
+        }
+        
+        // Clear and populate authors
+        const selectedAuthors = document.getElementById('edit-selected-authors');
+        if (selectedAuthors) {
+            selectedAuthors.innerHTML = '';
+            if (documentData.author_names && Array.isArray(documentData.author_names)) {
+                documentData.author_names.forEach(authorName => {
+                    const authorTag = document.createElement('div');
+                    authorTag.className = 'selected-author';
+                    authorTag.innerHTML = `
+                        ${authorName}
+                        <span class="remove-author">&times;</span>
+                    `;
+                    authorTag.querySelector('.remove-author').addEventListener('click', () => {
+                        authorTag.remove();
+                    });
+                    selectedAuthors.appendChild(authorTag);
+                });
+            }
+        }
+        
+        // Clear and populate topics
+        const selectedTopics = document.getElementById('edit-selected-topics');
+        if (selectedTopics) {
+            selectedTopics.innerHTML = '';
+            const topics = documentData.document_topics || documentData.topics || [];
+            topics.forEach(topic => {
+                const topicName = typeof topic === 'string' ? topic : topic.topic_name;
+                const topicTag = document.createElement('div');
+                topicTag.className = 'selected-topic';
+                topicTag.innerHTML = `
+                    ${topicName}
+                    <span class="remove-topic">&times;</span>
+                `;
+                topicTag.querySelector('.remove-topic').addEventListener('click', () => {
+                    topicTag.remove();
+                });
+                selectedTopics.appendChild(topicTag);
+            });
+        }
+        
+        // Display current file with preview option
         const currentFileContainer = document.getElementById('current-file-container');
-        if (data.file) {
+        if (currentFileContainer) {
+            if (documentData.file) {
+                const fileName = documentData.file.split('/').pop();
         currentFileContainer.innerHTML = `
-            <div class="current-file">
-                    <span>Current file: ${data.file.split('/').pop()}</span>
+                    <div class="current-file-info">
+                        <p>Current file: <span class="file-name">${fileName}</span></p>
+                        <div class="file-actions">
+                            <button type="button" class="preview-btn" onclick="window.open('${documentData.file}', '_blank')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                                Preview
+                            </button>
+                        </div>
+                    </div>
+                    <div class="file-replace-info">
+                        <p>Upload a new file to replace the current one:</p>
             </div>
         `;
     } else {
-            currentFileContainer.innerHTML = '<p>No file attached</p>';
+                currentFileContainer.innerHTML = '<p>No file attached</p>';
+            }
         }
         
         // Handle form submission
         const form = document.getElementById('edit-form');
-        form.onsubmit = async (e) => {
-            e.preventDefault();
-            
-    const formData = new FormData(form);
-            formData.append('documentId', documentId);
-
-    try {
-                const updateResponse = await fetch('/api/documents/update', {
+        if (form) {
+            form.onsubmit = async (e) => {
+                e.preventDefault();
+                
+                const formData = new FormData();
+                formData.append('title', document.getElementById('edit-title').value);
+                formData.append('publication_date', document.getElementById('edit-publication-date').value);
+                formData.append('volume', document.getElementById('edit-volume').value);
+                formData.append('category', document.getElementById('edit-category').value);
+                
+                // Add selected authors
+                const authors = Array.from(selectedAuthors.children).map(author => 
+                    author.textContent.trim().replace('×', '').trim()
+                );
+                formData.append('author', JSON.stringify(authors));
+                
+                // Add selected topics
+                const topics = Array.from(selectedTopics.children).map(topic => 
+                    topic.textContent.trim().replace('×', '').trim()
+                );
+                formData.append('topics', JSON.stringify(topics));
+                
+                // Add file if selected
+                const file = document.getElementById('edit-file').files[0];
+                if (file) {
+                    formData.append('file', file);
+                }
+                
+                try {
+                    const updateResponse = await fetch(`/api/documents/${documentId}`, {
             method: 'PUT',
             body: formData
         });
 
-                if (!updateResponse.ok) {
-                    throw new Error(`HTTP error! status: ${updateResponse.status}`);
-                }
-                
-                // Close modal and refresh documents
-                closeEditModal();
-                loadDocuments(currentPage);
+                    if (!updateResponse.ok) {
+                        throw new Error(`HTTP error! status: ${updateResponse.status}`);
+        }
+
+                    // Show success modal
+        const successModal = document.getElementById('success-modal');
+        successModal.style.display = 'flex';
+
+                    // Close modals and refresh documents after delay
+        setTimeout(() => {
+            successModal.style.display = 'none';
+                        closeEditModal();
+                        loadDocuments(currentPage);
+        }, 2000);
     } catch (error) {
         console.error('Error updating document:', error);
         alert('Error updating document. Please try again.');
     }
-        };
+            };
+        }
     } catch (error) {
         console.error('Error editing document:', error);
         alert('Error editing document details. Please try again.');
@@ -787,6 +1044,9 @@ function closeEditModal() {
     const modal = document.getElementById('edit-modal');
     modal.style.display = 'none';
     document.getElementById('edit-form').reset();
+    selectedAuthors.innerHTML = '';
+    selectedTopics.innerHTML = '';
+    document.getElementById('current-file-container').innerHTML = '';
 }
 
 // Function to open delete confirmation
@@ -1335,64 +1595,24 @@ function setupCategoryFilters() {
         const categoryName = category.getAttribute('data-category');
         if (categoryName) {
             console.log(`Setting up handler for category: ${categoryName}`);
-            category.addEventListener('click', () => filterByCategory(categoryName));
+            
+            // Remove any existing click handlers
+            category.replaceWith(category.cloneNode(true));
+            const newCategory = document.querySelector(`.category[data-category="${categoryName}"]`);
+            
+            // Add new click handler
+            newCategory.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                filterByCategory(categoryName);
+            });
+            
+            // Make sure it's visibly clickable
+            newCategory.style.cursor = 'pointer';
         } else {
             console.warn("Found category element without data-category attribute");
         }
     });
-    
-    // Add special direct handler for Thesis since it seems to have issues
-    const thesisElement = document.querySelector('.category[data-category="Thesis"]');
-    if (thesisElement) {
-        console.log("Adding special direct handler for Thesis category");
-        // Direct onclick attribute
-        thesisElement.setAttribute('onclick', 'thesisClickHandler(); return false;');
-        
-        // Also add global handler
-        window.thesisClickHandler = function() {
-            console.log("Thesis special handler activated");
-            currentCategoryFilter = "Thesis";
-            
-            // Highlight only this category
-            document.querySelectorAll('.category').forEach(cat => {
-                if (cat.getAttribute('data-category') === "Thesis") {
-                    cat.classList.add('active');
-                } else {
-                    cat.classList.remove('active');
-                }
-            });
-            
-            // Directly load and filter documents
-            currentPage = 1;
-            loadDocuments(currentPage);
-        };
-    }
-    
-    // Create direct links for categories if they don't exist
-    const categoriesContainer = document.querySelector('.categories-container') || document.querySelector('.category').parentNode;
-    if (categoriesContainer) {
-        const addCategoryLink = (name) => {
-            // Check if it already exists
-            if (!document.querySelector(`.category[data-category="${name}"]`)) {
-                console.log(`Creating link for missing category: ${name}`);
-                const link = document.createElement('div');
-                link.className = 'category';
-                link.setAttribute('data-category', name);
-                link.innerHTML = `
-                    <div class="category-icon"><img src="/admin/Components/icons/Category-icons/confluence.png" alt="${name}"></div>
-                    <div class="category-name">${name}</div>
-                    <div class="category-file-count">? files</div>
-                `;
-                link.addEventListener('click', () => filterByCategory(name));
-                categoriesContainer.appendChild(link);
-            }
-        };
-        
-        // Add links for common categories if they don't exist
-        addCategoryLink('Confluence');
-        addCategoryLink('Thesis');
-        addCategoryLink('Dissertation');
-    }
     
     // Hide the table header
     const tableHeader = document.querySelector("#docs-table thead");

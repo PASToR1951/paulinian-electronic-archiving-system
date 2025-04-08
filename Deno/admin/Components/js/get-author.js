@@ -57,33 +57,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 300);
     });
 
-    // Function to load all authors when the page loads
-    async function loadAllAuthors() {
-        try {
-            const response = await fetch('/api/authors');
-            const data = await response.json();
-            
-            console.log("Loaded authors:", data);
-            
-            if (Array.isArray(data) && data.length > 0) {
-                authorList.innerHTML = ""; // Clear any existing content
-                
-                data.forEach(author => {
-                    const authorItem = document.createElement("div");
-                    authorItem.textContent = author.name || author.full_name;
-                    authorItem.classList.add("dropdown-item");
-                    authorItem.addEventListener("click", () => selectAuthor(author.name || author.full_name));
-                    authorList.appendChild(authorItem);
-                });
-            } else {
-                authorList.innerHTML = "<div class='dropdown-item'>No authors found</div>";
-            }
-        } catch (error) {
-            console.error("Error loading authors:", error);
-            authorList.innerHTML = "<div class='dropdown-item text-danger'>Error loading authors</div>";
-        }
-    }
-
     function selectAuthor(name) {
         if (!selectedAuthors.has(name)) {
             selectedAuthors.add(name);

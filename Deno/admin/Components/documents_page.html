@@ -107,32 +107,47 @@
     </div>
 
     <!-- Edit Document Modal -->
-    <div id="edit-modal" class="modal-overlay">
+    <div id="edit-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
             <h2>Edit Document</h2>
             <form id="edit-form">
                 <div class="form-group">
                     <label for="edit-title">Title</label>
-                    <input type="text" id="edit-title" name="title" placeholder="Enter document title" required>
+                    <input type="text" id="edit-title" name="title" required placeholder="Enter document title">
                 </div>
+
                 <div class="form-row">
                     <div class="form-group">
                         <label for="edit-author">Author</label>
-                        <input type="text" id="edit-author" name="author" placeholder="Type to search authors..." required>
+                        <div class="dropdown">
+                            <input type="text" id="edit-author" name="author" placeholder="Type to search authors...">
+                            <div class="dropdown-list" id="edit-author-list"></div>
+                        </div>
+                        <div class="select-container">
+                            <div class="selected-authors" id="edit-selected-authors"></div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="edit-publication-date">Publication Date</label>
                         <input type="date" id="edit-publication-date" name="publication_date" required>
                     </div>
                 </div>
+
                 <div class="form-group">
                     <label for="edit-volume">Volume</label>
-                    <input type="text" id="edit-volume" name="volume" placeholder="Enter volume number" required>
+                    <input type="text" id="edit-volume" name="volume" required placeholder="Enter volume number">
                 </div>
+
                 <div class="form-row">
                     <div class="form-group">
                         <label for="edit-topic">Topic</label>
-                        <input type="text" id="edit-topic" name="topic" placeholder="Type to search topics..." required>
+                        <div class="dropdown">
+                            <input type="text" id="edit-topic" name="topic" placeholder="Type to search topics...">
+                            <div class="dropdown-list" id="edit-topic-list"></div>
+                        </div>
+                        <div class="select-container">
+                            <div class="selected-topics" id="edit-selected-topics"></div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="edit-category">Category</label>
@@ -145,6 +160,7 @@
                         </select>
                     </div>
                 </div>
+
                 <div class="form-group">
                     <div id="current-file-container"></div>
                     <div class="upload-box">
@@ -159,9 +175,10 @@
                         <input type="file" id="edit-file" name="file" accept=".pdf,.doc,.docx">
                     </div>
                 </div>
+
                 <div class="submit-container">
-                    <button type="submit" class="btn-primary">Save Changes</button>
                     <button type="button" class="btn-secondary" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Changes</button>
                 </div>
             </form>
         </div>
@@ -180,37 +197,35 @@
     </div>
 
     <!-- Preview Modal -->
-    <div id="preview-modal" class="modal-overlay">
+    <div id="preview-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
-            <div class="modal-header">
-                <h2>Document Preview</h2>
+            <div class="preview-header">
+                <h2>Preview</h2>
                 <button class="close-btn" onclick="closePreviewModal()">&times;</button>
             </div>
             <div class="preview-content">
-                <div class="preview-header">
-                    <div class="preview-icon">
-                        <img id="preview-category-icon" src="/admin/Components/icons/Category-icons/default_category_icon.png" alt="Category Icon">
-                    </div>
-                    <div class="preview-title-section">
-                        <h3 id="preview-title">Title of Document</h3>
+                <div class="preview-header-content">
+                    <img id="preview-category-icon" src="/admin/Components/icons/Category-icons/default_category_icon.png" alt="Category Icon" class="category-icon">
+                    <div class="title-author-container">
+                        <p><strong id="preview-title">Title of Document</strong></p>
                         <p>by <span id="preview-author">Author Name</span></p>
                     </div>
                 </div>
-                <div class="preview-info">
-                    <p>Publishing Date: <span id="preview-date">2021</span></p>
-                    <p>Topics: <span id="preview-topics">None</span></p>
-                    <p>Pages: <span id="preview-pages">0</span></p>
-                    <p>Added Date: <span id="preview-added-date">January 15, 2021</span></p>
+                
+                <p>Publishing Date: <span id="preview-date">2021</span></p>
+                <p>Topics: <span id="preview-topics">None</span></p>
+                <p>Pages: <span id="preview-pages">0</span></p>
+                <p>Added Date: <span id="preview-added-date">January 15, 2021</span></p>
+
+                <div class="read-document-container">
+                    <a id="preview-read-btn" href="#" class="read-document-btn" target="_blank">Read Document</a>
                 </div>
-                <div class="preview-abstract">
-                    <h4>Abstract</h4>
+
+                <div class="abstract-preview">
+                    <p><strong>Abstract</strong></p>
                     <div class="abstract-content">
                         <p id="preview-abstract">Abstract will be extracted from the PDF file.</p>
                     </div>
-                </div>
-                <div class="preview-actions">
-                    <a id="preview-read-btn" href="#" class="read-document-btn" target="_blank">Read Document</a>
-                    <button class="close-preview-btn" onclick="closePreviewModal()">Close</button>
                 </div>
             </div>
         </div>

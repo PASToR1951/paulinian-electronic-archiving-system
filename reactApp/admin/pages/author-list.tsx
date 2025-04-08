@@ -51,7 +51,7 @@ const EditModal: React.FC<EditModalProps> = ({ author, isOpen, onClose, onSave }
             setError('Name is required');
             return;
         }
-
+        
         onSave(editedAuthor);
     };
 
@@ -82,8 +82,8 @@ const EditModal: React.FC<EditModalProps> = ({ author, isOpen, onClose, onSave }
                             name="department"
                             value={editedAuthor.department || ''}
                             onChange={handleChange}
-                        />
-                    </div>
+                                            />
+                                        </div>
                     <div key="form-group-email" className="form-group">
                         <label key="label-email" htmlFor="email">Email:</label>
                         <input
@@ -93,19 +93,19 @@ const EditModal: React.FC<EditModalProps> = ({ author, isOpen, onClose, onSave }
                             name="email"
                             value={editedAuthor.email || ''}
                             onChange={handleChange}
-                        />
-                    </div>
+                                            />
+                                        </div>
                     <div key="form-group-affiliation" className="form-group">
                         <label key="label-affiliation" htmlFor="affiliation">Affiliation:</label>
                         <input
                             key="input-affiliation"
-                            id="affiliation"
+                                                id="affiliation"
                             type="text"
                             name="affiliation"
                             value={editedAuthor.affiliation || ''}
                             onChange={handleChange}
-                        />
-                    </div>
+                                            />
+                                        </div>
                     <div key="form-group-orcid" className="form-group">
                         <label key="label-orcid" htmlFor="orcid_id">ORCID:</label>
                         <input
@@ -115,8 +115,8 @@ const EditModal: React.FC<EditModalProps> = ({ author, isOpen, onClose, onSave }
                             name="orcid_id"
                             value={editedAuthor.orcid_id || ''}
                             onChange={handleChange}
-                        />
-                    </div>
+                                            />
+                                        </div>
                     <div key="form-group-bio" className="form-group">
                         <label key="label-bio" htmlFor="bio">Biography:</label>
                         <textarea
@@ -125,15 +125,15 @@ const EditModal: React.FC<EditModalProps> = ({ author, isOpen, onClose, onSave }
                             name="bio"
                             value={editedAuthor.bio || ''}
                             onChange={handleChange}
-                            rows={4}
-                        />
-                    </div>
+                                                rows={4}
+                                            />
+                                        </div>
                     <div key="form-actions" className="modal-actions">
                         <button key="button-save" type="submit" className="save-button">Save</button>
                         <button key="button-cancel" type="button" onClick={onClose} className="cancel-button">Cancel</button>
                     </div>
                 </form>
-            </div>
+        </div>
         </div>
     );
 };
@@ -333,9 +333,9 @@ const AuthorListPage = () => {
                                         <div className="bio-text">
                                             <strong>Biography:</strong>
                                             <p>{author.bio}</p>
-                                        </div>
+            </div>
                                     )}
-                                </div>
+                </div>
                                 <div key={`actions-${author.author_id}`} className="author-actions">
                                     <button 
                                         onClick={() => handleEdit(author)}
@@ -343,13 +343,13 @@ const AuthorListPage = () => {
                                     >
                                         Edit
                                     </button>
-                                    <button 
+                    <button 
                                         onClick={() => handleDelete(author)}
                                         className="delete-button"
-                                    >
+                    >
                                         Delete
-                                    </button>
-                                </div>
+                    </button>
+                </div>
                             </div>
                         ))
                     ) : (
