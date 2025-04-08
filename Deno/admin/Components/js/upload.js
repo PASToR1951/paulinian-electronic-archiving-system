@@ -353,7 +353,7 @@ async function handleUpload(event) {
         };
 
         // Add selected topics and authors to formData
-        formData.append('topic', JSON.stringify(selectedTopics));
+        formData.append('topics', JSON.stringify(selectedTopics));
         formData.append('author', JSON.stringify(selectedAuthors));
         formData.append('abstract', extractedAbstract || '');
         formData.append('department', 'Computer Science'); // Default department

@@ -223,34 +223,34 @@ function filterByVolume(categoryName, volume) {
 window.filterByCategory = function(categoryName) {
     console.log(`Filtering by category: ${categoryName}`);
     
-    // Toggle filter if clicking the same category again
-    if (currentCategoryFilter === categoryName) {
-        console.log("Clearing category filter");
-        currentCategoryFilter = null;
+        // Toggle filter if clicking the same category again
+        if (currentCategoryFilter === categoryName) {
+            console.log("Clearing category filter");
+            currentCategoryFilter = null;
         currentVolumeFilter = null; // Clear volume filter too
-        document.querySelectorAll('.category').forEach(cat => {
-            cat.classList.remove('active');
-        });
-    } else {
-        console.log(`Setting filter to: ${categoryName}`);
-        currentCategoryFilter = categoryName;
-        currentVolumeFilter = null; // Reset volume filter when changing category
-        
-        // Highlight the selected category
-        document.querySelectorAll('.category').forEach(cat => {
-            const catName = cat.getAttribute('data-category');
-            if (catName && catName.toLowerCase() === categoryName.toLowerCase()) {
-                cat.classList.add('active');
-                console.log(`Activated category: ${categoryName}`);
-            } else {
+            document.querySelectorAll('.category').forEach(cat => {
                 cat.classList.remove('active');
-            }
-        });
-    }
-    
-    // Reset to first page and reload documents with filter
-    currentPage = 1;
-    loadDocuments(currentPage);
+            });
+        } else {
+            console.log(`Setting filter to: ${categoryName}`);
+            currentCategoryFilter = categoryName;
+        currentVolumeFilter = null; // Reset volume filter when changing category
+            
+            // Highlight the selected category
+            document.querySelectorAll('.category').forEach(cat => {
+                const catName = cat.getAttribute('data-category');
+            if (catName && catName.toLowerCase() === categoryName.toLowerCase()) {
+                    cat.classList.add('active');
+                    console.log(`Activated category: ${categoryName}`);
+                } else {
+                    cat.classList.remove('active');
+                }
+            });
+        }
+        
+        // Reset to first page and reload documents with filter
+        currentPage = 1;
+        loadDocuments(currentPage);
 
     // Update the filter indicator
     updateFilterIndicator();
@@ -1126,8 +1126,13 @@ function openDeleteConfirmation(doc) {
     const confirmDeleteBtn = document.getElementById('confirm-delete');
     confirmDeleteBtn.onclick = async () => {
         try {
-            console.log('Sending delete request for document:', doc.id);
-            const response = await fetch(`/api/documents/${doc.id}`, {
+            const documentId = doc.id || doc.document_id;
+            if (!documentId) {
+                throw new Error('Document ID not found');
+            }
+            
+            console.log('Sending delete request for document:', documentId);
+            const response = await fetch(`/api/documents/${documentId}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json'

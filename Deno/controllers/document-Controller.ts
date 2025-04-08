@@ -66,9 +66,10 @@ export const fetchDocuments = async (req: Request): Promise<Response> => {
                 ) as topics
             FROM documents d
             LEFT JOIN categories c ON d.category_id = c.id
-            LEFT JOIN Authors a ON a.author_id = ANY(d.author_ids)
+            LEFT JOIN document_authors da ON d.id = da.document_id
+            LEFT JOIN authors a ON da.author_id = a.author_id
             LEFT JOIN document_topics dt ON d.id = dt.document_id
-            LEFT JOIN topics t ON t.id = dt.topic_id
+            LEFT JOIN topics t ON dt.topic_id = t.id
         `;
 
         // Add WHERE clause for category filter
@@ -102,9 +103,16 @@ export const fetchDocuments = async (req: Request): Promise<Response> => {
         const result = await client.queryObject<DocumentRow>(query, params);
         
         // Transform the result to ensure topics are properly formatted
-        const documents = result.rows.map(doc => ({
-            ...doc,
-            topics: Array.isArray(doc.topics) ? doc.topics.map(t => t.topic_name) : []
+        const documents = result.rows.map((doc: DocumentRow) => ({
+            id: doc.id,
+            title: doc.title,
+            publication_date: doc.publication_date,
+            file: doc.file,
+            volume: doc.volume,
+            abstract: doc.abstract,
+            category_name: doc.category_name,
+            author_names: Array.isArray(doc.author_names) ? doc.author_names : [],
+            topics: Array.isArray(doc.topics) ? doc.topics : []
         }));
 
         return new Response(JSON.stringify(documents), {
@@ -115,8 +123,11 @@ export const fetchDocuments = async (req: Request): Promise<Response> => {
         });
 
     } catch (error) {
-        console.error("Error fetching documents:", error);
-        return new Response(JSON.stringify({ message: "Error fetching documents" }), {
+        console.error("Error fetching documents:", error instanceof Error ? error.message : String(error));
+        return new Response(JSON.stringify({ 
+            message: "Error fetching documents", 
+            error: error instanceof Error ? error.message : String(error)
+        }), {
             status: 500,
             headers: {
                 "Content-Type": "application/json"
@@ -151,7 +162,7 @@ export const fetchVolumesByCategory = async (req: Request): Promise<Response> =>
         const result = await client.queryObject(query, [category]);
         
         // Extract volumes from result
-        const volumes = result.rows.map((row: any) => row.volume);
+        const volumes = result.rows.map((row: { volume: string }) => row.volume);
         
         return new Response(JSON.stringify(volumes), {
             headers: { "Content-Type": "application/json" },

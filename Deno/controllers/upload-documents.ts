@@ -99,29 +99,6 @@ export async function handleDocumentSubmission(req: Request): Promise<Response> 
             const documentId = documentResult.rows[0].id;
             console.log("Document inserted with ID:", documentId);
 
-            // Process topics
-            for (const topicName of topics) {
-                // Check if topic exists or create new one
-                let topicResult = await client.queryObject<TopicResult>(
-                    `INSERT INTO topics (topic_name) 
-                     VALUES ($1) 
-                     ON CONFLICT (topic_name) DO UPDATE SET topic_name = EXCLUDED.topic_name 
-                     RETURNING id`,
-                    [topicName]
-                );
-
-                const topicId = topicResult.rows[0].id;
-                console.log(`Topic "${topicName}" has ID: ${topicId}`);
-
-                // Insert into document_topics junction table
-                await client.queryObject(
-                    `INSERT INTO document_topics (document_id, topic_id) 
-                     VALUES ($1, $2) 
-                     ON CONFLICT (document_id, topic_id) DO NOTHING`,
-                    [documentId, topicId]
-                );
-            }
-
             // Process authors
             const authorIds = [];
             for (const authorName of authors) {
@@ -144,13 +121,39 @@ export async function handleDocumentSubmission(req: Request): Promise<Response> 
                     console.log(`Created new author "${authorName}" with ID ${authorId}`);
                 }
                 authorIds.push(authorId);
+
+                // Insert into document_authors junction table immediately after getting/creating the author
+                await client.queryObject(
+                    `INSERT INTO document_authors (document_id, author_id) 
+                     VALUES ($1, $2)`,
+                    [documentId, authorId]
+                );
+                console.log(`Linked document ${documentId} with author ${authorId}`);
             }
 
-            // Update document with author_ids
-            await client.queryObject(
-                `UPDATE documents SET author_ids = $1 WHERE id = $2`,
-                [authorIds, documentId]
-            );
+            // Process topics
+            for (const topicName of topics) {
+                // Check if topic exists or create new one
+                let topicResult = await client.queryObject<TopicResult>(
+                    `INSERT INTO topics (topic_name) 
+                     VALUES ($1) 
+                     ON CONFLICT (topic_name) DO UPDATE SET topic_name = EXCLUDED.topic_name 
+                     RETURNING id`,
+                    [topicName]
+                );
+
+                const topicId = topicResult.rows[0].id;
+                console.log(`Topic "${topicName}" has ID: ${topicId}`);
+
+                // Insert into document_topics junction table
+                await client.queryObject(
+                    `INSERT INTO document_topics (document_id, topic_id) 
+                     VALUES ($1, $2) 
+                     ON CONFLICT (document_id, topic_id) DO NOTHING`,
+                    [documentId, topicId]
+                );
+                console.log(`Linked document ${documentId} with topic ${topicId}`);
+            }
 
             await client.queryObject("COMMIT");
 

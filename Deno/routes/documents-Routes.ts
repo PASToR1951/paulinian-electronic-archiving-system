@@ -205,7 +205,13 @@ router.delete("/api/documents/:id", async (context: RouterContext<"/api/document
         await client.queryObject("BEGIN");
         
         try {
-            // First, delete related records in document_topics
+            // First, delete related records in document_authors
+            await client.queryObject(
+                "DELETE FROM document_authors WHERE document_id = $1",
+                [id]
+            );
+            
+            // Delete related records in document_topics
             await client.queryObject(
                 "DELETE FROM document_topics WHERE document_id = $1",
                 [id]
@@ -220,6 +226,12 @@ router.delete("/api/documents/:id", async (context: RouterContext<"/api/document
             // Delete related records in user_permissions
             await client.queryObject(
                 "DELETE FROM user_permissions WHERE document_id = $1",
+                [id]
+            );
+            
+            // Get the file path before deleting the document
+            const fileResult = await client.queryObject<{ file: string }>(
+                "SELECT file FROM documents WHERE id = $1",
                 [id]
             );
             
@@ -244,6 +256,17 @@ router.delete("/api/documents/:id", async (context: RouterContext<"/api/document
                 context.response.status = 404;
                 context.response.body = { message: "Document not found" };
                 return;
+            }
+            
+            // Try to delete the physical file
+            if (fileResult.rows.length > 0 && fileResult.rows[0].file) {
+                try {
+                    await Deno.remove(fileResult.rows[0].file);
+                    console.log(`File deleted: ${fileResult.rows[0].file}`);
+                } catch (error) {
+                    console.warn(`Warning: Could not delete file: ${error instanceof Error ? error.message : String(error)}`);
+                    // Continue with the deletion even if file removal fails
+                }
             }
             
             // Commit transaction

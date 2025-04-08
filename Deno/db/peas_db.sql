@@ -225,12 +225,23 @@ CREATE TABLE public.documents (
     category_id integer,
     volume text,
     department character varying(255),
-    abstract text,
-    author_ids uuid[]
+    abstract text
 );
 
 
 ALTER TABLE public.documents OWNER TO postgres;
+
+-- Create document_authors junction table
+CREATE TABLE public.document_authors (
+    document_id integer NOT NULL,
+    author_id uuid NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT document_authors_pkey PRIMARY KEY (document_id, author_id),
+    CONSTRAINT document_authors_document_id_fkey FOREIGN KEY (document_id)
+        REFERENCES public.documents(id) ON DELETE CASCADE,
+    CONSTRAINT document_authors_author_id_fkey FOREIGN KEY (author_id)
+        REFERENCES public.authors(author_id) ON DELETE CASCADE
+);
 
 --
 -- TOC entry 227 (class 1259 OID 73809)
@@ -614,7 +625,7 @@ COPY public.document_topics (document_id, topic_id) FROM stdin;
 -- Data for Name: documents; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.documents (id, title, pages, publication_date, file, category_id, volume, department, abstract, author_ids) FROM stdin;
+COPY public.documents (id, title, pages, publication_date, file, category_id, volume, department, abstract) FROM stdin;
 8	title 01	\N	2024-01-01	./filepathpdf/sample_upload.pdf	2	Volume-2	cbit	Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.	\N
 9	dasdas	\N	2024-01-01	./filepathpdf/sample_upload.pdf	4	Volume-2	cbit	asdasdasd	\N
 7	adasda	\N	2024-01-01	./filepathpdf/sample_upload.pdf	4	Volume-1	cbit	Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.	{dd53d3b0-6e95-46ed-bcca-b99d8a1f3781}
@@ -1149,6 +1160,12 @@ ALTER TABLE ONLY public.user_permissions
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_department_id_fkey FOREIGN KEY (department_id) REFERENCES public.department(id) ON DELETE SET NULL;
+
+
+-- Remove redundant columns from documents table
+ALTER TABLE public.documents
+DROP COLUMN IF EXISTS author_ids,
+DROP COLUMN IF EXISTS topic_ids;
 
 
 -- Completed on 2025-04-04 09:35:42

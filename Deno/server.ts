@@ -156,7 +156,70 @@ async function handler(req: Request): Promise<Response> {
         // Handle document routes
         if (path.startsWith("/api/documents")) {
             if (method === "GET") {
-                return await fetchDocuments(req);
+                if (path === "/api/documents") {
+                    // List documents
+                    return await fetchDocuments(req);
+                } else {
+                    // Get single document
+                    const id = path.split("/").pop();
+                    if (!id) {
+                        return new Response(JSON.stringify({ message: "Document ID is required" }), {
+                            status: 400,
+                            headers: { "Content-Type": "application/json" }
+                        });
+                    }
+                    try {
+                        const result = await client.queryObject(`
+                            SELECT 
+                                d.id,
+                                d.title,
+                                d.publication_date,
+                                d.file,
+                                d.volume,
+                                d.abstract,
+                                c.category_name,
+                                COALESCE(array_agg(DISTINCT a.full_name) FILTER (WHERE a.full_name IS NOT NULL), ARRAY[]::text[]) as author_names,
+                                COALESCE(
+                                    json_agg(
+                                        DISTINCT jsonb_build_object(
+                                            'topic_name', t.topic_name,
+                                            'topic_id', t.id
+                                        )
+                                    ) FILTER (WHERE t.topic_name IS NOT NULL),
+                                    '[]'::json
+                                ) as topics
+                            FROM documents d
+                            LEFT JOIN categories c ON d.category_id = c.id
+                            LEFT JOIN document_authors da ON d.id = da.document_id
+                            LEFT JOIN authors a ON da.author_id = a.author_id
+                            LEFT JOIN document_topics dt ON d.id = dt.document_id
+                            LEFT JOIN topics t ON dt.topic_id = t.id
+                            WHERE d.id = $1
+                            GROUP BY d.id, d.title, d.publication_date, d.file, d.volume, d.abstract, c.category_name`,
+                            [parseInt(id)]
+                        );
+
+                        if (result.rows.length === 0) {
+                            return new Response(JSON.stringify({ message: "Document not found" }), {
+                                status: 404,
+                                headers: { "Content-Type": "application/json" }
+                            });
+                        }
+
+                        return new Response(JSON.stringify(result.rows[0]), {
+                            headers: { "Content-Type": "application/json" }
+                        });
+                    } catch (error) {
+                        console.error("Error fetching document:", error);
+                        return new Response(JSON.stringify({ 
+                            message: "Error fetching document",
+                            error: error instanceof Error ? error.message : String(error)
+                        }), {
+                            status: 500,
+                            headers: { "Content-Type": "application/json" }
+                        });
+                    }
+                }
             } else if (method === "DELETE") {
                 const id = path.split("/").pop();
                 if (!id) {
@@ -171,44 +234,72 @@ async function handler(req: Request): Promise<Response> {
                     await client.queryObject("BEGIN");
                     
                     try {
-                        // First, delete related records in document_topics
+                        const documentId = parseInt(id);
+                        
+                        // First, delete related records in document_authors
+                        await client.queryObject(
+                            "DELETE FROM document_authors WHERE document_id = $1",
+                            [documentId]
+                        );
+                        
+                        // Delete related records in document_topics
                         await client.queryObject(
                             "DELETE FROM document_topics WHERE document_id = $1",
-                            [id]
+                            [documentId]
                         );
                         
                         // Delete related records in saved_documents
                         await client.queryObject(
                             "DELETE FROM saved_documents WHERE document_id = $1",
-                            [id]
+                            [documentId]
                         );
                         
                         // Delete related records in user_permissions
                         await client.queryObject(
                             "DELETE FROM user_permissions WHERE document_id = $1",
-                            [id]
+                            [documentId]
+                        );
+                        
+                        // Get the file path before deleting the document
+                        const fileResult = await client.queryObject<{ file: string }>(
+                            "SELECT file FROM documents WHERE id = $1",
+                            [documentId]
                         );
                         
                         // Finally, delete the document
                         const result = await client.queryObject(
                             "DELETE FROM documents WHERE id = $1 RETURNING *",
-                            [id]
+                            [documentId]
                         );
                         
                         if (result.rows.length === 0) {
                             await client.queryObject("ROLLBACK");
-                            console.log(`Document with ID ${id} not found`);
                             return new Response(JSON.stringify({ message: "Document not found" }), {
                                 status: 404,
                                 headers: { "Content-Type": "application/json" }
                             });
                         }
                         
+                        // Try to delete the physical file
+                        if (fileResult.rows.length > 0 && fileResult.rows[0].file) {
+                            try {
+                                await Deno.remove(fileResult.rows[0].file);
+                                console.log(`File deleted: ${fileResult.rows[0].file}`);
+                            } catch (error) {
+                                const fileError = error as Error;
+                                console.warn(`Warning: Could not delete file: ${fileError.message}`);
+                                // Continue with the deletion even if file removal fails
+                            }
+                        }
+                        
                         // Commit transaction
                         await client.queryObject("COMMIT");
-                        console.log(`Document with ID ${id} deleted successfully`);
+                        console.log(`Document with ID ${documentId} deleted successfully`);
                         
-                        return new Response(JSON.stringify({ message: "Document deleted successfully" }), {
+                        return new Response(JSON.stringify({ 
+                            message: "Document deleted successfully",
+                            id: documentId
+                        }), {
                             status: 200,
                             headers: { "Content-Type": "application/json" }
                         });
@@ -220,8 +311,8 @@ async function handler(req: Request): Promise<Response> {
                 } catch (error) {
                     console.error("Error deleting document:", error);
                     return new Response(JSON.stringify({ 
-                        message: "Internal server error",
-                        details: error instanceof Error ? error.message : String(error)
+                        message: "Error deleting document",
+                        error: error instanceof Error ? error.message : String(error)
                     }), {
                         status: 500,
                         headers: { "Content-Type": "application/json" }

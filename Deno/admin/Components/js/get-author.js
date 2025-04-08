@@ -7,9 +7,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const authorList = document.getElementById("authorList");
     const selectedAuthorsContainer = document.getElementById("selectedAuthors");
 
-    // Load all authors when the page loads
-    loadAllAuthors();
-
     authorInput.addEventListener("input", () => {
         clearTimeout(searchTimeout);
 
@@ -23,7 +20,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         searchTimeout = setTimeout(async () => {
             try {
-                const response = await fetch(`/api/authors?q=${query}`);
+                const response = await fetch(`/api/authors?q=${encodeURIComponent(query)}`, {
+                    credentials: 'include'
+                });
                 const data = await response.json();
 
                 authorList.innerHTML = ""; // Clear previous list
@@ -55,6 +54,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 authorList.innerHTML = "<div class='dropdown-item text-danger'>Error fetching authors</div>";
             }
         }, 300);
+    });
+
+    // Close author list when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!authorInput.contains(e.target) && !authorList.contains(e.target)) {
+            authorList.innerHTML = "";
+        }
     });
 
     function selectAuthor(name) {
