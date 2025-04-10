@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Author List</title>
     <link rel="stylesheet" href="css/side_bar.css">
-    <link rel="stylesheet" href="css/page_header.css">
     <link rel="stylesheet" href="css/navbar_header.css">
     <style>
         body {
-            margin: 0;
+            margin: auto;
             padding: 0;
             font-family: Arial, sans-serif;
         }
+        
         #side-bar {
             position: fixed;
             top: 0;
@@ -68,10 +68,9 @@
 <body>
     <div id="side-bar"></div>
     <div id="navbar-header"></div>
-    <div id="page-header"></div>
     
     <div id="root"></div>
-
+    
     <script>
         // Load components
         fetch('./side_bar.html')
@@ -88,12 +87,7 @@
             })
             .catch(error => console.error('Error loading navbar:', error));
             
-        fetch('./page_header.html')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('page-header').innerHTML = data;
-            })
-            .catch(error => console.error('Error loading page header:', error));
+        
     </script>
     <script src="http://localhost:3003/bundle.js"></script>
 </body>
