@@ -33,8 +33,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
 
-                if (data.length === 0) {
-                    // Show "Create Author" option when no author is found
+                // Check if the author is already selected
+                const isAuthorSelected = selectedAuthors.has(query);
+                
+                if (data.length === 0 && !isAuthorSelected) {
+                    // Show "Create Author" option when no author is found and not already selected
                     const createAuthorItem = document.createElement("div");
                     createAuthorItem.classList.add("dropdown-item", "create-author");
                     createAuthorItem.innerHTML = `<span class="create-author-text">Create Author: "${query}"</span>`;
@@ -42,12 +45,25 @@ document.addEventListener("DOMContentLoaded", () => {
                     authorList.appendChild(createAuthorItem);
                 } else {
                     data.forEach(author => {
-                        const authorItem = document.createElement("div");
-                        authorItem.textContent = author.name || author.full_name;
-                        authorItem.classList.add("dropdown-item");
-                        authorItem.addEventListener("click", () => selectAuthor(author.name || author.full_name));
-                        authorList.appendChild(authorItem);
+                        const authorName = author.name || author.full_name;
+                        // Only show authors that haven't been selected yet
+                        if (!selectedAuthors.has(authorName)) {
+                            const authorItem = document.createElement("div");
+                            authorItem.textContent = authorName;
+                            authorItem.classList.add("dropdown-item");
+                            authorItem.addEventListener("click", () => selectAuthor(authorName));
+                            authorList.appendChild(authorItem);
+                        }
                     });
+                    
+                    // If no authors are shown (all are selected) and the query isn't selected, show create option
+                    if (authorList.children.length === 0 && !isAuthorSelected) {
+                        const createAuthorItem = document.createElement("div");
+                        createAuthorItem.classList.add("dropdown-item", "create-author");
+                        createAuthorItem.innerHTML = `<span class="create-author-text">Create Author: "${query}"</span>`;
+                        createAuthorItem.addEventListener("click", () => selectAuthor(query));
+                        authorList.appendChild(createAuthorItem);
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching authors:", error);
@@ -76,6 +92,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         authorInput.value = ""; // Clear input after selection
         authorList.innerHTML = ""; // Hide dropdown list
+        
+        // Add input event listener to trigger search when input is cleared
+        authorInput.dispatchEvent(new Event('input'));
     }
 
     function updateSelectedAuthors() {
