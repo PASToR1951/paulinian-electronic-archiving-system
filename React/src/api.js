@@ -7,59 +7,41 @@
 export const fetchAuthors = async () => {
   try {
     console.log('Fetching authors from API...');
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
-    
-    const response = await fetch('/api/authors', {
-      signal: controller.signal,
-      headers: {
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache'
-      }
-    });
-    
-    clearTimeout(timeoutId);
+    const response = await fetch('/api/authors');
     
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('Server response:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
-        errorData
-      });
-      throw new Error(`HTTP error! status: ${response.status}, details: ${errorData.details || 'No details available'}`);
+      console.log('Server response:', response);
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
     
     const data = await response.json();
     console.log('Raw API Response:', data);
     
-    // Map the data to match the expected format in the frontend
-    const mappedData = data.map(author => {
+    // Map the response to match the frontend's expected format
+    const mappedAuthors = data.map(author => {
       console.log('Mapping author:', author);
+      // Ensure we have a unique ID
+      const authorId = author.author_id || author.id || `temp-${Math.random().toString(36).substr(2, 9)}`;
       return {
-        id: author.author_id?.toString() || author.id?.toString(),
-        name: author.full_name || author.name,
+        id: authorId,
+        name: author.full_name || author.name || 'Unknown Author',
         department: author.department || '',
         email: author.email || '',
         affiliation: author.affiliation || '',
-        documentCount: author.document_count || 0,
+        documentCount: Number(author.document_count) || 0,
         orcid: author.orcid_id || '',
-        biography: author.bio || '',
+        biography: author.biography || '',
         profilePicture: author.profile_picture || '',
         yearOfGraduation: author.year_of_graduation || '',
         linkedin: author.linkedin || '',
-        gender: author.gender || 'M'
+        gender: 'M' // Default value
       };
     });
     
-    console.log('Mapped authors:', mappedData);
-    return mappedData;
+    console.log('Mapped authors:', mappedAuthors);
+    return mappedAuthors;
   } catch (error) {
     console.error('Error fetching authors:', error);
-    if (error.name === 'AbortError') {
-      throw new Error('Request timed out after 25 seconds');
-    }
     throw error;
   }
 };
@@ -79,15 +61,16 @@ export const fetchAuthorById = async (id) => {
     return {
       id: data.author_id,
       name: data.full_name || data.name,
-      department: data.department,
-      email: data.email,
-      affiliation: data.affiliation,
+      department: data.department || '',
+      email: data.email || '',
+      affiliation: data.affiliation || '',
       documentCount: data.document_count || 0,
-      orcid: data.orcid_id,
-      biography: data.bio,
-      profilePicture: data.profile_picture,
-      yearOfGraduation: data.year_of_graduation,
-      linkedin: data.linkedin
+      orcid: data.orcid_id || '',
+      biography: data.bio || '',
+      profilePicture: data.profile_picture || '',
+      yearOfGraduation: data.year_of_graduation || '',
+      linkedin: data.linkedin || '',
+      gender: data.gender || 'M'
     };
   } catch (error) {
     console.error(`Error fetching author with ID ${id}:`, error);
@@ -142,7 +125,7 @@ export const updateAuthor = async (id, authorData) => {
         email: authorData.email || null,
         affiliation: authorData.affiliation || null,
         orcid_id: authorData.orcid || null,
-        bio: authorData.biography || null,
+        biography: authorData.biography || null,
         profile_picture: authorData.profilePicture || null,
         gender: authorData.gender || null,
         year_of_graduation: yearOfGraduation,

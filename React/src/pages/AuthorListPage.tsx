@@ -50,7 +50,8 @@ const AuthorListPage = () => {
   // Filter authors based on search term and filters
   const filteredAuthors = authors.filter((author: Author) => {
     const matchesSearch = author.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (author.email && author.email.toLowerCase().includes(searchTerm.toLowerCase()));
+      (author.email && author.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (author.biography && author.biography.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesDepartment = !filterDepartment || author.department === filterDepartment;
     const matchesAffiliation = !filterAffiliation || author.affiliation === filterAffiliation;
@@ -129,6 +130,12 @@ const AuthorListPage = () => {
                       {author.affiliation && <p><strong>Affiliation:</strong> {author.affiliation}</p>}
                       {author.email && <p><strong>Email:</strong> {author.email}</p>}
                       {author.yearOfGraduation && <p><strong>Year:</strong> {author.yearOfGraduation}</p>}
+                      {author.biography && (
+                        <div className="author-bio">
+                          <p><strong>Biography:</strong></p>
+                          <p className="bio-text">{author.biography}</p>
+                        </div>
+                      )}
                       <p className="document-count">Documents: {author.documentCount}</p>
                     </div>
                     

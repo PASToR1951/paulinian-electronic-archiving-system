@@ -49,6 +49,12 @@ export async function getAuthorById(id: string) {
         a.name, 
         a.department, 
         a.email,
+        a.affiliation,
+        a.year_of_graduation,
+        a.linkedin,
+        a.bio,
+        a.orcid_id,
+        a.profile_picture,
         COUNT(d.id) as document_count
       FROM 
         authors a
@@ -59,7 +65,8 @@ export async function getAuthorById(id: string) {
       WHERE 
         a.author_id = $1
       GROUP BY 
-        a.author_id, a.name, a.department, a.email
+        a.author_id, a.name, a.department, a.email, a.affiliation, a.year_of_graduation,
+        a.linkedin, a.bio, a.orcid_id, a.profile_picture
     `, [id]);
 
     if (result.rows.length === 0) {

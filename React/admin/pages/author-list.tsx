@@ -62,18 +62,25 @@ const formatOrcid = (value: string) => {
 };
 
 const AuthorCard: React.FC<{ author: Author; onUpdate: (updatedAuthor: Author) => void; onDelete: (id: string) => void }> = ({ author, onUpdate, onDelete }) => {
-    const [open, setOpen] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedAuthor, setEditedAuthor] = useState<Author>({ ...author });
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [editedAuthor, setEditedAuthor] = useState<Author>(author);
 
-    // Reset edited author when the original author changes
-    useEffect(() => {
-        setEditedAuthor(author);
-    }, [author]);
+    // Safely get initials for avatar fallback
+    const getInitials = (name: string | undefined) => {
+        if (!name) return '??';
+        return name.substring(0, 2).toUpperCase();
+    };
+
+    // Ensure author object exists and has required properties
+    if (!author) {
+        console.error('Author is undefined');
+        return null;
+    }
 
     const handleSave = () => {
         onUpdate(editedAuthor);
-        setOpen(false);
+        setIsEditing(false);
     };
 
     const handleOrcidChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,20 +113,20 @@ const AuthorCard: React.FC<{ author: Author; onUpdate: (updatedAuthor: Author) =
                     <div className="flex items-center gap-4 min-w-0">
                         <Avatar className="h-12 w-12 border-2 border-green-500/50">
                             <AvatarImage
-                                src={author.profilePicture}
-                                alt={author.name}
+                                src={author.profilePicture || ''}
+                                alt={author.name || 'Author'}
                                 className="border-green-500/50"
                                 onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).src = `https://placehold.co/100x100/EEE/31343C?text=${author.name.substring(0, 2).toUpperCase()}&font=Montserrat`;
+                                    (e.currentTarget as HTMLImageElement).src = `https://placehold.co/100x100/EEE/31343C?text=${getInitials(author.name)}&font=Montserrat`;
                                 }}
                             />
                             <AvatarFallback className="bg-green-500 text-white">
-                                {author.name.substring(0, 2).toUpperCase()}
+                                {getInitials(author.name)}
                             </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0 flex-1">
                             <CardTitle className="text-lg font-semibold text-gray-900 truncate">
-                                {author.name}
+                                {author.name || 'Unnamed Author'}
                             </CardTitle>
                             <CardDescription className="text-gray-500 text-sm">
                                 <span className="inline-block text-xs font-medium text-green-500 bg-green-100/50 px-1.5 py-0.5 rounded-full mb-1">
@@ -137,7 +144,7 @@ const AuthorCard: React.FC<{ author: Author; onUpdate: (updatedAuthor: Author) =
                         </div>
                     </div>
                     <div className="flex gap-2">
-                        <Dialog open={open} onOpenChange={setOpen}>
+                        <Dialog open={isEditing} onOpenChange={setIsEditing}>
                             <DialogTrigger asChild>
                                 <Button
                                     variant="outline"
@@ -282,7 +289,7 @@ const AuthorCard: React.FC<{ author: Author; onUpdate: (updatedAuthor: Author) =
                                         className="bg-gray-200 text-gray-700 border-gray-300 hover:bg-gray-300 hover:text-gray-900"
                                         onClick={() => {
                                             setEditedAuthor(author); // Reset to original on cancel
-                                            setOpen(false);
+                                            setIsEditing(false);
                                         }}
                                     >
                                         Cancel
