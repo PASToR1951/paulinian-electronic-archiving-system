@@ -1698,6 +1698,7 @@ async function loadSidebar() {
                 const html = await response.text();
                 sidebarContainer.innerHTML = html;
                 console.log("Sidebar loaded successfully");
+                highlightActiveSidebarLink();
             } else {
                 console.error('Failed to load sidebar:', response.status);
                 // Provide a fallback sidebar

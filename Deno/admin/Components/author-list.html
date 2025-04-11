@@ -1,94 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Author List</title>
-    <link rel="stylesheet" href="css/side_bar.css">
-    <link rel="stylesheet" href="css/navbar_header.css">
-    <style>
-        body {
-            margin: auto;
-            padding: 0;
-            font-family: Arial, sans-serif;
-        }
-        
-        #side-bar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
-            z-index: 1000;
-            width: 250px;
-        }
-        #navbar-header {
-            position: fixed;
-            top: 0;
-            left: 0; /* Start from the left edge */
-            right: 0;
-            height: 60px;
-            z-index: 999;
-            width: 100%; /* Full width */
-        }
-        #page-header {
-            position: fixed;
-            top: 60px; /* Height of the navbar */
-            left: 0; /* Start from the left edge */
-            right: 0;
-            z-index: 998;
-            width: 100%; /* Full width */
-        }
-        #root {
-            margin-left: 250px; /* Width of the sidebar */
-            margin-top: 120px; /* Height of the navbar + page header */
-            min-height: calc(100vh - 120px);
-            background-color: #f5f5f5;
-            display: flex;
-            justify-content: center;
-        }
-        /* Ensure the React app container is centered */
-        #root .container {
-            max-width: 1200px;
-            width: 100%;
-        }
-        
-        /* Override navbar header styles to ensure full width */
-        #navbar-header .header {
-            width: 100%;
-            max-width: none;
-        }
-        
-        #navbar-header .logo {
-            width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Author List</title>
+
+  <!-- 1) Page‑scoped CSS first -->
+  
+
+  <!-- 2) Component CSS -->
+  <link rel="stylesheet" href="css/side_bar.css" />
+  <link rel="stylesheet" href="css/navbar_header.css" />
+  <link rel="stylesheet" href="css/author-list.css" />
 </head>
 <body>
-    <div id="side-bar"></div>
-    <div id="navbar-header"></div>
-    
-    <div id="root"></div>
-    
-    <script>
-        // Load components
-        fetch('./side_bar.html')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('side-bar').innerHTML = data;
-            })
-            .catch(error => console.error('Error loading sidebar:', error));
+  <div id="side-bar"></div>
+  <div id="navbar-header"></div>
+  <div id="root"></div>
 
-        fetch('./navbar_header.html')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('navbar-header').innerHTML = data;
-            })
-            .catch(error => console.error('Error loading navbar:', error));
-            
-        
-    </script>
-    <script src="http://localhost:3003/bundle.js"></script>
+  <script>
+    
+
+    // Load navbar
+    fetch('./navbar_header.html')
+      .then(r => r.text())
+      .then(html => document.getElementById('navbar-header').innerHTML = html)
+      .catch(e => console.error('Error loading navbar:', e));
+  </script>
+  <script src="http://localhost:3003/bundle.js"></script>
+  <script src="js/side_bar.js"></script>
 </body>
-</html> 
+</html>

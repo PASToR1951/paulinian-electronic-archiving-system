@@ -1,34 +1,25 @@
-fetch('./components/navbar_header.html') 
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.text();
-    })
-    .then(html => {
-        document.getElementById('navbar-header').innerHTML = html;
+fetch('side_bar.html')
+    .then(response => response.text())
+    .then(data => {
+        document.getElementById('side-bar').innerHTML = data;
 
-        const themeToggle = document.querySelector('.theme-toggle');
-        const darkModeStyle = document.getElementById('dark-mode-style');
-
-        if (themeToggle && darkModeStyle) {
-            themeToggle.addEventListener('click', () => {
-                darkModeStyle.disabled = !darkModeStyle.disabled;
-                if (darkModeStyle.disabled) {
-                    localStorage.setItem('darkMode', 'disabled');
-                } else {
-                    localStorage.setItem('darkMode', 'enabled');
-                }
-            });
-        }
-        document.addEventListener('DOMContentLoaded', () => {
-            const savedMode = localStorage.getItem('darkMode');
-            if (savedMode === 'enabled') {
-                darkModeStyle.disabled = false;
-            }
-        });
+        // ✅ Run active icon logic after injection
+        highlightActiveSidebarLink();
     })
-    .catch(error => {
-        console.error('Error fetching navbar:', error);
-        document.getElementById('navbar-header').innerHTML = "<p>Failed to load navbar.</p>";
+    .catch(error => console.error('Error loading sidebar:', error));
+
+// 👇 Function to highlight the active sidebar link
+function highlightActiveSidebarLink() {
+    const currentPage = window.location.pathname;
+    const navLinks = document.querySelectorAll('#side-bar a.icon-wrapper');
+
+    navLinks.forEach(link => {
+        const linkPath = new URL(link.href).pathname;
+
+        if (currentPage === linkPath) {
+            link.classList.add('active');
+        } else {
+            link.classList.remove('active');
+        }   
     });
+}

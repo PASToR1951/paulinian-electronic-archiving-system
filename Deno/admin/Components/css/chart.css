@@ -1,15 +1,14 @@
-.chart-wrapper {
-    max-width: 1000px;
-    margin: auto;
-}
 
-.chart-wrapper h2 {
+
+.chart-wrapper h3 {
     color: #000000; 
+    padding: 0px;
 }
 
 .chart-container {
     background-color: #f3f3f3;
-    padding: 5px;
+    height: 200px;
+    width: 100%;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(126, 126, 126, 0.322);
 }
@@ -19,12 +18,13 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1px;
+    padding: 0px 10px;
 }
 
 .chart-header button {
-    background-color: #000000; 
+    background-color: #33922b; 
     color: #ffffff;
-    border: 1px solid #000000; 
+    border: none;
     padding: 8px 16px;
     border-radius: 9px;
     cursor: pointer;
@@ -46,6 +46,6 @@
 .chart-container canvas {
     width: 100%;
     height: auto;
-    max-height: 150px; 
+    max-height: 180px; 
     display: block;
 }

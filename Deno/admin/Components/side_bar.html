@@ -100,28 +100,9 @@
             </div>
         </div>
     </nav>
-    <script src="/public/js/sidebar.js"></script>
+    
     <script src="/public/js/logout.js"></script>
-    <script>
-        // Get the current page URL
-        const currentPage = window.location.pathname;
-        
-        // Find all navigation links
-        const navLinks = document.querySelectorAll('a.icon-wrapper');
-        
-        // Remove active class from all links
-        navLinks.forEach(link => {
-            link.classList.remove('active');
-        });
-        
-        // Add active class to the current page's link
-        navLinks.forEach(link => {
-            const href = link.getAttribute('href');
-            if (href && currentPage.includes(href)) {
-                link.classList.add('active');
-                console.log('Active link:', href);
-            }
-        });
-    </script>
+    
+   
 </body>
 </html>

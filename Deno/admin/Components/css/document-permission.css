@@ -1,18 +1,18 @@
 body {
     font-family: sans-serif;
-   
+    width: 100%;
     background-color: #fffff5;
+    height: 100%;
 }
 
 .container {
-    width: 90%; /* Increased width for table content */
+    width: 1200px; /* Increased width for table content */
     max-width: 1200px;
     margin: 50px auto;
-    
     border-radius: 8px;
     background-color: #fffff5;
     padding: 20px;
-    height: 70vh;;
+    height: 80%;
 }
 
 .tab-header {

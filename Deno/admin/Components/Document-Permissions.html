@@ -129,15 +129,10 @@
             </div>
         </div>
     </div>
-    <script>
-        fetch('side_bar.html')
-          .then(response => response.text())
-          .then(data => {
-            document.getElementById('side-bar').innerHTML = data;
-          })
-          .catch(error => console.error('Error loading header:', error));
-      </script>
     
+    <script>
+       
+      </script>
       <script>
         fetch('navbar_header.html')
           .then(response => response.text())
@@ -147,5 +142,6 @@
           .catch(error => console.error('Error loading header:', error));
       </script>
     <script src="js/document-permission.js"></script>
+    <script src="./js/side_bar.js"></script>
 </body>
 </html>
