@@ -736,42 +736,86 @@ authorInput.addEventListener('input', function() {
     authorSearchTimeout = setTimeout(async () => {
         try {
             const response = await fetch(`/api/authors?q=${encodeURIComponent(query)}`);
-            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const authors = await response.json();
             
             authorList.innerHTML = '';
             
-            if (!Array.isArray(data)) {
-                console.error('Unexpected API response:', data);
-                authorList.innerHTML = '<div class="dropdown-item text-danger">Unexpected response</div>';
+            if (!Array.isArray(authors)) {
+                console.error('Invalid authors response:', authors);
+                authorList.innerHTML = '<div class="dropdown-item">Error: Invalid response format</div>';
                 return;
             }
             
-            if (data.length === 0) {
-                // Show "Create Author" option when no author is found
-                const createAuthorItem = document.createElement('div');
-                createAuthorItem.classList.add('dropdown-item', 'create-author');
-                createAuthorItem.innerHTML = `<span class="create-author-text">Create Author: "${query}"</span>`;
-                createAuthorItem.addEventListener('click', () => addSelectedAuthor({ full_name: query }));
-                authorList.appendChild(createAuthorItem);
-            } else {
-                data.forEach(author => {
-                    const item = document.createElement('div');
-                    item.className = 'dropdown-item';
-                    item.textContent = author.name || author.full_name;
-                    item.addEventListener('click', () => {
-                        addSelectedAuthor(author);
-                        authorInput.value = '';
-                        authorList.innerHTML = '';
-                    });
-                    authorList.appendChild(item);
+            if (authors.length === 0) {
+                // Add "Create New Author" option when no authors are found
+                const createOption = document.createElement('div');
+                createOption.className = 'dropdown-item create-option';
+                createOption.innerHTML = `
+                    <span>No authors found. Create new author: </span>
+                    <strong>${query}</strong>
+                `;
+                createOption.addEventListener('click', () => {
+                    createNewAuthor(query);
+                    authorInput.value = '';
+                    authorList.innerHTML = '';
                 });
+                authorList.appendChild(createOption);
+                return;
             }
+            
+            authors.forEach(author => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                item.textContent = author.full_name;
+                item.addEventListener('click', () => {
+                    addSelectedAuthor(author);
+                    authorInput.value = '';
+                    authorList.innerHTML = '';
+                });
+                authorList.appendChild(item);
+            });
         } catch (error) {
             console.error('Error searching authors:', error);
-            authorList.innerHTML = '<div class="dropdown-item text-danger">Error searching authors</div>';
+            authorList.innerHTML = '<div class="dropdown-item">Error searching authors</div>';
         }
     }, 300);
 });
+
+async function createNewAuthor(name) {
+    try {
+        const response = await fetch('/api/authors', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                full_name: name,
+                department: '',
+                email: '',
+                affiliation: '',
+                year_of_graduation: null,
+                linkedin: '',
+                biography: '',
+                orcid_id: '',
+                profile_picture: '',
+                gender: 'M'
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const newAuthor = await response.json();
+        addSelectedAuthor(newAuthor);
+    } catch (error) {
+        console.error('Error creating new author:', error);
+        alert('Failed to create new author. Please try again.');
+    }
+}
 
 function addSelectedAuthor(author) {
     const authorTag = document.createElement('div');
@@ -809,9 +853,18 @@ topicInput.addEventListener('input', function() {
     topicSearchTimeout = setTimeout(async () => {
         try {
             const response = await fetch(`/api/topics/search?q=${encodeURIComponent(query)}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const topics = await response.json();
             
             topicList.innerHTML = '';
+            
+            if (!Array.isArray(topics)) {
+                console.error('Invalid topics response:', topics);
+                topicList.innerHTML = '<div class="dropdown-item">Error: Invalid response format</div>';
+                return;
+            }
             
             if (topics.length === 0) {
                 topicList.innerHTML = '<div class="dropdown-item">No topics found</div>';
@@ -821,7 +874,7 @@ topicInput.addEventListener('input', function() {
             topics.forEach(topic => {
                 const item = document.createElement('div');
                 item.className = 'dropdown-item';
-                item.textContent = topic.topic_name;
+                item.textContent = topic.topic_name || topic;
                 item.addEventListener('click', () => {
                     addSelectedTopic(topic);
                     topicInput.value = '';
@@ -840,8 +893,8 @@ function addSelectedTopic(topic) {
     const topicTag = document.createElement('div');
     topicTag.className = 'selected-topic';
     topicTag.innerHTML = `
-        ${topic.topic_name}
-        <span class="remove-topic" data-id="${topic.topic_id}">&times;</span>
+        ${topic.topic_name || topic}
+        <span class="remove-topic">&times;</span>
     `;
     
     topicTag.querySelector('.remove-topic').addEventListener('click', () => {

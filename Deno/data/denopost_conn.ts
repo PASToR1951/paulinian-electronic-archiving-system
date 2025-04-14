@@ -4,7 +4,7 @@ import { join } from "https://deno.land/std@0.218.2/path/mod.ts";
 
 
 const ROOT_PATH = Deno.cwd();
-const ENV_PATH = join(ROOT_PATH, ".env");
+const ENV_PATH = join(ROOT_PATH, "Deno", ".env");
 
 const _env = await load({ envPath: ENV_PATH });
 

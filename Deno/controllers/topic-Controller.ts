@@ -1,4 +1,5 @@
 import { client } from "../data/denopost_conn.ts";
+import { Request } from "https://deno.land/x/oak@v17.1.4/request.ts";
 
 async function ensureDatabaseConnection() {
     try {

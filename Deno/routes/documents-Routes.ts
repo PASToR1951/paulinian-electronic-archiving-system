@@ -5,10 +5,10 @@ import { Response } from "https://deno.land/x/oak@v17.1.4/response.ts";
 import { fetchCategories, fetchDocuments, fetchVolumesByCategory } from "../controllers/document-Controller.ts";
 import { client } from "../data/denopost_conn.ts";
 
-const router = new Router();
+export const documentsRouter = new Router();
 
 // Categories endpoint
-router.get("/api/categories", async (ctx) => {
+documentsRouter.get("/api/categories", async (ctx) => {
     const response = await fetchCategories();
     ctx.response.body = await response.json();
     ctx.response.status = response.status;
@@ -16,7 +16,7 @@ router.get("/api/categories", async (ctx) => {
 });
 
 // Documents endpoint
-router.get("/api/documents", async (ctx: RouterContext<"/api/documents">) => {
+documentsRouter.get("/api/documents", async (ctx: RouterContext<"/api/documents">) => {
     try {
         const response = await fetchDocuments(ctx.request);
         const responseData = await response.text();
@@ -45,69 +45,135 @@ router.get("/api/documents", async (ctx: RouterContext<"/api/documents">) => {
 });
 
 // Volumes endpoint
-router.get("/api/volumes", async (ctx) => {
+documentsRouter.get("/api/volumes", async (ctx) => {
     const response = await fetchVolumesByCategory(ctx.request);
     ctx.response.body = await response.json();
     ctx.response.status = response.status;
     ctx.response.headers = response.headers;
 });
 
-// Update document
-router.put("/api/documents/:id", async (ctx: RouterContext<"/api/documents/:id">) => {
+// Get single document by ID
+documentsRouter.get("/api/documents/:id", async (ctx: RouterContext<"/api/documents/:id">) => {
     try {
-        // Convert Oak context to native Request
-        const req = new Request(ctx.request.url, {
-            method: ctx.request.method,
-            headers: ctx.request.headers,
-            body: await ctx.request.body({ type: "json" }).value
-        });
-        
-        // Get the request body using the native Request type
-        const body = await req.json();
-        
-        // Validate required fields
-        if (!body.title || !body.author || !body.publication_date || !body.category) {
+        const id = ctx.params.id;
+        if (!id) {
             ctx.response.status = 400;
-            ctx.response.body = { message: "Missing required fields" };
+            ctx.response.body = { message: "Document ID is required" };
             return;
         }
-        
-        // Begin transaction
+
+        const result = await client.queryObject<{
+            id: number;
+            title: string;
+            author: string;
+            publication_date: string;
+            category: string;
+            abstract: string | null;
+            volume: string | null;
+            updated_at: string;
+            topics: string[];
+        }>(
+            `SELECT d.*, 
+                array_agg(DISTINCT t.topic_name) FILTER (WHERE t.topic_name IS NOT NULL) as topics
+             FROM documents d
+             LEFT JOIN document_topics dt ON d.id = dt.document_id
+             LEFT JOIN topics t ON dt.topic_id = t.id
+             WHERE d.id = $1
+             GROUP BY d.id`,
+            [id]
+        );
+
+        if (result.rows.length === 0) {
+            ctx.response.status = 404;
+            ctx.response.body = { message: "Document not found" };
+            return;
+        }
+
+        ctx.response.body = result.rows[0];
+    } catch (error) {
+        console.error("Error fetching document:", error);
+        ctx.response.status = 500;
+        ctx.response.body = { message: "Internal server error" };
+    }
+});
+
+// Update document
+documentsRouter.put("/api/documents/:id", async (ctx: RouterContext<"/api/documents/:id">) => {
+    try {
+        const id = ctx.params.id;
+        if (!id) {
+            ctx.response.status = 400;
+            ctx.response.body = { message: "Document ID is required" };
+            return;
+        }
+
+        const formData = await ctx.request.body({ type: "form-data" }).value;
+        const formDataEntries = formData.entries();
+        const files = formData.files;
+
+        const documentData: Record<string, any> = {};
+        let topics: string[] = [];
+
+        for (const [key, value] of formDataEntries) {
+            if (key === "topics") {
+                try {
+                    // Try to parse topics as JSON array
+                    const parsedTopics = JSON.parse(value as string);
+                    topics = Array.isArray(parsedTopics) ? parsedTopics : [parsedTopics];
+                } catch (e) {
+                    // If parsing fails, treat it as a single topic
+                    topics = [value as string];
+                }
+            } else {
+                documentData[key] = value;
+            }
+        }
+
+        // Validate required fields
+        const requiredFields = ["title", "author", "publication_date", "category"];
+        for (const field of requiredFields) {
+            if (!documentData[field]) {
+                ctx.response.status = 400;
+                ctx.response.body = { message: `${field} is required` };
+                return;
+            }
+        }
+
+        // Start transaction
         await client.queryObject("BEGIN");
-        
+
         try {
-            // Update document in database
-            const result = await client.queryObject<{
-                id: number;
-                title: string;
-                author: string;
-                publication_date: string;
-                category: string;
-                abstract: string | null;
-                volume: string | null;
-                updated_at: string;
-            }>(
+            // Handle file upload if a new file is provided
+            let filePath = null;
+            if (files && files.length > 0) {
+                const file = files[0];
+                const uploadDir = "./uploads";
+                await Deno.mkdir(uploadDir, { recursive: true });
+                filePath = `${uploadDir}/${Date.now()}-${file.originalName}`;
+                await Deno.writeFile(filePath, file.content);
+            }
+
+            // Update document
+            const result = await client.queryObject(
                 `UPDATE documents 
-                 SET title = $1, 
-                     author = $2, 
-                     publication_date = $3, 
-                     category = $4, 
-                     abstract = $5, 
-                     volume = $6,
+                 SET title = $1, author = $2, publication_date = $3, 
+                     category = $4, abstract = $5, volume = $6,
+                     file = COALESCE($8, file),
                      updated_at = CURRENT_TIMESTAMP
                  WHERE id = $7
                  RETURNING *`,
                 [
-                    body.title,
-                    Array.isArray(body.author) ? body.author.join(", ") : body.author,
-                    body.publication_date,
-                    body.category,
-                    body.abstract || null,
-                    body.volume || null,
-                    ctx.params.id
+                    documentData.title,
+                    documentData.author,
+                    documentData.publication_date,
+                    documentData.category,
+                    documentData.abstract || null,
+                    documentData.volume || null,
+                    id,
+                    filePath
                 ]
             );
-            
+
             if (result.rows.length === 0) {
                 await client.queryObject("ROLLBACK");
                 ctx.response.status = 404;
@@ -115,47 +181,36 @@ router.put("/api/documents/:id", async (ctx: RouterContext<"/api/documents/:id">
                 return;
             }
 
-            // Handle topics
-            if (body.topics && Array.isArray(body.topics)) {
-                // First, delete existing document_topics
+            // Update topics
+            if (topics.length > 0) {
+                // Delete existing topics
                 await client.queryObject(
                     "DELETE FROM document_topics WHERE document_id = $1",
-                    [ctx.params.id]
+                    [id]
                 );
 
                 // Insert new topics
-                for (const topicName of body.topics) {
-                    // Check if topic exists
-                    let topicResult = await client.queryObject<{ id: number }>(
-                        `SELECT id FROM topics WHERE topic_name = $1`,
-                        [topicName]
+                for (const topic of topics) {
+                    if (!topic) continue; // Skip empty topics
+                    
+                    // Get or create topic
+                    const topicResult = await client.queryObject<{ id: number }>(
+                        "INSERT INTO topics (topic_name) VALUES ($1) ON CONFLICT (topic_name) DO UPDATE SET topic_name = EXCLUDED.topic_name RETURNING id",
+                        [topic]
                     );
-
-                    let topicId: number;
-                    if (topicResult.rows.length > 0) {
-                        topicId = topicResult.rows[0].id;
-                    } else {
-                        // Create new topic
-                        const newTopicResult = await client.queryObject<{ id: number }>(
-                            `INSERT INTO topics (topic_name) VALUES ($1) RETURNING id`,
-                            [topicName]
-                        );
-                        topicId = newTopicResult.rows[0].id;
-                    }
+                    const topicId = topicResult.rows[0].id;
 
                     // Link topic to document
                     await client.queryObject(
-                        `INSERT INTO document_topics (document_id, topic_id) VALUES ($1, $2)
-                         ON CONFLICT (document_id, topic_id) DO NOTHING`,
-                        [ctx.params.id, topicId]
+                        "INSERT INTO document_topics (document_id, topic_id) VALUES ($1, $2)",
+                        [id, topicId]
                     );
                 }
             }
 
-            // Commit transaction
             await client.queryObject("COMMIT");
             
-            // Fetch updated document with topics
+            // Return the updated document with its topics
             const updatedDoc = await client.queryObject<{
                 id: number;
                 title: string;
@@ -174,7 +229,7 @@ router.put("/api/documents/:id", async (ctx: RouterContext<"/api/documents/:id">
                  LEFT JOIN topics t ON dt.topic_id = t.id
                  WHERE d.id = $1
                  GROUP BY d.id`,
-                [ctx.params.id]
+                [id]
             );
 
             ctx.response.body = updatedDoc.rows[0];
@@ -190,7 +245,7 @@ router.put("/api/documents/:id", async (ctx: RouterContext<"/api/documents/:id">
 });
 
 // Delete document
-router.delete("/api/documents/:id", async (context: RouterContext<"/api/documents/:id">) => {
+documentsRouter.delete("/api/documents/:id", async (context: RouterContext<"/api/documents/:id">) => {
     try {
         const id = context.params?.id;
         if (!id) {
@@ -289,4 +344,24 @@ router.delete("/api/documents/:id", async (context: RouterContext<"/api/document
     }
 });
 
-export default router;
+// Search topics
+documentsRouter.get("/api/topics/search", async (ctx: RouterContext<"/api/topics/search">) => {
+    try {
+        const query = ctx.request.url.searchParams.get("q") || "";
+        
+        const result = await client.queryObject<{ id: number; topic_name: string }>(
+            `SELECT id, topic_name 
+             FROM topics 
+             WHERE LOWER(topic_name) LIKE LOWER($1)
+             ORDER BY topic_name
+             LIMIT 10`,
+            [`%${query}%`]
+        );
+
+        ctx.response.body = result.rows;
+    } catch (error) {
+        console.error("Error searching topics:", error);
+        ctx.response.status = 500;
+        ctx.response.body = { message: "Internal server error" };
+    }
+});

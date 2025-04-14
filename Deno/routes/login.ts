@@ -1,24 +1,38 @@
 import { findUser } from "../auth/userStore.ts";
 import { createSessionToken } from "../auth/session.ts";
+import { Request } from "https://deno.land/x/oak@v17.1.4/request.ts";
 
 async function handleLoginRequest(req: Request): Promise<Response> {
     console.log("Received /login request");
 
     try {
-        // Validate content type
+        // Get request data based on content type
         const contentType = req.headers.get("content-type")?.toLowerCase() || "";
-        if (!contentType.includes("application/json")) {
-            console.error("Request body is not JSON!");
-            return jsonResponse({ message: "Invalid request format" }, 400);
-        }
-
-        // Parse request body safely
         let requestData;
-        try {
-            requestData = await req.json();
-        } catch (jsonError) {
-            console.error("Failed to parse request JSON:", jsonError);
-            return jsonResponse({ message: "Invalid JSON format" }, 400);
+
+        if (contentType.includes("application/json")) {
+            try {
+                const body = req.body;
+                requestData = await body.json();
+            } catch (jsonError) {
+                console.error("Failed to parse request JSON:", jsonError);
+                return jsonResponse({ message: "Invalid JSON format" }, 400);
+            }
+        } else if (contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data")) {
+            try {
+                const body = req.body;
+                const formData = await body.formData();
+                requestData = {
+                    ID: formData.get("ID"),
+                    Password: formData.get("Password")
+                };
+            } catch (formError) {
+                console.error("Failed to parse form data:", formError);
+                return jsonResponse({ message: "Invalid form data" }, 400);
+            }
+        } else {
+            console.error("Unsupported content type:", contentType);
+            return jsonResponse({ message: "Unsupported content type" }, 400);
         }
 
         const { ID, Password } = requestData;
@@ -73,7 +87,10 @@ async function handleLoginRequest(req: Request): Promise<Response> {
         return response;
     } catch (error) {
         console.error("Unexpected error in handleLoginRequest:", error);
-        return jsonResponse({ message: "Internal Server Error", error: error.message }, 500);
+        return jsonResponse({ 
+            message: "Internal Server Error", 
+            error: error instanceof Error ? error.message : String(error) 
+        }, 500);
     }
 }
 

@@ -3,6 +3,7 @@ import { ensureDir } from "https://deno.land/std@0.177.0/fs/mod.ts";
 import { RouterContext } from "https://deno.land/x/oak@v12.6.1/mod.ts";
 import { pool } from "../db/db.ts";
 import { Pool } from "https://deno.land/x/postgres@v0.17.0/mod.ts";
+import { Request } from "https://deno.land/x/oak@v17.1.4/request.ts";
 
 // Document interface definition
 interface Document {
