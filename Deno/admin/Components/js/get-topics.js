@@ -1,5 +1,6 @@
 const selectedTopics = new Set(); // Store selected topics
 const topicColors = new Map(); // Store assigned colors for topics
+const pendingTopics = new Set(); // Store pending topics that haven't been submitted yet
 
 document.addEventListener("DOMContentLoaded", () => {
     const topicInput = document.getElementById("topicInput");
@@ -41,8 +42,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (data.length === 0) {
                     // If no topics found, show option to create new topic
                     topicList.innerHTML = `
-                        <div class='dropdown-item' onclick="createNewTopic('${query}')">
-                            Create new topic: "${query}"
+                        <div class='dropdown-item create-topic' onclick="createNewTopic('${query}')">
+                            <span class="create-topic-text">Create new topic: "${query}"</span>
                         </div>`;
                 } else {
                     data.forEach(topic => {
@@ -83,27 +84,15 @@ document.addEventListener("DOMContentLoaded", () => {
         topicList.innerHTML = ""; // Hide dropdown list
     };
 
-    window.createNewTopic = async function(topicName) {
-        try {
-            const response = await fetch('/api/topics', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ topic_name: topicName }),
-                credentials: 'include'
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to create topic');
-            }
-
-            const newTopic = await response.json();
-            selectTopic(newTopic.topic_name);
-        } catch (error) {
-            console.error('Error creating topic:', error);
-            topicList.innerHTML = "<div class='dropdown-item text-danger'>Error creating topic</div>";
+    window.createNewTopic = function(topicName) {
+        if (!selectedTopics.has(topicName)) {
+            selectedTopics.add(topicName);
+            pendingTopics.add(topicName);
+            topicColors.set(topicName, '#4CAF50'); // Green color for pending topics
+            updateSelectedTopics();
         }
+        topicInput.value = ""; // Clear input after selection
+        topicList.innerHTML = ""; // Hide dropdown list
     };
 
     function updateSelectedTopics() {
@@ -112,6 +101,9 @@ document.addEventListener("DOMContentLoaded", () => {
         selectedTopics.forEach(name => {
             const topicDiv = document.createElement("div");
             topicDiv.classList.add("selected-topic");
+            if (pendingTopics.has(name)) {
+                topicDiv.classList.add("pending-topic");
+            }
             topicDiv.textContent = name;
             topicDiv.style.backgroundColor = topicColors.get(name); // Apply color
 
@@ -121,6 +113,7 @@ document.addEventListener("DOMContentLoaded", () => {
             removeBtn.classList.add("remove-topic");
             removeBtn.addEventListener("click", () => {
                 selectedTopics.delete(name);
+                pendingTopics.delete(name);
                 topicColors.delete(name);
                 updateSelectedTopics();
             });

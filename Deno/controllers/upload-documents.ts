@@ -1,5 +1,6 @@
 import { client } from "../data/denopost_conn.ts"; // Database connection
 import { ensureDir } from "https://deno.land/std@0.224.0/fs/mod.ts";
+import { Context } from "https://deno.land/x/oak@v12.6.1/mod.ts";
 
 interface DocumentResult {
     id: number;
@@ -13,13 +14,12 @@ interface AuthorResult {
     author_id: string;
 }
 
-export async function handleDocumentSubmission(req: Request): Promise<Response> {
+export async function handleDocumentSubmission(ctx: Context): Promise<void> {
     console.log("Received request: POST /submit-document");
 
     try {
-        const formData = await req.formData();
-        console.log("Full Form Data:", JSON.stringify(Object.fromEntries(formData.entries()), null, 2));
-
+        const formData = await ctx.request.body({ type: "form-data" }).value;
+        
         // Extract form values
         const title = formData.get("title")?.toString();
         const publicationDate = formData.get("publication_date")?.toString();
@@ -34,15 +34,16 @@ export async function handleDocumentSubmission(req: Request): Promise<Response> 
         let topics: string[] = [];
 
         try {
-            authors = JSON.parse(formData.get("author")?.toString() || "[]");
-            topics = JSON.parse(formData.get("topic")?.toString() || "[]");
+            const authorsStr = formData.get("authors")?.toString() || "[]";
+            const topicsStr = formData.get("topics")?.toString() || "[]";
+            authors = JSON.parse(authorsStr);
+            topics = JSON.parse(topicsStr);
             console.log("Parsed topics:", topics);
         } catch (error) {
             console.error("Error parsing authors or topics:", error);
-            return new Response(JSON.stringify({ message: "Invalid authors or topics format" }), {
-                status: 400,
-                headers: { "Content-Type": "application/json" },
-            });
+            ctx.response.status = 400;
+            ctx.response.body = { message: "Invalid authors or topics format" };
+            return;
         }
 
         console.log("Title:", title);
@@ -54,10 +55,9 @@ export async function handleDocumentSubmission(req: Request): Promise<Response> 
         // Validate required fields
         if (!title || !publicationDate || !volume || !department || !categoryName || !abstract || !file) {
             console.warn("Missing required fields");
-            return new Response(JSON.stringify({ message: "Missing required fields" }), {
-                status: 400,
-                headers: { "Content-Type": "application/json" },
-            });
+            ctx.response.status = 400;
+            ctx.response.body = { message: "Missing required fields" };
+            return;
         }
 
         // Start transaction
@@ -75,10 +75,9 @@ export async function handleDocumentSubmission(req: Request): Promise<Response> 
                     categoryId = categoryResult.rows[0].id;
                 } else {
                     await client.queryObject("ROLLBACK");
-                    return new Response(JSON.stringify({ message: "Category not found" }), {
-                        status: 400,
-                        headers: { "Content-Type": "application/json" },
-                    });
+                    ctx.response.status = 400;
+                    ctx.response.body = { message: "Category not found" };
+                    return;
                 }
             }
 
@@ -122,7 +121,7 @@ export async function handleDocumentSubmission(req: Request): Promise<Response> 
                 }
                 authorIds.push(authorId);
 
-                // Insert into document_authors junction table immediately after getting/creating the author
+                // Insert into document_authors junction table
                 await client.queryObject(
                     `INSERT INTO document_authors (document_id, author_id) 
                      VALUES ($1, $2)`,
@@ -133,7 +132,6 @@ export async function handleDocumentSubmission(req: Request): Promise<Response> 
 
             // Process topics
             for (const topicName of topics) {
-                // Check if topic exists or create new one
                 let topicResult = await client.queryObject<TopicResult>(
                     `INSERT INTO topics (topic_name) 
                      VALUES ($1) 
@@ -145,7 +143,6 @@ export async function handleDocumentSubmission(req: Request): Promise<Response> 
                 const topicId = topicResult.rows[0].id;
                 console.log(`Topic "${topicName}" has ID: ${topicId}`);
 
-                // Insert into document_topics junction table
                 await client.queryObject(
                     `INSERT INTO document_topics (document_id, topic_id) 
                      VALUES ($1, $2) 
@@ -157,15 +154,13 @@ export async function handleDocumentSubmission(req: Request): Promise<Response> 
 
             await client.queryObject("COMMIT");
 
-            return new Response(JSON.stringify({ 
+            ctx.response.status = 200;
+            ctx.response.body = { 
                 message: "Document uploaded and data inserted successfully!",
                 documentId: documentId,
                 topics: topics,
                 authors: authors
-            }), {
-                status: 200,
-                headers: { "Content-Type": "application/json" },
-            });
+            };
 
         } catch (error: unknown) {
             await client.queryObject("ROLLBACK");
@@ -175,9 +170,7 @@ export async function handleDocumentSubmission(req: Request): Promise<Response> 
     } catch (error: unknown) {
         console.error("Error processing form:", error);
         const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        return new Response(JSON.stringify({ message: "Internal Server Error", error: errorMessage }), {
-            status: 500,
-            headers: { "Content-Type": "application/json" },
-        });
+        ctx.response.status = 500;
+        ctx.response.body = { message: "Internal Server Error", error: errorMessage };
     }
 }

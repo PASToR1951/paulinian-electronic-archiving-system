@@ -1,0 +1,13 @@
+.create-topic {
+    color: #4CAF50;
+    cursor: pointer;
+}
+
+.create-topic-text {
+    font-weight: 500;
+}
+
+.pending-topic {
+    background-color: #4CAF50 !important;
+    color: white;
+} 

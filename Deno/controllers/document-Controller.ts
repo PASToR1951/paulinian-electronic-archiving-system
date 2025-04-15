@@ -44,6 +44,9 @@ export const fetchDocuments = async (req: Request): Promise<Response> => {
         const url = new URL(req.url);
         const category = url.searchParams.get('category');
         const volume = url.searchParams.get('volume');
+        const page = parseInt(url.searchParams.get('page') || '1');
+        const size = parseInt(url.searchParams.get('size') || '5');
+        const offset = (page - 1) * size;
         
         let query = `
             SELECT 
@@ -63,7 +66,8 @@ export const fetchDocuments = async (req: Request): Promise<Response> => {
                         )
                     ) FILTER (WHERE t.topic_name IS NOT NULL),
                     '[]'::json
-                ) as topics
+                ) as topics,
+                COUNT(*) OVER() as total_count
             FROM documents d
             LEFT JOIN categories c ON d.category_id = c.id
             LEFT JOIN document_authors da ON d.id = da.document_id
@@ -94,16 +98,23 @@ export const fetchDocuments = async (req: Request): Promise<Response> => {
             query += ` WHERE ${whereClause.join(' AND ')}`;
         }
 
+        // Get sort order from query parameters
+        const sortOrder = url.searchParams.get('sort') || 'latest';
+        const sortDirection = sortOrder === 'latest' ? 'DESC' : 'ASC';
+
         query += ` GROUP BY d.id, d.title, d.publication_date, d.file, d.volume, d.abstract, c.category_name
-                  ORDER BY d.publication_date DESC`;
+                  ORDER BY d.publication_date ${sortDirection}
+                  LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+
+        params.push(size, offset);
 
         console.log("Executing query:", query);
         console.log("Query parameters:", params);
 
-        const result = await client.queryObject<DocumentRow>(query, params);
+        const result = await client.queryObject<DocumentRow & { total_count: number }>(query, params);
         
         // Transform the result to ensure topics are properly formatted
-        const documents = result.rows.map((doc: DocumentRow) => ({
+        const documents = result.rows.map((doc) => ({
             id: doc.id,
             title: doc.title,
             publication_date: doc.publication_date,
@@ -115,7 +126,15 @@ export const fetchDocuments = async (req: Request): Promise<Response> => {
             topics: Array.isArray(doc.topics) ? doc.topics : []
         }));
 
-        return new Response(JSON.stringify(documents), {
+        // Convert BigInt total_count to number
+        const totalCount = Number(result.rows[0]?.total_count || 0);
+
+        return new Response(JSON.stringify({
+            documents,
+            totalCount,
+            currentPage: page,
+            totalPages: Math.ceil(totalCount / size)
+        }), {
             status: 200,
             headers: {
                 "Content-Type": "application/json"

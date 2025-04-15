@@ -84,10 +84,14 @@ async function setupVolumeDropdown(categoryElement, categoryName) {
         
         // Get documents for this category to determine available volumes
         const response = await fetch(`/api/documents${categoryName !== "All" ? `?category=${encodeURIComponent(categoryName)}` : ''}`);
+        
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
         }
-        const documents = await response.json();
+        
+        const responseData = await response.json();
+        const documents = responseData.documents || [];
         
         // Extract unique volumes from documents
         const volumes = new Set();
@@ -188,6 +192,7 @@ async function setupVolumeDropdown(categoryElement, categoryName) {
         });
     } catch (error) {
         console.error(`Error setting up volume dropdown for category ${categoryName}:`, error);
+        // Don't throw the error, just log it and continue
     }
 }
 
@@ -256,7 +261,7 @@ window.filterByCategory = function(categoryName) {
     updateFilterIndicator();
 }
 
-// Update the loadDocuments function to group documents by title
+// Update the loadDocuments function
 async function loadDocuments(page = 1) {
     try {
         let url = `/api/documents?page=${page}&size=${pageSize}`;
@@ -272,42 +277,34 @@ async function loadDocuments(page = 1) {
         }
         
         // Apply sort order
-        url += `&sort=${currentSortOrder}`;
+        url += `&sort=${encodeURIComponent(currentSortOrder)}`;
         
         console.log('Fetching documents from:', url);
         const response = await fetch(url);
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
         }
         
-        const responseData = await response.text();
-        const documents = JSON.parse(responseData);
+        const responseData = await response.json();
+        const { documents, totalCount, totalPages } = responseData;
         
-        // Group documents by title
-        const groupedDocuments = documents.reduce((acc, doc) => {
-            if (!acc[doc.title]) {
-                acc[doc.title] = [];
-            }
-            acc[doc.title].push(doc);
-            return acc;
-        }, {});
-
-        // Sort each group by volume
-        Object.values(groupedDocuments).forEach(group => {
-            group.sort((a, b) => {
-                const volA = parseInt(a.volume) || 0;
-                const volB = parseInt(b.volume) || 0;
-                return volA - volB;
-            });
-        });
+        // Update total entries
+        totalEntries = totalCount;
         
-        let documentsToDisplay = Object.values(groupedDocuments).map(group => group[0]); // Take first document from each group
+        // Update current page
+        currentPage = page;
         
         const tbody = document.querySelector("#docs-table tbody");
+        if (!tbody) {
+            console.error("Table body not found");
+            return;
+        }
+        
         tbody.innerHTML = "";
 
-        if (documentsToDisplay.length === 0) {
+        if (documents.length === 0) {
             let filterMessage = '';
             if (currentCategoryFilter && currentCategoryFilter !== "All") {
                 filterMessage += ` in category "${currentCategoryFilter}"`;
@@ -325,15 +322,8 @@ async function loadDocuments(page = 1) {
             return;
         }
 
-        // Filter documents by category on the client side
-        if (currentCategoryFilter && currentCategoryFilter !== "All") {
-            documentsToDisplay = documentsToDisplay.filter(doc => 
-                doc.category_name && 
-                doc.category_name.toLowerCase() === currentCategoryFilter.toLowerCase()
-            );
-        }
-
-        documentsToDisplay.forEach(doc => {
+        // Display documents
+        documents.forEach(doc => {
             const row = document.createElement("tr");
             row.className = "document-card";
             row.setAttribute('data-category', doc.category_name || '');
@@ -369,12 +359,6 @@ async function loadDocuments(page = 1) {
             if (doc.publication_date) {
                 headerContent += ` | <span class="doc-year">${new Date(doc.publication_date).getFullYear()}</span>`;
             }
-
-            // Add volume count badge if there are multiple volumes
-            const volumeCount = groupedDocuments[doc.title].length;
-            if (volumeCount > 1) {
-                headerContent += ` <span class="volume-count-badge">${volumeCount} Volumes</span>`;
-            }
             
             infoCell.innerHTML = `
                 <div class="doc-header">
@@ -396,136 +380,19 @@ async function loadDocuments(page = 1) {
                 if (e.target.closest('.action-buttons')) {
                     return;
                 }
-
-                // Check if there's an existing dropdown for this row
-                const existingDropdown = document.querySelector('.similar-docs-dropdown');
-                if (existingDropdown) {
-                    // If clicking the same row that has the dropdown open, close it
-                    const rowRect = row.getBoundingClientRect();
-                    const dropdownTop = parseInt(existingDropdown.style.top) - window.scrollY;
-                    if (Math.abs(dropdownTop - rowRect.bottom) < 2) { // Using small threshold for floating point differences
-                        existingDropdown.remove();
-                        return;
-                    }
-                }
-
-                // Remove any existing dropdowns
-                document.querySelectorAll('.similar-docs-dropdown').forEach(dropdown => {
-                    dropdown.remove();
-                });
-
-                const similarDocs = groupedDocuments[doc.title];
-                const dropdownContainer = document.createElement('div');
-                dropdownContainer.className = 'similar-docs-dropdown';
-                
-                const listContainer = document.createElement('div');
-                listContainer.className = 'similar-docs-list';
-                
-                // For single volume documents, just show the current document
-                const docsToShow = similarDocs || [doc];
-                
-                docsToShow.forEach(similarDoc => {
-                    const docItem = document.createElement('div');
-                    docItem.className = 'similar-doc-item';
-                    
-                    const categoryIcon = getCategoryIcon(similarDoc.category_name);
-                    
-                    docItem.innerHTML = `
-                        <div class="doc-icon">
-                            <img src="${categoryIcon}" alt="${similarDoc.category_name} Icon">
-                        </div>
-                        <div class="doc-info">
-                            <div class="doc-header">
-                                <span class="doc-title">${similarDoc.title || 'Untitled'}</span>
-                                ${similarDoc.volume ? `<span class="doc-volume">Volume ${similarDoc.volume}</span>` : ''}
-                                <span class="doc-author">${similarDoc.author_names ? similarDoc.author_names.join(', ') : 'No Author'}</span>
-                                <span class="doc-year">${new Date(similarDoc.publication_date).getFullYear()}</span>
-                            </div>
-                            <div class="doc-tags">
-                                <span class="tag document-type">${similarDoc.category_name || 'Uncategorized'}</span>
-                                ${getTopicsHtml(similarDoc)}
-                            </div>
-                        </div>
-                        <div class="actions">
-                            <div class="action-buttons">
-                                <a href="#" class="view-icon" title="View Document">
-                                    👁️ <span>View</span>
-                                </a>
-                                <a href="#" class="edit-icon" title="Edit Document">
-                                    ✏️ <span>Edit</span>
-                                </a>
-                                <a href="#" class="delete-icon" title="Delete Document">
-                                    🗑️
-                                </a>
-                            </div>
-                        </div>
-                    `;
-                    
-                    // Add event listeners for buttons
-                    const viewButton = docItem.querySelector('.view-icon');
-                    viewButton.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        showDocumentPreview(similarDoc);
-                    });
-                    
-                    const editButton = docItem.querySelector('.edit-icon');
-            editButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                        editDocument(similarDoc.document_id || similarDoc.id);
-            });
-            
-                    const deleteButton = docItem.querySelector('.delete-icon');
-            deleteButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                        openDeleteConfirmation(similarDoc);
-                    });
-                    
-                    listContainer.appendChild(docItem);
-                });
-                
-                dropdownContainer.appendChild(listContainer);
-                
-                // Position the dropdown
-                const table = document.querySelector('#docs-table');
-                const tableRect = table.getBoundingClientRect();
-                const rowRect = row.getBoundingClientRect();
-                
-                dropdownContainer.style.position = 'absolute';
-                dropdownContainer.style.top = `${rowRect.bottom + window.scrollY}px`;
-                dropdownContainer.style.left = `${tableRect.left}px`;
-                dropdownContainer.style.width = `${tableRect.width}px`;
-                dropdownContainer.style.zIndex = '1000';
-                
-                // Add to document body
-                document.body.appendChild(dropdownContainer);
-                
-                // Close dropdown when clicking outside
-                const closeDropdown = (event) => {
-                    if (!dropdownContainer.contains(event.target) && !row.contains(event.target)) {
-                        dropdownContainer.remove();
-                        document.removeEventListener('click', closeDropdown);
-                    }
-                };
-                
-                // Add event listener with a slight delay
-                setTimeout(() => {
-                    document.addEventListener('click', closeDropdown);
-                }, 100);
+                showDocumentPreview(doc);
             });
             
             tbody.appendChild(row);
         });
 
-        totalEntries = documentsToDisplay.length;
+        // Update pagination UI
         updatePagination();
     } catch (error) {
         console.error("Error loading documents:", error);
         const tbody = document.querySelector("#docs-table tbody");
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="5" class="empty-message">Error loading documents</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="empty-message">Error loading documents: ${error.message}</td></tr>`;
         }
     }
 }
@@ -563,6 +430,7 @@ function getCategoryIcon(categoryName) {
     return '/admin/Components/icons/Category-icons/default_category_icon.png';
 }
 
+// Update the updatePagination function
 function updatePagination() {
     const totalPages = Math.ceil(totalEntries / pageSize);
     const entriesInfo = document.getElementById("entries-info");
@@ -585,15 +453,14 @@ function updatePagination() {
     prevButton.disabled = currentPage === 1;
     prevButton.addEventListener("click", () => {
         if (currentPage > 1) {
-            currentPage--;
-            loadDocuments(currentPage);
+            loadDocuments(currentPage - 1);
         }
     });
     pageLinks.appendChild(prevButton);
 
     // Page numbers
     let startPage = Math.max(1, currentPage - 2);
-    let endPage = Math.min(totalPages || 1, startPage + 4);
+    let endPage = Math.min(totalPages, startPage + 4);
 
     // Adjust start page if we're near the end
     if (endPage - startPage < 4) {
@@ -633,34 +500,23 @@ function updatePagination() {
     // Next button
     const nextButton = document.createElement("button");
     nextButton.textContent = "next >";
-    nextButton.className = "pagination-btn next-button" + (currentPage === (totalPages || 1) ? " disabled" : "");
-    nextButton.disabled = currentPage === (totalPages || 1);
+    nextButton.className = "pagination-btn next-button" + (currentPage === totalPages ? " disabled" : "");
+    nextButton.disabled = currentPage === totalPages;
     nextButton.addEventListener("click", () => {
         if (currentPage < totalPages) {
-            currentPage++;
-            loadDocuments(currentPage);
+            loadDocuments(currentPage + 1);
         }
     });
     pageLinks.appendChild(nextButton);
-
-    // Add additional styles to ensure consistent display
-    pageLinks.style.display = 'flex';
-    pageLinks.style.justifyContent = 'center';
-    pageLinks.style.marginTop = '20px';
-    entriesInfo.style.display = 'block';
-    entriesInfo.style.textAlign = 'center';
-    entriesInfo.style.marginBottom = '10px';
 }
 
-// Helper function to create page number buttons
 function createPageButton(pageNum) {
     const button = document.createElement("button");
     button.textContent = pageNum;
     button.className = "pagination-btn page-number" + (pageNum === currentPage ? " active" : "");
     button.addEventListener("click", () => {
         if (pageNum !== currentPage) {
-            currentPage = pageNum;
-            loadDocuments(currentPage);
+            loadDocuments(pageNum);
         }
     });
     return button;
@@ -1626,13 +1482,6 @@ function setupCategoryFilters() {
     }
 }
 
-// Setup pagination
-function setupPagination() {
-    console.log("Setting up pagination");
-    // This is a placeholder for pagination setup
-    // Implement pagination functionality as needed
-}
-
 // Setup search functionality
 function setupSearch() {
     console.log("Setting up search functionality");
@@ -1680,8 +1529,9 @@ function setupSort() {
     const sortDropdown = document.getElementById('sort-order');
     if (sortDropdown) {
         sortDropdown.addEventListener('change', (event) => {
-            currentSortOrder = event.target.value;
-            currentPage = 1; // Reset to first page when sort changes
+            console.log('Sort order changed to:', event.target.value);
+            currentSortOrder = event.target.value; // Update the current sort order
+            currentPage = 1; // Reset to first page
             loadDocuments(currentPage);
         });
     }
@@ -2161,4 +2011,69 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Setup pagination
+function setupPagination() {
+    console.log("Setting up pagination");
+    const pageLinks = document.getElementById("page-links");
+    const entriesInfo = document.getElementById("entries-info");
+    
+    if (!pageLinks || !entriesInfo) {
+        console.error("Pagination elements not found");
+        return;
+    }
+    
+    // Add pagination styles
+    const style = document.createElement('style');
+    style.textContent = `
+        #page-links {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+        
+        .pagination-btn {
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            background-color: white;
+            color: #333;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        
+        .pagination-btn:hover:not(.disabled):not(.active) {
+            background-color: #f5f5f5;
+            border-color: #1976d2;
+        }
+        
+        .pagination-btn.active {
+            background-color: #1976d2;
+            color: white;
+            border-color: #1976d2;
+        }
+        
+        .pagination-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .pagination-ellipsis {
+            color: #666;
+            padding: 0 4px;
+        }
+        
+        #entries-info {
+            text-align: center;
+            color: #666;
+            margin-bottom: 10px;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Initial pagination update
+    updatePagination();
+}
 
