@@ -380,7 +380,115 @@ async function loadDocuments(page = 1) {
                 if (e.target.closest('.action-buttons')) {
                     return;
                 }
-                showDocumentPreview(doc);
+
+                // Check if there's an existing dropdown for this row
+                const existingDropdown = document.querySelector('.similar-docs-dropdown');
+                if (existingDropdown) {
+                    // If clicking the same row that has the dropdown open, close it
+                    const rowRect = row.getBoundingClientRect();
+                    const dropdownTop = parseInt(existingDropdown.style.top) - window.scrollY;
+                    if (Math.abs(dropdownTop - rowRect.bottom) < 2) { // Using small threshold for floating point differences
+                        existingDropdown.remove();
+                        return;
+                    }
+                }
+
+                // Remove any existing dropdowns
+                document.querySelectorAll('.similar-docs-dropdown').forEach(dropdown => {
+                    dropdown.remove();
+                });
+
+                const dropdownContainer = document.createElement('div');
+                dropdownContainer.className = 'similar-docs-dropdown';
+                
+                const listContainer = document.createElement('div');
+                listContainer.className = 'similar-docs-list';
+                
+                const docItem = document.createElement('div');
+                docItem.className = 'similar-doc-item';
+                
+                docItem.innerHTML = `
+                    <div class="doc-icon">
+                        <img src="${categoryIcon}" alt="${doc.category_name} Icon">
+                    </div>
+                    <div class="doc-info">
+                        <div class="doc-header">
+                            <span class="doc-title">${doc.title || 'Untitled'}</span>
+                            ${doc.volume ? `<span class="doc-volume">Volume ${doc.volume}</span>` : ''}
+                            <span class="doc-author">${authorDisplay}</span>
+                            <span class="doc-year">${new Date(doc.publication_date).getFullYear()}</span>
+                        </div>
+                        <div class="doc-tags">
+                            <span class="tag document-type">${doc.category_name || 'Uncategorized'}</span>
+                            ${getTopicsHtml(doc)}
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <div class="action-buttons">
+                            <a href="#" class="view-icon" title="View Document">
+                                👁️ <span>View</span>
+                            </a>
+                            <a href="#" class="edit-icon" title="Edit Document">
+                                ✏️ <span>Edit</span>
+                            </a>
+                            <a href="#" class="delete-icon" title="Delete Document">
+                                🗑️
+                            </a>
+                        </div>
+                    </div>
+                `;
+                
+                // Add event listeners for buttons
+                const viewButton = docItem.querySelector('.view-icon');
+                viewButton.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showDocumentPreview(doc);
+                });
+                
+                const editButton = docItem.querySelector('.edit-icon');
+                editButton.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    editDocument(doc.id || doc.document_id);
+                });
+                
+                const deleteButton = docItem.querySelector('.delete-icon');
+                deleteButton.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openDeleteConfirmation(doc);
+                });
+                
+                listContainer.appendChild(docItem);
+                dropdownContainer.appendChild(listContainer);
+                
+                // Position the dropdown
+                const table = document.querySelector('#docs-table');
+                const tableRect = table.getBoundingClientRect();
+                const rowRect = row.getBoundingClientRect();
+                
+                dropdownContainer.style.position = 'absolute';
+                dropdownContainer.style.top = `${rowRect.bottom + window.scrollY}px`;
+                dropdownContainer.style.left = `${tableRect.left}px`;
+                dropdownContainer.style.width = `${tableRect.width}px`;
+                dropdownContainer.style.zIndex = '1000';
+                
+                // Add to document body
+                document.body.appendChild(dropdownContainer);
+                
+                // Close dropdown when clicking outside
+                const closeDropdown = (event) => {
+                    if (!dropdownContainer.contains(event.target) && !row.contains(event.target)) {
+                        dropdownContainer.remove();
+                        document.removeEventListener('click', closeDropdown);
+                    }
+                };
+                
+                // Add event listener with a slight delay
+                setTimeout(() => {
+                    document.addEventListener('click', closeDropdown);
+                }, 100);
             });
             
             tbody.appendChild(row);
