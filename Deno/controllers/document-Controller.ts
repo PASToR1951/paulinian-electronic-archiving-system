@@ -1,5 +1,5 @@
 import { client } from "../data/denopost_conn.ts";
-import { Request } from "https://deno.land/x/oak@v17.1.4/request.ts";
+import { Request } from "https://deno.land/x/oak@v12.6.1/request.ts";
 
 interface DocumentRow {
     id: number;
@@ -11,6 +11,10 @@ interface DocumentRow {
     category_name: string;
     author_names: string[];
     topics: Array<{ topic_name: string; topic_id: number; }>;
+}
+
+interface VolumeRow {
+    volume: string;
 }
 
 // Fetch categories
@@ -159,10 +163,10 @@ export const fetchVolumesByCategory = async (req: Request): Promise<Response> =>
             ORDER BY d.volume
         `;
         
-        const result = await client.queryObject(query, [category]);
+        const result = await client.queryObject<VolumeRow>(query, [category]);
         
         // Extract volumes from result
-        const volumes = result.rows.map((row: { volume: string }) => row.volume);
+        const volumes = result.rows.map((row: VolumeRow) => row.volume);
         
         return new Response(JSON.stringify(volumes), {
             headers: { "Content-Type": "application/json" },

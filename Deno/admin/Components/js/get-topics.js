@@ -1,5 +1,6 @@
 const selectedTopics = new Set(); // Store selected topics
 const topicColors = new Map(); // Store assigned colors for topics
+const pendingTopics = new Set(); // Store topics that haven't been added to the database yet
 
 document.addEventListener("DOMContentLoaded", () => {
     const topicInput = document.getElementById("topicInput");
@@ -41,8 +42,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (data.length === 0) {
                     // If no topics found, show option to create new topic
                     topicList.innerHTML = `
-                        <div class='dropdown-item' onclick="createNewTopic('${query}')">
-                            Create new topic: "${query}"
+                        <div class='dropdown-item create-topic' onclick="createNewTopic('${query}')">
+                            <span class="create-topic-text">Create new topic: "${query}"</span>
                         </div>`;
                 } else {
                     data.forEach(topic => {
@@ -83,27 +84,10 @@ document.addEventListener("DOMContentLoaded", () => {
         topicList.innerHTML = ""; // Hide dropdown list
     };
 
-    window.createNewTopic = async function(topicName) {
-        try {
-            const response = await fetch('/api/topics', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ topic_name: topicName }),
-                credentials: 'include'
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to create topic');
-            }
-
-            const newTopic = await response.json();
-            selectTopic(newTopic.topic_name);
-        } catch (error) {
-            console.error('Error creating topic:', error);
-            topicList.innerHTML = "<div class='dropdown-item text-danger'>Error creating topic</div>";
-        }
+    window.createNewTopic = function(topicName) {
+        // Add to pending topics and select it
+        pendingTopics.add(topicName);
+        selectTopic(topicName);
     };
 
     function updateSelectedTopics() {
@@ -112,6 +96,12 @@ document.addEventListener("DOMContentLoaded", () => {
         selectedTopics.forEach(name => {
             const topicDiv = document.createElement("div");
             topicDiv.classList.add("selected-topic");
+            
+            // Add a visual indicator for pending topics
+            if (pendingTopics.has(name)) {
+                topicDiv.classList.add("pending-topic");
+            }
+            
             topicDiv.textContent = name;
             topicDiv.style.backgroundColor = topicColors.get(name); // Apply color
 
@@ -122,6 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
             removeBtn.addEventListener("click", () => {
                 selectedTopics.delete(name);
                 topicColors.delete(name);
+                pendingTopics.delete(name);
                 updateSelectedTopics();
             });
 

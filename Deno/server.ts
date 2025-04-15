@@ -1,6 +1,5 @@
-import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
+import { Application, Router, send } from "https://deno.land/x/oak@v12.6.1/mod.ts";
 import { load } from "https://deno.land/std@0.218.2/dotenv/mod.ts";
-import { serveFile } from "https://deno.land/std@0.218.2/http/file_server.ts";
 import { handleLoginRequest } from "./routes/login.ts";
 import { handleLogout } from "./routes/logout.ts";
 import { handleSidebar } from "./routes/side_bar.ts";
@@ -25,8 +24,10 @@ import { join } from "https://deno.land/std@0.218.2/path/mod.ts";
 const env = await load({ envPath: "./.env" });
 console.log("Loaded Environment Variables:", env);
 
-const PORT = 8000;
+const app = new Application();
+const router = new Router();
 
+<<<<<<< Updated upstream
 // Create Oak application
 const app = new Application();
 const router = new Router();
@@ -210,3 +211,157 @@ app.use(documentsRouter.allowedMethods());
 // Start the server
 console.log("Server running on http://localhost:8000");
 await app.listen({ port: 8000 });
+=======
+// CORS middleware
+app.use(async (ctx, next) => {
+  ctx.response.headers.set("Access-Control-Allow-Origin", "http://localhost:3003");
+  ctx.response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  ctx.response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, Cache-Control");
+  ctx.response.headers.set("Access-Control-Allow-Credentials", "true");
+  
+  if (ctx.request.method === "OPTIONS") {
+    ctx.response.status = 204;
+    return;
+  }
+  
+  await next();
+});
+
+// Auth middleware for protected routes
+app.use(async (ctx, next) => {
+  const protectedRoutes = [
+    "/admin/dashboard.html",
+    "/api/authors",
+    "/api/topics",
+    "/api/documents",
+    "/api/categories",
+    "/api/volumes"
+  ];
+
+  if (protectedRoutes.some(route => ctx.request.url.pathname.startsWith(route))) {
+    const isAuthenticated = await checkAuth(ctx.request);
+    if (!isAuthenticated) {
+      ctx.response.status = 302;
+      ctx.response.headers.set("Location", "/index.html");
+      ctx.response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0");
+      ctx.response.headers.set("Pragma", "no-cache");
+      ctx.response.headers.set("Expires", "0");
+      return;
+    }
+  }
+  
+  await next();
+});
+
+// API Routes
+router.post("/login", handleLoginRequest);
+router.get("/logout", handleLogout);
+router.get("/sidebar", handleSidebar);
+
+// Authors API
+router.get("/api/authors", async (ctx) => {
+  const response = await searchAuthors(ctx.request);
+  ctx.response.body = await response.json();
+  ctx.response.status = response.status;
+  ctx.response.headers = response.headers;
+});
+
+router.post("/api/authors", async (ctx) => {
+  const response = await handleCreateAuthor(ctx.request);
+  ctx.response.body = await response.json();
+  ctx.response.status = response.status;
+  ctx.response.headers = response.headers;
+});
+
+router.get("/api/authors/:id", async (ctx) => {
+  const response = await handleGetAuthorById(ctx.params.id);
+  ctx.response.body = await response.json();
+  ctx.response.status = response.status;
+  ctx.response.headers = response.headers;
+});
+
+router.put("/api/authors/:id", async (ctx) => {
+  const response = await handleUpdateAuthor(ctx.params.id, ctx.request);
+  ctx.response.body = await response.json();
+  ctx.response.status = response.status;
+  ctx.response.headers = response.headers;
+});
+
+router.delete("/api/authors/:id", async (ctx) => {
+  const response = await handleDeleteAuthor(ctx.params.id);
+  ctx.response.body = await response.json();
+  ctx.response.status = response.status;
+  ctx.response.headers = response.headers;
+});
+
+router.get("/api/authors/:id/documents", async (ctx) => {
+  const response = await handleGetDocumentsByAuthor(parseInt(ctx.params.id));
+  ctx.response.body = await response.json();
+  ctx.response.status = response.status;
+  ctx.response.headers = response.headers;
+});
+
+// Document submission
+router.post("/api/submit-document", async (ctx) => {
+  const response = await handleDocumentSubmission(ctx.request);
+  ctx.response.body = await response.json();
+  ctx.response.status = response.status;
+  ctx.response.headers = response.headers;
+});
+
+// Static file serving
+router.get("/", async (ctx) => {
+  await send(ctx, "index.html", {
+    root: `${Deno.cwd()}/public`,
+  });
+});
+
+router.get("/log-in.html", async (ctx) => {
+  await send(ctx, "log-in.html", {
+    root: `${Deno.cwd()}/public`,
+  });
+});
+
+// Admin routes
+router.get("/admin/dashboard.html", async (ctx) => {
+  await send(ctx, "dashboard.html", {
+    root: `${Deno.cwd()}/admin`,
+  });
+});
+
+// Static files
+router.get("/public/:path+", async (ctx) => {
+  await send(ctx, ctx.params.path, {
+    root: `${Deno.cwd()}/public`,
+  });
+});
+
+router.get("/components/:path+", async (ctx) => {
+  await send(ctx, ctx.params.path, {
+    root: `${Deno.cwd()}/public/components`,
+  });
+});
+
+router.get("/images/:path+", async (ctx) => {
+  await send(ctx, ctx.params.path, {
+    root: `${Deno.cwd()}/public/images`,
+  });
+});
+
+// Error handling
+app.use(async (ctx, next) => {
+  try {
+    await next();
+  } catch (err) {
+    console.error("Error:", err);
+    ctx.response.status = 500;
+    ctx.response.body = { error: "Internal server error" };
+  }
+});
+
+app.use(router.routes());
+app.use(router.allowedMethods());
+
+console.log("Server running on http://localhost:8000");
+await app.listen({ port: 8000 });
+>>>>>>> Stashed changes

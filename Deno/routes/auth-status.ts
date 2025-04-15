@@ -1,5 +1,5 @@
-import { Router } from "https://deno.land/x/oak/mod.ts";
-import { getToken } from "./session.ts";
+import { Router } from "https://deno.land/x/oak@v12.6.1/mod.ts";
+import { client } from "../data/denopost_conn.ts";
 
 const router = new Router();
 
@@ -12,16 +12,26 @@ router.get("/auth-status", async (context) => {
         return;
     }
 
-    const session = await (await getToken(token));
+    try {
+        // Query the database to check if token exists
+        const result = await client.queryObject<{ user_id: string; user_role: string }>(
+            "SELECT user_id, user_role FROM tokens WHERE token = $1",
+            [token]
+        );
 
-    if (!session) {
-        console.log(`Invalid token: ${token}`);
+        if (result.rows.length === 0) {
+            console.log(`Invalid token: ${token}`);
+            context.response.body = { role: null };
+            return;
+        }
+
+        const { user_role } = result.rows[0];
+        console.log(`Authenticated as: ${user_role}`);
+        context.response.body = { role: user_role };
+    } catch (error) {
+        console.error("Error checking auth status:", error);
         context.response.body = { role: null };
-        return;
     }
-
-    console.log(`Authenticated as: ${session.user_role}`);
-    context.response.body = { role: session.user_role };
 });
 
 export default router;

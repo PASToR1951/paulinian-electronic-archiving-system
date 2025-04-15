@@ -1,0 +1,25 @@
+.pending-topic {
+    border: 2px solid #28a745;
+    position: relative;
+}
+
+.pending-topic::after {
+    content: "New";
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: #28a745;
+    color: white;
+    font-size: 10px;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.create-topic {
+    color: #28a745;
+    font-weight: 500;
+}
+
+.create-topic:hover {
+    background-color: #e8f5e9;
+} 

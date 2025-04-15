@@ -1,7 +1,7 @@
-import { Router } from "https://deno.land/x/oak@v17.1.4/mod.ts";
-import type { RouterContext } from "https://deno.land/x/oak@v17.1.4/router.ts";
-import { helpers } from "https://deno.land/x/oak@v17.1.4/mod.ts";
-import { Response } from "https://deno.land/x/oak@v17.1.4/response.ts";
+import { Router } from "https://deno.land/x/oak@v12.6.1/mod.ts";
+import type { RouterContext } from "https://deno.land/x/oak@v12.6.1/router.ts";
+import { helpers } from "https://deno.land/x/oak@v12.6.1/mod.ts";
+import { Response } from "https://deno.land/x/oak@v12.6.1/response.ts";
 import { fetchCategories, fetchDocuments, fetchVolumesByCategory } from "../controllers/document-Controller.ts";
 import { client } from "../data/denopost_conn.ts";
 
@@ -18,7 +18,13 @@ documentsRouter.get("/api/categories", async (ctx) => {
 // Documents endpoint
 documentsRouter.get("/api/documents", async (ctx: RouterContext<"/api/documents">) => {
     try {
-        const response = await fetchDocuments(ctx.request);
+        // Create a native Request object from the Oak context
+        const request = new Request(ctx.request.url, {
+            method: ctx.request.method,
+            headers: ctx.request.headers,
+        });
+        
+        const response = await fetchDocuments(request);
         const responseData = await response.text();
         const documents = JSON.parse(responseData);
         
@@ -45,8 +51,19 @@ documentsRouter.get("/api/documents", async (ctx: RouterContext<"/api/documents"
 });
 
 // Volumes endpoint
+<<<<<<< Updated upstream
 documentsRouter.get("/api/volumes", async (ctx) => {
     const response = await fetchVolumesByCategory(ctx.request);
+=======
+router.get("/api/volumes", async (ctx) => {
+    // Create a native Request object from the Oak context
+    const request = new Request(ctx.request.url, {
+        method: ctx.request.method,
+        headers: ctx.request.headers,
+    });
+    
+    const response = await fetchVolumesByCategory(request);
+>>>>>>> Stashed changes
     ctx.response.body = await response.json();
     ctx.response.status = response.status;
     ctx.response.headers = response.headers;

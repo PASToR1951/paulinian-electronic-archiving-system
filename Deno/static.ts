@@ -1,54 +1,82 @@
-import { serve } from "https://deno.land/std@0.218.2/http/server.ts";
-import { serveDir } from "https://deno.land/std@0.218.2/http/file_server.ts";
+import { Application, Router, send } from "https://deno.land/x/oak@v12.6.1/mod.ts";
 
-async function handler(req: Request): Promise<Response> {
-    const url = new URL(req.url);
+const app = new Application();
+const router = new Router();
 
-    // Serve root `/` with `/public/index.html`
-    if (url.pathname === "/") {
-        try {
-            const file = await Deno.readFile("./public/index.html");
-            return new Response(file, { status: 200, headers: { "Content-Type": "text/html" } });
-        } catch (error) {
-            console.error(" Error serving index.html:", error);
-            return new Response("Error loading homepage", { status: 500 });
-        }
-    }
+// Root path
+router.get("/", async (ctx) => {
+  await send(ctx, "index.html", {
+    root: `${Deno.cwd()}/public`,
+  });
+});
 
-    // Serve /log-in.html directly
-    if (url.pathname === "/log-in.html") {
-        try {
-            const file = await Deno.readFile("./public/log-in.html");
-            return new Response(file, { status: 200, headers: { "Content-Type": "text/html" } });
-        } catch (error) {
-            console.error("Error serving log-in.html:", error);
-            return new Response("Error loading login page", { status: 500 });
-        }
-    }
+// Log-in page
+router.get("/log-in.html", async (ctx) => {
+  await send(ctx, "log-in.html", {
+    root: `${Deno.cwd()}/public`,
+  });
+});
 
-    // Serve /public files (including other static files)
-    if (url.pathname.startsWith("/public/")) {
-        return serveDir(req, { fsRoot: "./public", showDirListing: false });
-    }
+// Public files
+router.get("/public/:path+", async (ctx) => {
+  const path = ctx.params.path;
+  if (!path) {
+    ctx.response.status = 404;
+    ctx.response.body = "Not Found";
+    return;
+  }
+  await send(ctx, path, {
+    root: `${Deno.cwd()}/public`,
+  });
+});
 
-    // Serve /components files correctly from /public/components
-    if (url.pathname.startsWith("/components/")) {
-        return serveDir(req, { fsRoot: "./public", showDirListing: false });
-    }
+// Components
+router.get("/components/:path+", async (ctx) => {
+  const path = ctx.params.path;
+  if (!path) {
+    ctx.response.status = 404;
+    ctx.response.body = "Not Found";
+    return;
+  }
+  await send(ctx, path, {
+    root: `${Deno.cwd()}/public/components`,
+  });
+});
 
-    // Serve other static assets like CSS, JS, and images
-    if (url.pathname.startsWith("/css/") || url.pathname.startsWith("/js/") || url.pathname.startsWith("/images/")) {
-        return serveDir(req, { fsRoot: "./public", showDirListing: false });
-    }
+// Static assets
+router.get("/:path+", async (ctx) => {
+  const path = ctx.params.path;
+  if (!path) {
+    ctx.response.status = 404;
+    ctx.response.body = "Not Found";
+    return;
+  }
+  if (path.endsWith(".css") || path.endsWith(".js") || path.endsWith(".png") || 
+      path.endsWith(".jpg") || path.endsWith(".jpeg") || path.endsWith(".svg")) {
+    await send(ctx, path, {
+      root: `${Deno.cwd()}/public`,
+    });
+  } else {
+    ctx.response.status = 404;
+    ctx.response.body = "Not Found";
+  }
+});
 
-    // Serve admin files from /admin
-    if (url.pathname.startsWith("/admin/")) {
-        return serveDir(req, { fsRoot: "./admin", showDirListing: false });
-    }
+// Admin files
+router.get("/admin/:path+", async (ctx) => {
+  const path = ctx.params.path;
+  if (!path) {
+    ctx.response.status = 404;
+    ctx.response.body = "Not Found";
+    return;
+  }
+  await send(ctx, path, {
+    root: `${Deno.cwd()}/admin`,
+  });
+});
 
-    console.log(` 404 Not Found: ${url.pathname}`);
-    return new Response("Not Found", { status: 404 });
-}
+app.use(router.routes());
+app.use(router.allowedMethods());
 
-console.log("Static File Server running on http://localhost:8080");
-await serve(handler, { port: 8080 });
+console.log("Static file server running on http://localhost:8001");
+await app.listen({ port: 8001 });
