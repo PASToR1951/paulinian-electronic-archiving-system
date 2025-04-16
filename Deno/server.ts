@@ -423,6 +423,11 @@ async function handler(req: Request): Promise<Response> {
         else if (filePath.startsWith("/images/") || filePath.startsWith("/components/images/")) {
             filePath = `/public${filePath}`;
         }
+        // Handle filepathpdf directory
+        else if (filePath.startsWith("/filepathpdf/")) {
+            const fileName = filePath.replace("/filepathpdf/", "");
+            return await serveFile(req, `./filepathpdf/${fileName}`);
+        }
         // Handle other public files
         else if (!filePath.startsWith("/public/")) {
             filePath = `/public${filePath}`;

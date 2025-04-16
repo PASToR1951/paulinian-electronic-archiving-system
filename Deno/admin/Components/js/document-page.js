@@ -288,7 +288,10 @@ async function loadDocuments(page = 1) {
         }
         
         const responseData = await response.json();
+        console.log('API Response:', responseData); // Debug log the entire response
+        
         const { documents, totalCount, totalPages } = responseData;
+        console.log('Documents received:', documents); // Debug log the documents array
         
         // Update total entries
         totalEntries = totalCount;
@@ -304,7 +307,7 @@ async function loadDocuments(page = 1) {
         
         tbody.innerHTML = "";
 
-        if (documents.length === 0) {
+        if (!documents || documents.length === 0) {
             let filterMessage = '';
             if (currentCategoryFilter && currentCategoryFilter !== "All") {
                 filterMessage += ` in category "${currentCategoryFilter}"`;
@@ -324,6 +327,7 @@ async function loadDocuments(page = 1) {
 
         // Display documents
         documents.forEach(doc => {
+            console.log('Processing document:', doc); // Debug log each document
             const row = document.createElement("tr");
             row.className = "document-card";
             row.setAttribute('data-category', doc.category_name || '');
@@ -443,7 +447,21 @@ async function loadDocuments(page = 1) {
                 viewButton.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    showDocumentPreview(doc);
+                    
+                    // Debug log the entire document object
+                    console.log('Document object:', doc);
+                    
+                    // Get the file path from the correct property
+                    const filePath = doc.file_path || doc.file || doc.filepath || doc.document_path;
+                    console.log('Document file path:', filePath);
+                    
+                    if (!filePath) {
+                        console.error('No file path found in document:', doc);
+                        alert('Error: Could not find the document file.');
+                        return;
+                    }
+                    
+                    openPdfModal(doc.title, filePath);
                 });
                 
                 const editButton = docItem.querySelector('.edit-icon');
@@ -1250,9 +1268,10 @@ async function showDocumentPreview(doc) {
         // Set up read document button
         const readButton = document.getElementById('preview-read-btn');
         if (readButton) {
-            const filePath = data.file || doc.file;
-            if (filePath) {
-                readButton.href = filePath;
+            const pdfUrl = `/documents/${doc.file_path}`;
+            console.log('Document file path from preview:', doc.file_path);
+            if (pdfUrl) {
+                readButton.href = pdfUrl;
                 readButton.style.display = 'inline-block';
             } else {
                 readButton.style.display = 'none';
@@ -2183,5 +2202,195 @@ function setupPagination() {
     
     // Initial pagination update
     updatePagination();
+}
+
+function openPdfModal(doc, filePath) {
+    console.log('Opening PDF modal with document:', doc);
+    
+    // Get the modal and iframe elements
+    const modal = document.getElementById('pdf-modal');
+    const iframe = document.getElementById('pdf-viewer');
+    const modalTitle = document.getElementById('pdf-modal-title');
+    
+    if (!modal || !iframe) {
+        console.error('PDF viewer elements not found');
+        return;
+    }
+
+    // Set the modal title
+    if (typeof doc === 'object' && doc.title) {
+        modalTitle.textContent = doc.title;
+    } else if (typeof doc === 'string') {
+        modalTitle.textContent = doc;
+    }
+
+    // Get the file path
+    let pdfPath = filePath;
+    if (!pdfPath && typeof doc === 'object') {
+        pdfPath = doc.file;
+    }
+
+    if (!pdfPath) {
+        console.error('No file path found for document:', doc);
+        alert('Error: Document file path is missing.');
+        return;
+    }
+
+    // Clean up the file path - extract just the filename
+    const cleanPath = pdfPath.split('/').pop();
+    const pdfUrl = `/Deno/filepathpdf/${cleanPath}`;
+    
+    console.log('Loading PDF from URL:', pdfUrl);
+    
+    // Set the iframe source and show the modal
+    iframe.src = pdfUrl;
+    modal.style.display = 'block';
+
+    // Add event listeners for closing the modal
+    modal.onclick = function(event) {
+        if (event.target === modal) {
+            closePdfModal();
+        }
+    };
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closePdfModal();
+        }
+    });
+}
+
+function closePdfModal() {
+    const modal = document.getElementById('pdf-modal');
+    const iframe = document.getElementById('pdf-viewer');
+    
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    
+    if (iframe) {
+        iframe.src = '';
+    }
+    
+    // Remove event listeners
+    modal.onclick = null;
+    document.removeEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closePdfModal();
+        }
+    });
+}
+
+// Update the createDocumentRow function to use the modal viewer
+function createDocumentRow(doc) {
+    console.log('Creating row for document:', doc);
+    const row = document.createElement("tr");
+    row.className = "document-card";
+    
+    // Create cells
+    const titleCell = document.createElement("td");
+    const authorCell = document.createElement("td");
+    const dateCell = document.createElement("td");
+    const categoryCell = document.createElement("td");
+    const actionsCell = document.createElement("td");
+    
+    // Set content
+    titleCell.textContent = doc.title;
+    authorCell.textContent = Array.isArray(doc.author_names) ? doc.author_names.join(", ") : "";
+    dateCell.textContent = new Date(doc.publication_date).toLocaleDateString();
+    categoryCell.textContent = doc.category_name;
+    
+    // Create dropdown for actions
+    const dropdownContent = document.createElement("div");
+    dropdownContent.className = "dropdown-content";
+    dropdownContent.style.display = "none";
+    
+    // Create action buttons
+    const viewButton = document.createElement("button");
+    viewButton.textContent = "View";
+    viewButton.onclick = (e) => {
+        e.stopPropagation();
+        console.log('View button clicked for document:', doc);
+        console.log('Document file path:', doc.file);
+        console.log('Document properties:', Object.keys(doc));
+        // Pass the full document object instead of just the title
+        openPdfModal(doc);
+    };
+    
+    const editButton = document.createElement("button");
+    editButton.textContent = "Edit";
+    editButton.onclick = (e) => {
+        e.stopPropagation();
+        openEditModal(doc);
+    };
+    
+    const deleteButton = document.createElement("button");
+    deleteButton.textContent = "Delete";
+    deleteButton.onclick = (e) => {
+        e.stopPropagation();
+        if (confirm("Are you sure you want to delete this document?")) {
+            deleteDocument(doc.id);
+        }
+    };
+    
+    // Add buttons to dropdown
+    dropdownContent.appendChild(viewButton);
+    dropdownContent.appendChild(editButton);
+    dropdownContent.appendChild(deleteButton);
+    
+    // Add dropdown to actions cell
+    actionsCell.appendChild(dropdownContent);
+    
+    // Add click handler to row
+    row.onclick = function() {
+        // Close all other dropdowns
+        const allDropdowns = document.querySelectorAll('.dropdown-content');
+        allDropdowns.forEach(dropdown => {
+            if (dropdown !== dropdownContent) {
+                dropdown.style.display = 'none';
+            }
+        });
+        
+        // Toggle this dropdown
+        dropdownContent.style.display = dropdownContent.style.display === 'none' ? 'block' : 'none';
+    };
+    
+    // Add cells to row
+    row.appendChild(titleCell);
+    row.appendChild(authorCell);
+    row.appendChild(dateCell);
+    row.appendChild(categoryCell);
+    row.appendChild(actionsCell);
+    
+    return row;
+}
+
+// Update the preview modal's view button
+function updatePreviewModal(doc) {
+    // ... existing code ...
+    
+    const previewReadBtn = document.getElementById('preview-read-btn');
+    if (previewReadBtn) {
+        previewReadBtn.onclick = (e) => {
+            e.preventDefault();
+            
+            // Debug log the entire document object
+            console.log('Preview document object:', doc);
+            
+            // Get the file path from the correct property
+            const filePath = doc.file_path || doc.file || doc.filepath || doc.document_path;
+            console.log('Document file path from preview:', filePath);
+            
+            if (!filePath) {
+                console.error('No file path found in document:', doc);
+                alert('Error: Could not find the document file.');
+                return;
+            }
+            
+            openPdfModal(doc.title, filePath);
+        };
+    }
+    
+    // ... rest of the existing code ...
 }
 
