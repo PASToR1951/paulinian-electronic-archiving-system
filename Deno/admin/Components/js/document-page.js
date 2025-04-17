@@ -288,10 +288,10 @@ async function loadDocuments(page = 1) {
         }
         
         const responseData = await response.json();
-        console.log('API Response:', responseData); // Debug log the entire response
+        console.log('API Response:', responseData);
         
         const { documents, totalCount, totalPages } = responseData;
-        console.log('Documents received:', documents); // Debug log the documents array
+        console.log('Documents received:', documents);
         
         // Update total entries
         totalEntries = totalCount;
@@ -325,43 +325,55 @@ async function loadDocuments(page = 1) {
             return;
         }
 
-        // Display documents
-        documents.forEach(doc => {
-            console.log('Processing document:', doc); // Debug log each document
+        // Group documents by title
+        const groupedDocuments = documents.reduce((groups, doc) => {
+            const title = doc.title || 'Untitled';
+            if (!groups[title]) {
+                groups[title] = [];
+            }
+            groups[title].push(doc);
+            return groups;
+        }, {});
+
+        // Display grouped documents
+        Object.entries(groupedDocuments).forEach(([title, docs]) => {
             const row = document.createElement("tr");
             row.className = "document-card";
-            row.setAttribute('data-category', doc.category_name || '');
-            row.setAttribute('data-volume', doc.volume || '');
-            row.setAttribute('data-title', doc.title || '');
+            row.setAttribute('data-category', docs[0].category_name || '');
+            row.setAttribute('data-title', title);
             row.style.cursor = 'pointer';
             
-            // Create the main document row without action buttons
-            const categoryIcon = getCategoryIcon(doc.category_name);
+            // Create the main document row
+            const categoryIcon = getCategoryIcon(docs[0].category_name);
             
             const iconCell = document.createElement("td");
             iconCell.className = "doc-icon";
-            iconCell.innerHTML = `<img src="${categoryIcon}" alt="${doc.category_name} Icon">`;
+            iconCell.innerHTML = `<img src="${categoryIcon}" alt="${docs[0].category_name} Icon">`;
             
             const infoCell = document.createElement("td");
             infoCell.className = "doc-info";
             
-            let authorDisplay = '';
-            if (doc.author_names && Array.isArray(doc.author_names) && doc.author_names.length > 0) {
-                authorDisplay = doc.author_names.join(', ');
-            } else if (doc.author_name) {
-                authorDisplay = doc.author_name;
-            } else {
-                authorDisplay = 'No Author Listed';
-            }
+            // Get all unique authors from all volumes
+            const allAuthors = new Set();
+            docs.forEach(doc => {
+                if (doc.author_names && Array.isArray(doc.author_names)) {
+                    doc.author_names.forEach(author => allAuthors.add(author));
+                } else if (doc.author_name) {
+                    allAuthors.add(doc.author_name);
+                }
+            });
+            const authorDisplay = allAuthors.size > 0 ? Array.from(allAuthors).join(', ') : 'No Author Listed';
             
-            let headerContent = `<span class="doc-title">${doc.title || 'Untitled'}</span>`;
-            if (doc.volume) {
-                headerContent += ` | <span class="doc-volume">Volume ${doc.volume}</span>`;
+            let headerContent = `<span class="doc-title">${title}</span>`;
+            if (docs.length > 1) {
+                headerContent += ` | <span class="doc-volume-count">${docs.length} Volumes</span>`;
+            } else if (docs[0].volume) {
+                headerContent += ` | <span class="doc-volume">Volume ${docs[0].volume}</span>`;
             }
             headerContent += ` | <span class="doc-author">${authorDisplay}</span>`;
             
-            if (doc.publication_date) {
-                headerContent += ` | <span class="doc-year">${new Date(doc.publication_date).getFullYear()}</span>`;
+            if (docs[0].publication_date) {
+                headerContent += ` | <span class="doc-year">${new Date(docs[0].publication_date).getFullYear()}</span>`;
             }
             
             infoCell.innerHTML = `
@@ -369,8 +381,8 @@ async function loadDocuments(page = 1) {
                     ${headerContent}
                 </div>
                 <div class="doc-tags">
-                    <span class="tag document-type">${doc.category_name || 'Uncategorized'}</span>
-                    ${getTopicsHtml(doc)}
+                    <span class="tag document-type">${docs[0].category_name || 'Uncategorized'}</span>
+                    ${getTopicsHtml(docs[0])}
                 </div>
             `;
             
@@ -378,8 +390,8 @@ async function loadDocuments(page = 1) {
             row.appendChild(iconCell);
             row.appendChild(infoCell);
             
-            // Add click handler for the entire row
-            row.addEventListener('click', async (e) => {
+            // Add click handler for the row
+            row.addEventListener('click', (e) => {
                 // Don't trigger if clicking on action buttons
                 if (e.target.closest('.action-buttons')) {
                     return;
@@ -391,7 +403,7 @@ async function loadDocuments(page = 1) {
                     // If clicking the same row that has the dropdown open, close it
                     const rowRect = row.getBoundingClientRect();
                     const dropdownTop = parseInt(existingDropdown.style.top) - window.scrollY;
-                    if (Math.abs(dropdownTop - rowRect.bottom) < 2) { // Using small threshold for floating point differences
+                    if (Math.abs(dropdownTop - rowRect.bottom) < 2) {
                         existingDropdown.remove();
                         return;
                     }
@@ -408,77 +420,75 @@ async function loadDocuments(page = 1) {
                 const listContainer = document.createElement('div');
                 listContainer.className = 'similar-docs-list';
                 
-                const docItem = document.createElement('div');
-                docItem.className = 'similar-doc-item';
-                
-                docItem.innerHTML = `
-                    <div class="doc-icon">
-                        <img src="${categoryIcon}" alt="${doc.category_name} Icon">
-                    </div>
-                    <div class="doc-info">
-                        <div class="doc-header">
-                            <span class="doc-title">${doc.title || 'Untitled'}</span>
-                            ${doc.volume ? `<span class="doc-volume">Volume ${doc.volume}</span>` : ''}
-                            <span class="doc-author">${authorDisplay}</span>
-                            <span class="doc-year">${new Date(doc.publication_date).getFullYear()}</span>
-                        </div>
-                        <div class="doc-tags">
-                            <span class="tag document-type">${doc.category_name || 'Uncategorized'}</span>
-                            ${getTopicsHtml(doc)}
-                        </div>
-                    </div>
-                    <div class="actions">
-                        <div class="action-buttons">
-                            <a href="#" class="view-icon" title="View Document">
-                                👁️ <span>View</span>
-                            </a>
-                            <a href="#" class="edit-icon" title="Edit Document">
-                                ✏️ <span>Edit</span>
-                            </a>
-                            <a href="#" class="delete-icon" title="Delete Document">
-                                🗑️
-                            </a>
-                        </div>
-                    </div>
-                `;
-                
-                // Add event listeners for buttons
-                const viewButton = docItem.querySelector('.view-icon');
-                viewButton.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
+                // Add each document version to the dropdown
+                docs.forEach(doc => {
+                    const docItem = document.createElement('div');
+                    docItem.className = 'similar-doc-item';
                     
-                    // Debug log the entire document object
-                    console.log('Document object:', doc);
-                    
-                    // Get the file path from the correct property
-                    const filePath = doc.file_path || doc.file || doc.filepath || doc.document_path;
-                    console.log('Document file path:', filePath);
-                    
-                    if (!filePath) {
-                        console.error('No file path found in document:', doc);
-                        alert('Error: Could not find the document file.');
-                        return;
+                    // Get authors for this specific volume
+                    let volumeAuthors = 'No Author Listed';
+                    if (doc.author_names && Array.isArray(doc.author_names)) {
+                        volumeAuthors = doc.author_names.join(', ');
+                    } else if (doc.author_name) {
+                        volumeAuthors = doc.author_name;
                     }
                     
-                    openPdfModal(doc.title, filePath);
+                    docItem.innerHTML = `
+                        <div class="doc-icon">
+                            <img src="${categoryIcon}" alt="${doc.category_name} Icon">
+                        </div>
+                        <div class="doc-info">
+                            <div class="doc-header">
+                                <span class="doc-title">${doc.title || 'Untitled'}</span>
+                                ${doc.volume ? `<span class="doc-volume">Volume ${doc.volume}</span>` : ''}
+                                <span class="doc-author">${volumeAuthors}</span>
+                                <span class="doc-year">${new Date(doc.publication_date).getFullYear()}</span>
+                            </div>
+                            <div class="doc-tags">
+                                <span class="tag document-type">${doc.category_name || 'Uncategorized'}</span>
+                                ${getTopicsHtml(doc)}
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <div class="action-buttons">
+                                <a href="#" class="view-icon" title="View Document">
+                                    👁️ <span>View</span>
+                                </a>
+                                <a href="#" class="edit-icon" title="Edit Document">
+                                    ✏️ <span>Edit</span>
+                                </a>
+                                <a href="#" class="delete-icon" title="Delete Document">
+                                    🗑️
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add event listeners for buttons
+                    const viewButton = docItem.querySelector('.view-icon');
+                    viewButton.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openPdfModal(doc);
+                    });
+                    
+                    const editButton = docItem.querySelector('.edit-icon');
+                    editButton.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        editDocument(doc.id || doc.document_id);
+                    });
+                    
+                    const deleteButton = docItem.querySelector('.delete-icon');
+                    deleteButton.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openDeleteConfirmation(doc);
+                    });
+                    
+                    listContainer.appendChild(docItem);
                 });
                 
-                const editButton = docItem.querySelector('.edit-icon');
-                editButton.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    editDocument(doc.id || doc.document_id);
-                });
-                
-                const deleteButton = docItem.querySelector('.delete-icon');
-                deleteButton.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    openDeleteConfirmation(doc);
-                });
-                
-                listContainer.appendChild(docItem);
                 dropdownContainer.appendChild(listContainer);
                 
                 // Position the dropdown
@@ -494,7 +504,31 @@ async function loadDocuments(page = 1) {
                 
                 // Add to document body
                 document.body.appendChild(dropdownContainer);
-                
+
+                // Add mouseleave event to close dropdown when mouse leaves
+                dropdownContainer.addEventListener('mouseleave', () => {
+                    dropdownContainer.remove();
+                });
+
+                // Add mouseenter event to prevent closing when hovering over dropdown
+                dropdownContainer.addEventListener('mouseenter', () => {
+                    // Clear any existing timeout
+                    if (dropdownContainer._closeTimeout) {
+                        clearTimeout(dropdownContainer._closeTimeout);
+                    }
+                });
+
+                // Add mouseleave event to the row to close dropdown when leaving the row
+                row.addEventListener('mouseleave', (e) => {
+                    // Check if mouse is moving to the dropdown
+                    const relatedTarget = e.relatedTarget;
+                    if (!relatedTarget || !dropdownContainer.contains(relatedTarget)) {
+                        dropdownContainer._closeTimeout = setTimeout(() => {
+                            dropdownContainer.remove();
+                        }, 100); // Small delay to allow for mouse movement to dropdown
+                    }
+                });
+
                 // Close dropdown when clicking outside
                 const closeDropdown = (event) => {
                     if (!dropdownContainer.contains(event.target) && !row.contains(event.target)) {
@@ -851,7 +885,7 @@ fileInput.addEventListener('change', function() {
 // Edit document functionality
 async function editDocument(documentId) {
     try {
-    const modal = document.getElementById('edit-modal');
+        const modal = document.getElementById('edit-modal');
         modal.style.display = 'flex';
         
         console.log('Fetching document with ID:', documentId);
@@ -889,6 +923,16 @@ async function editDocument(documentId) {
         const categorySelect = document.getElementById('edit-category');
         if (categorySelect && documentData.category_name) {
             categorySelect.value = documentData.category_name.toLowerCase();
+        }
+
+        // Update abstract preview
+        const previewAbstract = document.getElementById('edit-preview-abstract');
+        if (previewAbstract) {
+            if (documentData.abstract) {
+                previewAbstract.innerHTML = `<p>${documentData.abstract}</p>`;
+            } else {
+                previewAbstract.innerHTML = '<p>No abstract available.</p>';
+            }
         }
         
         // Clear and populate authors
@@ -936,7 +980,7 @@ async function editDocument(documentId) {
         if (currentFileContainer) {
             if (documentData.file) {
                 const fileName = documentData.file.split('/').pop();
-        currentFileContainer.innerHTML = `
+                currentFileContainer.innerHTML = `
                     <div class="current-file-info">
                         <p>Current file: <span class="file-name">${fileName}</span></p>
                         <div class="file-actions">
@@ -944,16 +988,16 @@ async function editDocument(documentId) {
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                     <circle cx="12" cy="12" r="3"></circle>
-                </svg>
+                                </svg>
                                 Preview
                             </button>
                         </div>
                     </div>
                     <div class="file-replace-info">
                         <p>Upload a new file to replace the current one:</p>
-            </div>
-        `;
-    } else {
+                    </div>
+                `;
+            } else {
                 currentFileContainer.innerHTML = '<p>No file attached</p>';
             }
         }
@@ -964,59 +1008,62 @@ async function editDocument(documentId) {
             form.onsubmit = async (e) => {
                 e.preventDefault();
                 
-                const formData = new FormData();
-                formData.append('title', document.getElementById('edit-title').value);
-                formData.append('publication_date', document.getElementById('edit-publication-date').value);
-                formData.append('volume', document.getElementById('edit-volume').value);
-                formData.append('category', document.getElementById('edit-category').value);
-                
-                // Add selected authors
-                const authors = Array.from(selectedAuthors.children).map(author => 
-                    author.textContent.trim().replace('×', '').trim()
-                );
-                formData.append('author', JSON.stringify(authors));
-                
-                // Add selected topics
-                const topics = Array.from(selectedTopics.children).map(topic => 
-                    topic.textContent.trim().replace('×', '').trim()
-                );
-                formData.append('topics', JSON.stringify(topics));
-                
-                // Add file if selected
-                const file = document.getElementById('edit-file').files[0];
-                if (file) {
-                    formData.append('file', file);
-                }
-                
                 try {
+                    const formData = new FormData();
+                    formData.append('title', document.getElementById('edit-title').value);
+                    formData.append('publication_date', document.getElementById('edit-publication-date').value);
+                    formData.append('volume', document.getElementById('edit-volume').value);
+                    formData.append('category', document.getElementById('edit-category').value);
+                    
+                    // Add selected authors
+                    const authors = Array.from(selectedAuthors.children).map(author => 
+                        author.textContent.trim().replace('×', '').trim()
+                    );
+                    formData.append('author', JSON.stringify(authors));
+                    
+                    // Add selected topics
+                    const topics = Array.from(selectedTopics.children).map(topic => 
+                        topic.textContent.trim().replace('×', '').trim()
+                    );
+                    formData.append('topics', JSON.stringify(topics));
+                    
+                    // Add file if selected
+                    const file = document.getElementById('edit-file').files[0];
+                    if (file) {
+                        formData.append('file', file);
+                    }
+                    
                     const updateResponse = await fetch(`/api/documents/${documentId}`, {
-            method: 'PUT',
-            body: formData
-        });
+                        method: 'PUT',
+                        body: formData
+                    });
 
                     if (!updateResponse.ok) {
-                        throw new Error(`HTTP error! status: ${updateResponse.status}`);
-        }
+                        const errorData = await updateResponse.json();
+                        throw new Error(errorData.message || 'Failed to update document');
+                    }
 
                     // Show success modal
-        const successModal = document.getElementById('success-modal');
-        successModal.style.display = 'flex';
-
-                    // Close modals and refresh documents after delay
-        setTimeout(() => {
-            successModal.style.display = 'none';
-                        closeEditModal();
-                        loadDocuments(currentPage);
-        }, 2000);
-    } catch (error) {
-        console.error('Error updating document:', error);
-        alert('Error updating document. Please try again.');
-    }
+                    const successModal = document.getElementById('success-modal');
+                    if (successModal) {
+                        successModal.style.display = 'flex';
+                        
+                        // Close modals and refresh documents after delay
+                        setTimeout(() => {
+                            successModal.style.display = 'none';
+                            closeEditModal();
+                            loadDocuments(currentPage);
+                        }, 2000);
+                    }
+                } catch (error) {
+                    console.error('Error updating document:', error);
+                    alert('Error updating document: ' + error.message);
+                }
             };
         }
     } catch (error) {
         console.error('Error editing document:', error);
-        alert('Error editing document details. Please try again.');
+        alert('Error editing document details: ' + error.message);
         closeEditModal();
     }
 }
@@ -1024,11 +1071,27 @@ async function editDocument(documentId) {
 // Close edit modal
 function closeEditModal() {
     const modal = document.getElementById('edit-modal');
-    modal.style.display = 'none';
-    document.getElementById('edit-form').reset();
-    selectedAuthors.innerHTML = '';
-    selectedTopics.innerHTML = '';
-    document.getElementById('current-file-container').innerHTML = '';
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    
+    // Reset form
+    const form = document.getElementById('edit-form');
+    if (form) {
+        form.reset();
+    }
+    
+    // Clear selected authors and topics
+    const selectedAuthors = document.getElementById('edit-selected-authors');
+    const selectedTopics = document.getElementById('edit-selected-topics');
+    if (selectedAuthors) selectedAuthors.innerHTML = '';
+    if (selectedTopics) selectedTopics.innerHTML = '';
+    
+    // Clear current file container
+    const currentFileContainer = document.getElementById('current-file-container');
+    if (currentFileContainer) {
+        currentFileContainer.innerHTML = '';
+    }
 }
 
 // Function to open delete confirmation
@@ -2204,7 +2267,7 @@ function setupPagination() {
     updatePagination();
 }
 
-function openPdfModal(doc, filePath) {
+function openPdfModal(doc) {
     console.log('Opening PDF modal with document:', doc);
     
     // Get the modal and iframe elements
@@ -2217,19 +2280,28 @@ function openPdfModal(doc, filePath) {
         return;
     }
 
-    // Set the modal title
-    if (typeof doc === 'object' && doc.title) {
-        modalTitle.textContent = doc.title;
-    } else if (typeof doc === 'string') {
-        modalTitle.textContent = doc;
+    // Get authors for this document
+    let authorDisplay = 'No Author Listed';
+    if (doc.author_names && Array.isArray(doc.author_names)) {
+        authorDisplay = doc.author_names.join(', ');
+    } else if (doc.author_name) {
+        authorDisplay = doc.author_name;
     }
+
+    // Set the modal title with document details
+    let titleContent = `<span class="doc-title">${doc.title || 'Untitled'}</span>`;
+    if (doc.volume) {
+        titleContent += ` | <span class="doc-volume">Volume ${doc.volume}</span>`;
+    }
+    titleContent += ` | <span class="doc-author">${authorDisplay}</span>`;
+    if (doc.publication_date) {
+        titleContent += ` | <span class="doc-year">${new Date(doc.publication_date).getFullYear()}</span>`;
+    }
+    
+    modalTitle.innerHTML = titleContent;
 
     // Get the file path
-    let pdfPath = filePath;
-    if (!pdfPath && typeof doc === 'object') {
-        pdfPath = doc.file;
-    }
-
+    let pdfPath = doc.file;
     if (!pdfPath) {
         console.error('No file path found for document:', doc);
         alert('Error: Document file path is missing.');
@@ -2238,13 +2310,13 @@ function openPdfModal(doc, filePath) {
 
     // Clean up the file path - extract just the filename
     const cleanPath = pdfPath.split('/').pop();
-    const pdfUrl = `/Deno/filepathpdf/${cleanPath}`;
+    const pdfUrl = `/filepathpdf/${cleanPath}`;
     
     console.log('Loading PDF from URL:', pdfUrl);
     
     // Set the iframe source and show the modal
     iframe.src = pdfUrl;
-    modal.style.display = 'block';
+    modal.classList.add('active');
 
     // Add event listeners for closing the modal
     modal.onclick = function(event) {
@@ -2265,7 +2337,7 @@ function closePdfModal() {
     const iframe = document.getElementById('pdf-viewer');
     
     if (modal) {
-        modal.style.display = 'none';
+        modal.classList.remove('active');
     }
     
     if (iframe) {
@@ -2393,4 +2465,274 @@ function updatePreviewModal(doc) {
     
     // ... rest of the existing code ...
 }
+
+function showPreview(document) {
+    // Update preview content with document details
+    document.getElementById('previewTitle').textContent = document.title || 'Title of Document';
+    document.getElementById('previewAuthor').textContent = `by ${document.author_names?.join(', ') || 'Author Name'}`;
+    document.getElementById('previewPublishDate').textContent = document.publication_date || '2021';
+    document.getElementById('previewTopics').textContent = document.topics?.map(t => t.topic_name).join(', ') || 'None';
+    document.getElementById('previewPages').textContent = document.pages || '0';
+    document.getElementById('previewAddedDate').textContent = document.added_date || 'April 4, 2025';
+    document.getElementById('previewAbstract').textContent = document.abstract || 'This is the default abstract text...';
+
+    // Set up read document button
+    const readBtn = document.getElementById('readDocumentBtn');
+    readBtn.onclick = () => openPdfModal(document);
+}
+
+// Function to extract text from PDF using PDF.js
+async function extractTextFromPDF(file) {
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        
+        // Search through pages for abstract
+        const maxPagesToSearch = Math.min(5, pdf.numPages);
+        let abstractText = "";
+        let isAbstractSection = false;
+        let abstractStartPage = -1;
+        let abstractEndFound = false;
+        let lastLineWasIncomplete = false;
+        
+        for (let pageNum = 1; pageNum <= maxPagesToSearch && !abstractEndFound; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const textContent = await page.getTextContent();
+            
+            // Join text items into lines while preserving their positions
+            const lines = [];
+            let currentLine = [];
+            let lastY = null;
+            
+            // Sort items by vertical position (top to bottom) and horizontal position (left to right)
+            const sortedItems = textContent.items.sort((a, b) => {
+                const yDiff = Math.abs(a.transform[5] - b.transform[5]);
+                if (yDiff > 2) {
+                    return b.transform[5] - a.transform[5];
+                }
+                return a.transform[4] - b.transform[4];
+            });
+            
+            // Group items into lines
+            for (const item of sortedItems) {
+                if (lastY === null || Math.abs(item.transform[5] - lastY) <= 2) {
+                    currentLine.push(item);
+                } else {
+                    if (currentLine.length > 0) {
+                        lines.push(currentLine);
+                    }
+                    currentLine = [item];
+                }
+                lastY = item.transform[5];
+            }
+            if (currentLine.length > 0) {
+                lines.push(currentLine);
+            }
+            
+            // Convert lines to text while preserving formatting
+            const pageLines = lines.map(line => {
+                const text = line.map(item => item.str).join('');
+                return text.trim();
+            }).filter(line => line.length > 0);
+            
+            const pageText = pageLines.join('\n');
+            
+            // Check if this page contains the abstract
+            if (!isAbstractSection) {
+                const abstractStart = findAbstractStart(pageText);
+                if (abstractStart) {
+                    isAbstractSection = true;
+                    abstractStartPage = pageNum;
+                    abstractText = abstractStart;
+                    lastLineWasIncomplete = !abstractStart.endsWith('.') && 
+                                          !abstractStart.endsWith('?') && 
+                                          !abstractStart.endsWith('!');
+                }
+            } else {
+                const endMarkerRegex = new RegExp(
+                    "^\\s*(introduction|keywords?:?|index terms:?|background|acknowledg(e|ement|ments)|1\\.?|i\\.?|chapter|section|references)\\b",
+                    "im"
+                );
+                const endMatch = pageText.match(endMarkerRegex);
+
+                if (endMatch) {
+                    const markerPosition = pageText.indexOf(endMatch[0]);
+                    const abstractPart = pageText.substring(0, markerPosition).trim();
+
+                    if (abstractPart.length > 30) {
+                        abstractText += (lastLineWasIncomplete ? ' ' : '\n') + abstractPart;
+                        abstractEndFound = true;
+                        break;
+                    }
+                } else if (pageNum === abstractStartPage) {
+                    // Same page as abstract start, content already added
+                    continue;
+                } else {
+                    // Add content only if it appears to be continuation of the abstract
+                    const cleanedText = pageText.replace(/^[\d\s\w]+$|Page \d+|^\d+$/gm, '').trim();
+                    if (cleanedText && 
+                        (lastLineWasIncomplete || /^[a-z,;)]/.test(cleanedText) || /[a-z][.?!]$/.test(abstractText)) && 
+                        !cleanedText.toLowerCase().includes('acknowledge') &&
+                        !cleanedText.includes('©') && 
+                        !cleanedText.includes('copyright') &&
+                        !/^\s*\d+\s*$/.test(cleanedText)) {
+                        abstractText += (lastLineWasIncomplete ? ' ' : '\n') + cleanedText;
+                        lastLineWasIncomplete = !cleanedText.endsWith('.') && 
+                                              !cleanedText.endsWith('?') && 
+                                              !cleanedText.endsWith('!');
+                    } else {
+                        abstractEndFound = true;
+                    }
+                }
+            }
+        }
+        
+        // Clean up the abstract text
+        if (abstractText) {
+            abstractText = abstractText
+                .replace(/^ABSTRACT\s*[:.]?\s*/i, '') // Remove "ABSTRACT" header
+                .replace(/\n{3,}/g, '\n\n') // Normalize multiple line breaks
+                .replace(/\s+/g, ' ') // Normalize spaces
+                .replace(/\n\s*\n/g, '\n') // Remove empty lines
+                .replace(/acknowledgements?.*$/is, '') // Remove any acknowledgement section
+                .replace(/\s+/g, ' ') // Normalize spaces again after cleanup
+                .trim();
+            
+            // Split into paragraphs more accurately
+            const paragraphs = abstractText
+                .split(/(?<=[.?!])\s+(?=[A-Z])/g) // keep only full-stop + capital start
+                .map(p => p.trim())
+                .filter(p => p.length > 0 && !p.match(/^(keywords?|chapter|section|index terms|acknowledge)/i));
+            
+            return `<div class="abstract-text">${paragraphs.map(p => 
+                `<p>${p}</p>`).join('')}</div>`;
+        }
+        
+        return "No abstract found in the document.";
+    } catch (error) {
+        console.error('Error extracting text from PDF:', error);
+        return "Unable to extract abstract from PDF.";
+    }
+}
+
+// Function to find the start of the abstract
+function findAbstractStart(text) {
+    const abstractMarkers = [
+        "abstract",
+        "abstract:",
+        "ABSTRACT",
+        "ABSTRACT:",
+        "Abstract",
+        "Abstract:",
+        "A B S T R A C T",
+        "A B S T R A C T:"
+    ];
+    
+    const lowerText = text.toLowerCase();
+    for (const marker of abstractMarkers) {
+        const index = lowerText.indexOf(marker.toLowerCase());
+        if (index !== -1) {
+            // Get the text after the abstract marker
+            const startIndex = index + marker.length;
+            let abstractText = text.substring(startIndex).trim();
+            
+            // Remove any leading colons or spaces
+            abstractText = abstractText.replace(/^[:.\s]+/, '').trim();
+            
+            return abstractText;
+        }
+    }
+    return null;
+}
+
+// Add event listener for file input in edit form
+document.addEventListener('DOMContentLoaded', () => {
+    const editFileInput = document.getElementById('edit-file');
+    if (editFileInput) {
+        editFileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (file && file.type === "application/pdf") {
+                try {
+                    // Extract text and abstract from PDF
+                    const extractedText = await extractTextFromPDF(file);
+                    console.log('Extracted abstract:', extractedText);
+                    
+                    // Update preview abstract
+                    const previewAbstract = document.getElementById('edit-preview-abstract');
+                    if (previewAbstract) {
+                        previewAbstract.innerHTML = extractedText;
+                    }
+                    
+                    // Store the abstract for form submission
+                    window.extractedAbstract = extractedText;
+                    
+                    // Get page count
+                    const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+                    const pageCount = pdf.numPages;
+                    const pageCountElement = document.getElementById('edit-page-count');
+                    if (pageCountElement) {
+                        pageCountElement.textContent = pageCount;
+                    }
+                    
+                } catch (error) {
+                    console.error('Error processing PDF:', error);
+                    const previewAbstract = document.getElementById('edit-preview-abstract');
+                    if (previewAbstract) {
+                        previewAbstract.textContent = "Error extracting abstract from the document.";
+                    }
+                }
+            } else {
+                const previewAbstract = document.getElementById('edit-preview-abstract');
+                if (previewAbstract) {
+                    previewAbstract.textContent = "Please upload a PDF file to extract the abstract.";
+                }
+            }
+        });
+    }
+});
+
+// Update the CSS for abstract formatting
+const abstractStyles = `
+    .abstract-content {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        font-family: "Times New Roman", Times, serif;
+        font-size: 12pt;
+        line-height: 1.6;
+        font-weight: normal !important;
+    }
+    
+    .abstract-text {
+        text-align: justify;
+        hyphens: auto;
+        font-weight: normal !important;
+    }
+    
+    .abstract-text p {
+        margin: 0 0 1em 0;
+        text-indent: 0.5in;
+        font-weight: normal !important;
+        font-family: inherit;
+    }
+    
+    .abstract-text p:first-child {
+        text-indent: 0;
+        font-weight: normal !important;
+    }
+    
+    #edit-preview-abstract {
+        color: #333;
+        font-weight: normal !important;
+    }
+    
+    #edit-preview-abstract * {
+        font-weight: normal !important;
+    }
+`;
+
+// Add styles to document
+const styleSheet = document.createElement("style");
+styleSheet.textContent = abstractStyles;
+document.head.appendChild(styleSheet);
 

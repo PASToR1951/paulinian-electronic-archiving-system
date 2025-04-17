@@ -1178,7 +1178,7 @@ select:focus {
 }
 
 .preview-abstract {
-    display: none;
+    /* display: none; */
 }
 
 .preview-abstract h4 {

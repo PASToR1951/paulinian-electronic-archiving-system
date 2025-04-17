@@ -220,6 +220,148 @@ async function handler(req: Request): Promise<Response> {
                         });
                     }
                 }
+            } else if (method === "PUT") {
+                // Handle document update
+                const id = path.split("/").pop();
+                if (!id) {
+                    return new Response(JSON.stringify({ message: "Document ID is required" }), {
+                        status: 400,
+                        headers: { "Content-Type": "application/json" }
+                    });
+                }
+
+                try {
+                    // Begin transaction
+                    await client.queryObject("BEGIN");
+
+                    try {
+                        const documentId = parseInt(id);
+                        const formData = await req.formData();
+                        
+                        // Get form fields
+                        const title = formData.get('title');
+                        const publicationDate = formData.get('publication_date');
+                        const volume = formData.get('volume');
+                        const category = formData.get('category');
+                        const authors = JSON.parse(formData.get('author') || '[]');
+                        const topics = JSON.parse(formData.get('topics') || '[]');
+                        const file = formData.get('file');
+
+                        // Update document
+                        await client.queryObject(
+                            `UPDATE documents 
+                             SET title = $1, 
+                                 publication_date = $2, 
+                                 volume = $3,
+                                 category_id = (SELECT id FROM categories WHERE category_name = $4),
+                                 updated_at = CURRENT_TIMESTAMP
+                             WHERE id = $5`,
+                            [title, publicationDate, volume, category, documentId]
+                        );
+
+                        // Update authors
+                        await client.queryObject(
+                            "DELETE FROM document_authors WHERE document_id = $1",
+                            [documentId]
+                        );
+
+                        for (const authorName of authors) {
+                            // Get or create author
+                            let authorResult = await client.queryObject(
+                                `SELECT author_id FROM authors WHERE full_name = $1`,
+                                [authorName]
+                            );
+
+                            let authorId;
+                            if (authorResult.rows.length > 0) {
+                                authorId = authorResult.rows[0].author_id;
+                            } else {
+                                const newAuthorResult = await client.queryObject(
+                                    `INSERT INTO authors (full_name) VALUES ($1) RETURNING author_id`,
+                                    [authorName]
+                                );
+                                authorId = newAuthorResult.rows[0].author_id;
+                            }
+
+                            // Link author to document
+                            await client.queryObject(
+                                `INSERT INTO document_authors (document_id, author_id) 
+                                 VALUES ($1, $2)
+                                 ON CONFLICT (document_id, author_id) DO NOTHING`,
+                                [documentId, authorId]
+                            );
+                        }
+
+                        // Update topics
+                        await client.queryObject(
+                            "DELETE FROM document_topics WHERE document_id = $1",
+                            [documentId]
+                        );
+
+                        for (const topicName of topics) {
+                            // Get or create topic
+                            let topicResult = await client.queryObject(
+                                `SELECT id FROM topics WHERE topic_name = $1`,
+                                [topicName]
+                            );
+
+                            let topicId;
+                            if (topicResult.rows.length > 0) {
+                                topicId = topicResult.rows[0].id;
+                            } else {
+                                const newTopicResult = await client.queryObject(
+                                    `INSERT INTO topics (topic_name) VALUES ($1) RETURNING id`,
+                                    [topicName]
+                                );
+                                topicId = newTopicResult.rows[0].id;
+                            }
+
+                            // Link topic to document
+                            await client.queryObject(
+                                `INSERT INTO document_topics (document_id, topic_id) 
+                                 VALUES ($1, $2)
+                                 ON CONFLICT (document_id, topic_id) DO NOTHING`,
+                                [documentId, topicId]
+                            );
+                        }
+
+                        // Handle file update if provided
+                        if (file instanceof File) {
+                            const filePath = `./filepathpdf/${file.name}`;
+                            const fileData = new Uint8Array(await file.arrayBuffer());
+                            await Deno.writeFile(filePath, fileData);
+
+                            await client.queryObject(
+                                "UPDATE documents SET file = $1 WHERE id = $2",
+                                [filePath, documentId]
+                            );
+                        }
+
+                        // Commit transaction
+                        await client.queryObject("COMMIT");
+
+                        return new Response(JSON.stringify({ 
+                            message: "Document updated successfully",
+                            id: documentId
+                        }), {
+                            status: 200,
+                            headers: { "Content-Type": "application/json" }
+                        });
+                    } catch (error) {
+                        // Rollback transaction on error
+                        await client.queryObject("ROLLBACK");
+                        throw error;
+                    }
+                } catch (error) {
+                    console.error("Error updating document:", error);
+                    return new Response(JSON.stringify({ 
+                        message: "Error updating document",
+                        error: error instanceof Error ? error.message : String(error)
+                    }), {
+                        status: 500,
+                        headers: { "Content-Type": "application/json" }
+                    });
+                }
             } else if (method === "DELETE") {
                 const id = path.split("/").pop();
                 if (!id) {
@@ -327,6 +469,33 @@ async function handler(req: Request): Promise<Response> {
                 return await searchTopics(req);
             } else if (method === "POST") {
                 return await createTopic(req);
+            }
+        }
+        if (path === "/api/topics/search" && method === "GET") {
+            const query = url.searchParams.get('q') || '';
+            
+            try {
+                const result = await client.queryObject(
+                    `SELECT id, topic_name 
+                     FROM topics 
+                     WHERE LOWER(topic_name) LIKE LOWER($1)
+                     ORDER BY topic_name
+                     LIMIT 10`,
+                    [`%${query}%`]
+                );
+
+                return new Response(JSON.stringify(result.rows), {
+                    headers: { "Content-Type": "application/json" }
+                });
+            } catch (error) {
+                console.error("Error searching topics:", error);
+                return new Response(JSON.stringify({ 
+                    message: "Error searching topics",
+                    error: error instanceof Error ? error.message : String(error)
+                }), {
+                    status: 500,
+                    headers: { "Content-Type": "application/json" }
+                });
             }
         }
         if (path === "/api/categories" && method === "GET") {

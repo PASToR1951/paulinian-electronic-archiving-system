@@ -5,10 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Documents Page</title>
-    <link rel="stylesheet" href="   css/documents_page.css">
+    <link rel="stylesheet" href="css/documents_page.css">
     <link rel="stylesheet" href="css/side_bar.css">
     <link rel="stylesheet" href="css/navbar_header.css">
     <link rel="stylesheet" href="css/page_header.css">
+    <link rel="stylesheet" href="css/pdf-modal.css">
+    <link rel="stylesheet" href="css/preview.css">
 </head>
 
 <body>
@@ -185,33 +187,41 @@
                     </form>
                 </div>
                 <div class="right-panel">
-                    <div class="preview-header">
-                        <h2>Preview</h2>
-                    </div>
-                    <div class="preview-content">
-                        <div class="preview-header-content">
-                            <img id="edit-category-icon" src="icons/Category-icons/default_category_icon.png" alt="Category Icon" class="category-icon">
-                            <div class="title-author-container">
-                                <p><strong id="edit-preview-title">Title of Document</strong></p>
-                                <p id="edit-preview-author">by Author Name</p>
+                    <div class="preview-container">
+                        <div class="preview-header">
+                            <div class="preview-icon">
+                                ?
+                            </div>
+                            <div class="preview-title-section">
+                                <h2 class="preview-title" id="edit-preview-title">Title of Document</h2>
+                                <p class="preview-author" id="edit-preview-author">by Author Name</p>
                             </div>
                         </div>
-                        
-                        <p id="edit-preview-year">Publishing Date: 2021</p>
-                        <p id="edit-preview-topic">Topics: History</p>
-                        
-                        <p id="edit-preview-pages">Pages: <span id="edit-page-count">0</span></p>
-                        <p id="edit-preview-added-date">Added Date: January 15, 2021</p>
 
-                        <div class="read-document-container">
-                            <button id="edit-read-document" class="disabled-button" disabled>Read Document</button>
+                        <div class="preview-metadata">
+                            <div class="metadata-row">
+                                <span class="metadata-label">Publishing Date:</span>
+                                <span class="metadata-value" id="edit-preview-year">2021</span>
+                            </div>
+                            <div class="metadata-row">
+                                <span class="metadata-label">Topics:</span>
+                                <span class="metadata-value" id="edit-preview-topic">None</span>
+                            </div>
+                            <div class="metadata-row">
+                                <span class="metadata-label">Pages:</span>
+                                <span class="metadata-value" id="edit-page-count">0</span>
+                            </div>
+                            <div class="metadata-row">
+                                <span class="metadata-label">Added Date:</span>
+                                <span class="metadata-value" id="edit-preview-added-date">January 15, 2021</span>
+                            </div>
                         </div>
 
-                        <div class="abstract-preview">
-                            <p><strong>Abstract</strong></p>
-                            <div class="abstract-content">
-                                <p id="edit-preview-abstract">Abstract will be extracted from the PDF file.</p>
-                            </div>
+                        <button class="read-document-btn" id="edit-read-document">Read Document</button>
+
+                        <div class="preview-abstract">
+                            <h3 class="abstract-title">Abstract</h3>
+                            <p class="abstract-content" id="edit-preview-abstract">Abstract will be extracted from the PDF file.</p>
                         </div>
                     </div>
                 </div>
@@ -232,48 +242,55 @@
     </div>
 
     <!-- Preview Modal -->
-    <div id="preview-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
+    <div class="preview-modal" id="preview-modal">
+        <div class="preview-container">
+            <button class="preview-close" onclick="closePreviewModal()">&times;</button>
             <div class="preview-header">
-                <h2>Preview</h2>
-                <button class="close-btn" onclick="closePreviewModal()">&times;</button>
+                <div class="preview-icon">
+                    ?
+                </div>
+                <div class="preview-title-section">
+                    <h2 class="preview-title" id="previewTitle">Title of Document</h2>
+                    <p class="preview-author" id="previewAuthor">by Author Name</p>
+                </div>
             </div>
-            <div class="preview-content">
-                <div class="preview-header-content">
-                    <img id="preview-category-icon" src="/admin/Components/icons/Category-icons/default_category_icon.png" alt="Category Icon" class="category-icon">
-                    <div class="title-author-container">
-                        <p><strong id="preview-title">Title of Document</strong></p>
-                        <p>by <span id="preview-author">Author Name</span></p>
-                    </div>
-                </div>
-                
-                <p>Publishing Date: <span id="preview-date">2021</span></p>
-                <p>Topics: <span id="preview-topics">None</span></p>
-                <p>Pages: <span id="preview-pages">0</span></p>
-                <p>Added Date: <span id="preview-added-date">January 15, 2021</span></p>
 
-                <div class="read-document-container">
-                    <a id="preview-read-btn" href="#" class="read-document-btn" target="_blank">Read Document</a>
+            <div class="preview-metadata">
+                <div class="metadata-row">
+                    <span class="metadata-label">Publishing Date:</span>
+                    <span class="metadata-value" id="previewPublishDate">2021</span>
                 </div>
+                <div class="metadata-row">
+                    <span class="metadata-label">Topics:</span>
+                    <span class="metadata-value" id="previewTopics">None</span>
+                </div>
+                <div class="metadata-row">
+                    <span class="metadata-label">Pages:</span>
+                    <span class="metadata-value" id="previewPages">0</span>
+                </div>
+                <div class="metadata-row">
+                    <span class="metadata-label">Added Date:</span>
+                    <span class="metadata-value" id="previewAddedDate">April 4, 2025</span>
+                </div>
+            </div>
 
-                <div class="abstract-preview">
-                    <p><strong>Abstract</strong></p>
-                    <div class="abstract-content">
-                        <p id="preview-abstract">Abstract will be extracted from the PDF file.</p>
-                    </div>
-                </div>
+            <button class="read-document-btn" id="readDocumentBtn">Read Document</button>
+
+            <div class="preview-abstract">
+                <h3 class="abstract-title">Abstract</h3>
+                <p class="abstract-content" id="previewAbstract">This is the default abstract text...</p>
             </div>
         </div>
     </div>
 
     <!-- PDF Viewer Modal -->
-    <div id="pdf-modal" class="modal" style="display: none;">
-        <div class="modal-content" style="width: 90%; height: 90%; max-width: 1200px; padding: 0;">
-            <div class="modal-header" style="padding: 10px 20px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center;">
-                <h2 id="pdf-modal-title" style="margin: 0;">Document Viewer</h2>
-                <span class="close-button" onclick="closePdfModal()" style="cursor: pointer; font-size: 24px;">&times;</span>
+    <div id="pdf-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="pdf-modal-title">Document Viewer</h2>
+                <button class="close-button" onclick="closePdfModal()">&times;</button>
             </div>
-            <iframe id="pdf-viewer" style="width: 100%; height: calc(100% - 50px); border: none;"></iframe>
+            <iframe id="pdf-viewer"></iframe>
         </div>
     </div>
 
