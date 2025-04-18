@@ -1013,7 +1013,14 @@ async function editDocument(documentId) {
                     formData.append('title', document.getElementById('edit-title').value);
                     formData.append('publication_date', document.getElementById('edit-publication-date').value);
                     formData.append('volume', document.getElementById('edit-volume').value);
-                    formData.append('category', document.getElementById('edit-category').value);
+                    
+                    // Get the selected category value
+                    const categorySelect = document.getElementById('edit-category');
+                    const selectedCategory = categorySelect.value;
+                    if (selectedCategory === 'default') {
+                        throw new Error('Please select a valid category');
+                    }
+                    formData.append('category', selectedCategory);
                     
                     // Add selected authors
                     const authors = Array.from(selectedAuthors.children).map(author => 
@@ -1032,6 +1039,12 @@ async function editDocument(documentId) {
                     if (file) {
                         formData.append('file', file);
                     }
+                    
+                    // Show loading state
+                    const submitButton = form.querySelector('button[type="submit"]');
+                    const originalButtonText = submitButton.innerHTML;
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = 'Saving...';
                     
                     const updateResponse = await fetch(`/api/documents/${documentId}`, {
                         method: 'PUT',
@@ -1058,6 +1071,12 @@ async function editDocument(documentId) {
                 } catch (error) {
                     console.error('Error updating document:', error);
                     alert('Error updating document: ' + error.message);
+                } finally {
+                    // Reset submit button state
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                        submitButton.innerHTML = originalButtonText;
+                    }
                 }
             };
         }

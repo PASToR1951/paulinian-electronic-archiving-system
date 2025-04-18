@@ -77,36 +77,18 @@ router.put("/api/documents/:id", async (ctx: RouterContext<"/api/documents/:id">
         
         try {
             // Update document in database
-            const result = await client.queryObject<{
-                id: number;
-                title: string;
-                author: string;
-                publication_date: string;
-                category: string;
-                abstract: string | null;
-                volume: string | null;
-                updated_at: string;
-            }>(
-                `UPDATE documents 
-                 SET title = $1, 
-                     author = $2, 
-                     publication_date = $3, 
-                     category = $4, 
-                     abstract = $5, 
-                     volume = $6,
-                     updated_at = CURRENT_TIMESTAMP
-                 WHERE id = $7
-                 RETURNING *`,
-                [
-                    body.title,
-                    Array.isArray(body.author) ? body.author.join(", ") : body.author,
-                    body.publication_date,
-                    body.category,
-                    body.abstract || null,
-                    body.volume || null,
-                    ctx.params.id
-                ]
-            );
+            const result = await client.queryObject`
+                UPDATE documents 
+                SET title = $1, 
+                    author = $2, 
+                    publication_date = $3, 
+                    category_id = (SELECT id FROM categories WHERE LOWER(category_name) = LOWER($4)),
+                    abstract = $5, 
+                    volume = $6,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = $7
+                RETURNING *
+            `;
             
             if (result.rows.length === 0) {
                 await client.queryObject("ROLLBACK");
