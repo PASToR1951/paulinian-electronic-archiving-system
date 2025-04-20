@@ -3,20 +3,21 @@ import { client } from "../data/denopost_conn.ts";
 /**
  * Get all authors with their document counts
  */
-export async function getAllAuthors() {
+export async function getAllAuthors(includeDeleted = false) {
   try {
     const result = await client.queryObject(`
       SELECT 
         a.author_id, 
-        a.name, 
+        a.full_name as name, 
         a.department, 
         a.email,
         a.affiliation,
         a.year_of_graduation,
         a.linkedin,
-        a.bio,
+        a.biography as bio,
         a.orcid_id,
         a.profile_picture,
+        a.deleted_at,
         COUNT(d.id) as document_count
       FROM 
         authors a
@@ -24,11 +25,12 @@ export async function getAllAuthors() {
         document_authors da ON a.author_id = da.author_id
       LEFT JOIN 
         documents d ON da.document_id = d.id
+      ${!includeDeleted ? 'WHERE a.deleted_at IS NULL' : ''}
       GROUP BY 
-        a.author_id, a.name, a.department, a.email, a.affiliation, a.year_of_graduation, 
-        a.linkedin, a.bio, a.orcid_id, a.profile_picture
+        a.author_id, a.full_name, a.department, a.email, a.affiliation, a.year_of_graduation, 
+        a.linkedin, a.biography, a.orcid_id, a.profile_picture, a.deleted_at
       ORDER BY 
-        a.name
+        a.full_name
     `);
 
     return result.rows;
@@ -116,11 +118,14 @@ export async function getDocumentsByAuthor(authorId: number) {
 /**
  * Handle GET request for all authors
  */
-export async function handleGetAuthors() {
+export async function handleGetAuthors(request: Request) {
   console.log("Handling GET request for all authors");
   try {
+    const url = new URL(request.url);
+    const includeDeleted = url.searchParams.get('includeDeleted') === 'true';
+    
     console.log("Fetching authors from database...");
-    const authors = await getAllAuthors();
+    const authors = await getAllAuthors(includeDeleted);
     console.log(`Successfully fetched ${authors.length} authors`);
     return new Response(JSON.stringify(authors), {
       headers: { 
@@ -241,8 +246,8 @@ export async function updateAuthor(id: string, authorData: {
   profile_picture?: string;
 }) {
   try {
-    const fields = [];
-    const values = [];
+    const fields: string[] = [];
+    const values: (string | number | null)[] = [];
     let paramCount = 1;
 
     // Build dynamic update query based on provided fields
@@ -279,22 +284,76 @@ export async function updateAuthor(id: string, authorData: {
 }
 
 /**
- * Delete an author
+ * Delete an author (soft delete)
  */
 export async function deleteAuthor(id: string) {
   try {
-    // Delete the author directly
+    console.log(`Attempting to soft delete author with ID: ${id}`);
+    
+    // Instead of deleting, set the deleted_at timestamp
     const result = await client.queryObject(`
-      DELETE FROM authors WHERE author_id = $1 RETURNING author_id
+      UPDATE authors 
+      SET deleted_at = CURRENT_TIMESTAMP 
+      WHERE author_id = $1 AND deleted_at IS NULL 
+      RETURNING author_id, deleted_at
+    `, [id]);
+
+    console.log(`Delete query result:`, result);
+
+    if (result.rows.length === 0) {
+      console.log(`No author found with ID ${id} or author is already deleted`);
+      throw new Error("Author not found or already deleted");
+    }
+
+    console.log(`Successfully soft deleted author with ID ${id}`);
+    return result.rows[0];
+  } catch (error) {
+    console.error(`Error soft deleting author with ID ${id}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Permanently delete an author (hard delete)
+ */
+export async function hardDeleteAuthor(id: string) {
+  try {
+    const result = await client.queryObject(`
+      DELETE FROM authors 
+      WHERE author_id = $1 AND deleted_at IS NOT NULL 
+      RETURNING author_id
     `, [id]);
 
     if (result.rows.length === 0) {
-      throw new Error("Author not found");
+      throw new Error("Author not found or not in trash");
     }
 
     return result.rows[0];
   } catch (error) {
-    console.error(`Error deleting author with ID ${id}:`, error);
+    console.error(`Error permanently deleting author with ID ${id}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Restore a deleted author
+ */
+export async function restoreAuthor(id: string) {
+  try {
+    const result = await client.queryObject(`
+      UPDATE authors 
+      SET deleted_at = NULL 
+      WHERE author_id = $1 AND deleted_at IS NOT NULL 
+      RETURNING author_id
+    `, [id]);
+
+    if (result.rows.length === 0) {
+      throw new Error("Author not found in trash");
+    }
+
+    return result.rows[0];
+  } catch (error) {
+    console.error(`Error restoring author with ID ${id}:`, error);
     throw error;
   }
 }
@@ -351,6 +410,40 @@ export async function handleUpdateAuthor(id: string, req: Request) {
  */
 export async function handleDeleteAuthor(id: string) {
   try {
+    // Check if the author exists and is already deleted
+    const checkResult = await client.queryObject(`
+      SELECT author_id, deleted_at 
+      FROM authors 
+      WHERE author_id = $1
+    `, [id]);
+    
+    if (checkResult.rows.length === 0) {
+      // Author doesn't exist at all
+      console.log(`Author with ID ${id} doesn't exist in the database`);
+      return new Response(JSON.stringify({ 
+        error: "Author not found",
+        details: "No author exists with this ID" 
+      }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    
+    const author = checkResult.rows[0];
+    if (author.deleted_at) {
+      // Author already deleted, return success with appropriate message
+      console.log(`Author with ID ${id} is already deleted, returning success`);
+      return new Response(JSON.stringify({ 
+        message: "Author was already deleted",
+        author_id: id,
+        deleted_at: author.deleted_at
+      }), {
+        status: 200, // Return 200 as the desired end state is achieved
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    
+    // Proceed with deletion if author exists and is not deleted
     await deleteAuthor(id);
     return new Response(null, { status: 204 });
   } catch (error) {
@@ -358,6 +451,26 @@ export async function handleDeleteAuthor(id: string) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(JSON.stringify({ 
       error: "Failed to delete author",
+      details: errorMessage 
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+
+/**
+ * Handle POST request to restore an author
+ */
+export async function handleRestoreAuthor(id: string) {
+  try {
+    await restoreAuthor(id);
+    return new Response(null, { status: 204 });
+  } catch (error) {
+    console.error(`Error in handleRestoreAuthor for ID ${id}:`, error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return new Response(JSON.stringify({ 
+      error: "Failed to restore author",
       details: errorMessage 
     }), {
       status: 500,

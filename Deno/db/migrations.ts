@@ -29,75 +29,30 @@ async function runMigrations() {
         // Create or update the authors table
         await client.queryObject(`
             CREATE TABLE IF NOT EXISTS authors (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                department VARCHAR(255),
-                email VARCHAR(255),
-                affiliation VARCHAR(255),
-                year_of_graduation INTEGER,
-                linkedin VARCHAR(255),
-                bio TEXT,
-                orcid_id VARCHAR(255),
-                profile_picture VARCHAR(255),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                author_id uuid DEFAULT gen_random_uuid() NOT NULL,
+                full_name character varying(255) NOT NULL,
+                affiliation character varying(255),
+                department character varying(255),
+                year_of_graduation integer,
+                email character varying(255),
+                linkedin character varying(255),
+                orcid_id character varying(255),
+                biography text,
+                profile_picture character varying(255),
+                created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+                updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+                deleted_at timestamp without time zone,
+                gender character varying(1),
+                CONSTRAINT authors_gender_check CHECK (((gender)::text = ANY ((ARRAY['M'::character varying, 'F'::character varying])::text[])))
             );
 
             -- Add any missing columns if they don't exist
             DO $$ 
             BEGIN 
-                -- Add department if it doesn't exist
+                -- Add deleted_at if it doesn't exist
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                    WHERE table_name = 'authors' AND column_name = 'department') THEN
-                    ALTER TABLE authors ADD COLUMN department VARCHAR(255);
-                END IF;
-
-                -- Add email if it doesn't exist
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                    WHERE table_name = 'authors' AND column_name = 'email') THEN
-                    ALTER TABLE authors ADD COLUMN email VARCHAR(255);
-                END IF;
-
-                -- Add affiliation if it doesn't exist
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                    WHERE table_name = 'authors' AND column_name = 'affiliation') THEN
-                    ALTER TABLE authors ADD COLUMN affiliation VARCHAR(255);
-                END IF;
-
-                -- Add year_of_graduation if it doesn't exist
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                    WHERE table_name = 'authors' AND column_name = 'year_of_graduation') THEN
-                    ALTER TABLE authors ADD COLUMN year_of_graduation INTEGER;
-                END IF;
-
-                -- Add linkedin if it doesn't exist
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                    WHERE table_name = 'authors' AND column_name = 'linkedin') THEN
-                    ALTER TABLE authors ADD COLUMN linkedin VARCHAR(255);
-                END IF;
-
-                -- Add bio if it doesn't exist
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                    WHERE table_name = 'authors' AND column_name = 'bio') THEN
-                    ALTER TABLE authors ADD COLUMN bio TEXT;
-                END IF;
-
-                -- Add orcid_id if it doesn't exist
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                    WHERE table_name = 'authors' AND column_name = 'orcid_id') THEN
-                    ALTER TABLE authors ADD COLUMN orcid_id VARCHAR(255);
-                END IF;
-
-                -- Add profile_picture if it doesn't exist
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                    WHERE table_name = 'authors' AND column_name = 'profile_picture') THEN
-                    ALTER TABLE authors ADD COLUMN profile_picture VARCHAR(255);
-                END IF;
-
-                -- Add updated_at if it doesn't exist
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                    WHERE table_name = 'authors' AND column_name = 'updated_at') THEN
-                    ALTER TABLE authors ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+                    WHERE table_name = 'authors' AND column_name = 'deleted_at') THEN
+                    ALTER TABLE authors ADD COLUMN deleted_at timestamp without time zone;
                 END IF;
             END $$;
         `);

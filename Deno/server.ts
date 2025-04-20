@@ -16,7 +16,8 @@ import {
   handleGetDocumentsByAuthor,
   handleCreateAuthor,
   handleUpdateAuthor,
-  handleDeleteAuthor
+  handleDeleteAuthor,
+  handleRestoreAuthor
 } from "./routes/authors.ts";
 
 const env = await load({ envPath: "./.env" });
@@ -128,6 +129,13 @@ async function handler(req: Request): Promise<Response> {
             } else if (method === "POST") {
                 return addCorsHeaders(await handleCreateAuthor(req));
             }
+        }
+        
+        // Handle author restore endpoint
+        const restoreMatch = path.match(/^\/api\/authors\/([a-f0-9-]+)\/restore$/i);
+        if (restoreMatch && method === "POST") {
+            const authorId = restoreMatch[1];
+            return addCorsHeaders(await handleRestoreAuthor(authorId));
         }
         
         const authorIdMatch = path.match(/^\/api\/authors\/([a-f0-9-]+)$/i);

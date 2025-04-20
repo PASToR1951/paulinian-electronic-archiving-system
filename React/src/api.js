@@ -7,7 +7,7 @@
 export const fetchAuthors = async () => {
   try {
     console.log('Fetching authors from API...');
-    const response = await fetch('/api/authors');
+    const response = await fetch('/api/authors?includeDeleted=true');
     
     if (!response.ok) {
       console.log('Server response:', response);
@@ -34,7 +34,8 @@ export const fetchAuthors = async () => {
         profilePicture: author.profile_picture || '',
         yearOfGraduation: author.year_of_graduation || '',
         linkedin: author.linkedin || '',
-        gender: 'M' // Default value
+        gender: 'M', // Default value
+        deleted_at: author.deleted_at || null
       };
     });
     

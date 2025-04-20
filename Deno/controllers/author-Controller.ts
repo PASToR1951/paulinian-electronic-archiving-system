@@ -1,4 +1,5 @@
 import { client } from "../data/denopost_conn.ts";
+import { Request as OakRequest } from "https://deno.land/x/oak/mod.ts";
 
 // Define the Author interface
 interface Author {
@@ -13,12 +14,14 @@ interface Author {
   orcid_id?: string;
   profile_picture?: string;
   document_count?: bigint;
+  deleted_at?: string | null;
 }
 
-export async function searchAuthors(req: Request) {
+export async function searchAuthors(req: OakRequest) {
   try {
       const url = new URL(req.url);
       const query = url.searchParams.get("q") || ""; // Extract query parameter
+      const includeDeleted = url.searchParams.get("includeDeleted") === "true";
 
       console.log("Searching for authors with query:", query);
 
@@ -34,6 +37,7 @@ export async function searchAuthors(req: Request) {
           a.biography,
           a.orcid_id,
           a.profile_picture,
+          a.deleted_at,
           COUNT(d.id) as document_count
         FROM 
           authors a
@@ -43,9 +47,10 @@ export async function searchAuthors(req: Request) {
           documents d ON da.document_id = d.id
         WHERE 
           a.full_name ILIKE $1
+          ${!includeDeleted ? 'AND a.deleted_at IS NULL' : ''}
         GROUP BY 
           a.author_id, a.full_name, a.department, a.email, a.affiliation, a.year_of_graduation,
-          a.linkedin, a.biography, a.orcid_id, a.profile_picture
+          a.linkedin, a.biography, a.orcid_id, a.profile_picture, a.deleted_at
       `, [`%${query}%`]);
 
       console.log("Query Result:", result.rows);
@@ -63,16 +68,16 @@ export async function searchAuthors(req: Request) {
           profilePicture: author.profile_picture || '',
           yearOfGraduation: author.year_of_graduation || '',
           linkedin: author.linkedin || '',
-          gender: 'M' // Default value
+          gender: 'M', // Default value
+          deleted_at: author.deleted_at || null
       }));
 
       return new Response(JSON.stringify(mappedAuthors), {
           headers: { "Content-Type": "application/json" },
       });
-  } catch (error: unknown) {
-      console.error("Database error:", error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      return new Response(JSON.stringify({ error: errorMessage }), {
+  } catch (error) {
+      console.error("Error searching authors:", error);
+      return new Response(JSON.stringify({ error: "Failed to search authors" }), {
           status: 500,
           headers: { "Content-Type": "application/json" },
       });
