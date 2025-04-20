@@ -407,7 +407,7 @@ export async function updateDocument(ctx: DocumentContext) {
 }
 
 // Update getDocumentById to join with document_authors
-async function getDocumentById(ctx: RouterContext) {
+export async function getDocumentById(ctx: RouterContext) {
     try {
         const id = ctx.params.id;
         const client = await pool.connect();

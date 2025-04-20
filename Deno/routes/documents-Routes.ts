@@ -44,6 +44,59 @@ router.get("/api/documents", async (ctx: RouterContext<"/api/documents">) => {
     }
 });
 
+// Get document by ID
+router.get("/api/documents/:id", async (ctx: RouterContext<"/api/documents/:id">) => {
+    try {
+        const id = ctx.params.id;
+        
+        // Query for the document with created_at field included
+        const result = await client.queryObject(`
+            SELECT 
+                d.id,
+                d.title,
+                d.publication_date,
+                d.file,
+                d.volume,
+                d.abstract,
+                d.updated_at AS updated_at,
+                c.category_name,
+                COALESCE(array_agg(DISTINCT a.full_name) FILTER (WHERE a.full_name IS NOT NULL), ARRAY[]::text[]) as author_names,
+                COALESCE(
+                    json_agg(
+                        DISTINCT jsonb_build_object(
+                            'topic_name', t.topic_name,
+                            'topic_id', t.id
+                        )
+                    ) FILTER (WHERE t.topic_name IS NOT NULL),
+                    '[]'::json
+                ) as topics
+            FROM documents d
+            LEFT JOIN categories c ON d.category_id = c.id
+            LEFT JOIN document_authors da ON d.id = da.document_id
+            LEFT JOIN authors a ON da.author_id = a.author_id
+            LEFT JOIN document_topics dt ON d.id = dt.document_id
+            LEFT JOIN topics t ON dt.topic_id = t.id
+            WHERE d.id = $1
+            GROUP BY d.id, d.title, d.publication_date, d.file, d.volume, d.abstract, d.updated_at, c.category_name
+        `, [id]);
+        
+        if (result.rows.length === 0) {
+            ctx.response.status = 404;
+            ctx.response.body = { message: "Document not found" };
+            return;
+        }
+        
+        ctx.response.body = result.rows[0];
+    } catch (error) {
+        console.error("Error fetching document by ID:", error);
+        ctx.response.status = 500;
+        ctx.response.body = { 
+            message: "Error fetching document", 
+            error: error instanceof Error ? error.message : String(error)
+        };
+    }
+});
+
 // Volumes endpoint
 router.get("/api/volumes", async (ctx) => {
     const response = await fetchVolumesByCategory(ctx.request);

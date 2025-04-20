@@ -123,7 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         if (cleanedText && 
                             (lastLineWasIncomplete || /^[a-z,;)]/.test(cleanedText) || /[a-z][.?!]$/.test(abstractText)) && 
                             !cleanedText.toLowerCase().includes('acknowledge') &&
-                            !cleanedText.includes('©') && 
+                            !cleanedText.includes('') && 
                             !cleanedText.includes('copyright') &&
                             !/^\s*\d+\s*$/.test(cleanedText)) {
                             abstractText += (lastLineWasIncomplete ? ' ' : '\n') + cleanedText;
@@ -266,6 +266,11 @@ document.addEventListener("DOMContentLoaded", () => {
     // Initialize preview with default values
     updateAuthorsPreview();
     updateTopicsPreview();
+    
+    // Set the current date for "Added Date" in the preview
+    const today = new Date();
+    const formattedAddedDate = today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    previewAddedDate.textContent = `Added Date: ${formattedAddedDate}`;
 
     // Add event listener for form submission
     const form = document.getElementById("upload-form");

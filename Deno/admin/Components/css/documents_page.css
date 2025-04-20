@@ -196,8 +196,7 @@ td:first-child {
     gap: 10px;
     padding-right: 15px;
     min-width: 120px;
-    position: relative;
-    flex-wrap: wrap;
+    position: relative; /* For dropdown positioning */
 }
 
 .actions a {
@@ -634,15 +633,23 @@ td:first-child {
     z-index: 1000;
 }
 
+/* General modal content style */
 .modal-content {
-    
+    background: white;
     padding: 15px;
     border-radius: 8px;
     width: 50%;
-    max-width: 600px;
+    max-width: 900px;
     max-height: 90vh;
     overflow-y: auto;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Specific styles for edit modal content - using !important to override other styles */
+#edit-modal .modal-content {
+    width: 1200px !important;
+    max-width: 95% !important;
+    padding: 0 !important;
 }
 
 .modal-content h2 {
@@ -1228,7 +1235,9 @@ select:focus {
 }
 
 .preview-abstract {
-    /* display: none; */
+    display: block; /* Ensure abstract is visible */
+    visibility: visible;
+    opacity: 1;
 }
 
 .preview-abstract h4 {
@@ -1336,38 +1345,61 @@ select:focus {
 }
 
 /* Edit Modal Specific Styles */
-#edit-modal .modal-content {
-    width: 90%;
-    max-width: 1000px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
-    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* General modal content style */
+.modal-content {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    width: 50%;
+    max-width: 900px;
     max-height: 90vh;
     overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Specific styles for edit modal content - using !important to override other styles */
+#edit-modal .modal-content {
+    width: 1200px !important;
+    max-width: 95% !important;
+    padding: 0 !important;
 }
 
 #edit-modal .container {
     display: flex;
-    gap: 2rem;
-    padding: 2rem;
+    width: 100%;
 }
 
 #edit-modal .left-panel {
     flex: 1;
-    min-width: 0;
+    padding: 30px;
+    border-right: 1px solid #eee;
 }
 
 #edit-modal .right-panel {
     flex: 1;
-    min-width: 0;
+    padding: 30px;
+    background-color: #fff;
 }
 
 #edit-modal h2 {
     margin-bottom: 1.5rem;
     color: #333;
-    font-size: 1.5rem;
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-top: 0;
 }
 
 #edit-modal .form-row {
@@ -1379,14 +1411,15 @@ select:focus {
 #edit-modal .form-group {
     flex: 1;
     min-width: 0;
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
 }
 
 #edit-modal label {
     display: block;
     margin-bottom: 0.5rem;
-    color: #555;
+    color: #333;
     font-weight: 500;
+    font-size: 0.9rem;
 }
 
 #edit-modal input[type="text"],
@@ -1399,34 +1432,93 @@ select:focus {
     font-size: 1rem;
     transition: border-color 0.3s ease;
     box-sizing: border-box;
+    background-color: #fff;
 }
 
-#edit-modal .upload-icons-container {
-    margin: 1.5rem 0;
+#edit-modal input[type="text"]:focus,
+#edit-modal input[type="date"]:focus,
+#edit-modal select:focus {
+    border-color: #4CAF50;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
 }
 
+/* Upload/file attachment section */
 #edit-modal .upload-box {
-    width: 100%;
-    padding: 1.5rem;
-    border: 2px dashed #ddd;
-    border-radius: 4px;
+    width: 150px;
+    height: 100px;
+    padding: 1rem;
+    border: 2px dashed #ccc;
+    border-radius: 8px;
     text-align: center;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s ease-in-out;
+    background-color: #fff;
+    margin: 0.5rem auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#edit-modal .upload-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+#edit-modal .upload-content svg {
+    width: 40px;
+    height: 40px;
+    stroke: #555;
+    transition: stroke 0.3s ease-in-out;
+}
+
+#edit-modal .upload-content p {
+    margin: 5px 0 0;
+    font-size: 14px;
+    color: #555;
+    transition: color 0.3s ease-in-out;
 }
 
 #edit-modal .upload-box:hover {
-    border-color: #008035;
-    background-color: #f8f9fa;
+    background-color: #f4f4f4;
+    border-color: #4CAF50;
+}
+
+#edit-modal .upload-box:hover svg {
+    stroke: #4CAF50;
+}
+
+#edit-modal .upload-box:hover p {
+    color: #4CAF50;
+}
+
+/* Fix for the file indicator - displaying below the upload box */
+#edit-modal .file-indicator {
+    margin-top: 8px;
+    font-size: 0.9rem;
+    color: #4CAF50;
+    border: none;
+    background: transparent;
+    display: block;
+    width: 100%;
+    text-align: center;
+}
+
+/* Hide the preview button */
+#edit-modal .preview-btn {
+    display: none;
 }
 
 #edit-modal .submit-container {
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-start;
     gap: 1rem;
     margin-top: 1.5rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid #eee;
 }
 
 #edit-modal .btn-primary,
@@ -1436,10 +1528,11 @@ select:focus {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s ease;
+    font-size: 0.9rem;
 }
 
 #edit-modal .btn-primary {
-    background-color: #008035;
+    background-color: #4CAF50;
     color: white;
     border: none;
 }
@@ -1451,11 +1544,178 @@ select:focus {
 }
 
 #edit-modal .btn-primary:hover {
-    background-color: #006b2c;
+    background-color: #45a049;
 }
 
 #edit-modal .btn-secondary:hover {
     background-color: #e9ecef;
+}
+
+/* Preview section styling */
+#edit-modal .preview-container {
+    height: 100%;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+#edit-modal .preview-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+#edit-modal .preview-icon {
+    width: 60px;
+    height: 60px;
+    background-color: #ff9a76;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #fff;
+    font-weight: bold;
+}
+
+#edit-modal .preview-title-section {
+    flex: 1;
+}
+
+#edit-modal .preview-title {
+    margin: 0 0 5px;
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #333;
+}
+
+#edit-modal .preview-author {
+    margin: 0;
+    color: #666;
+    font-size: 1rem;
+}
+
+#edit-modal .preview-metadata {
+    margin: 20px 0;
+}
+
+#edit-modal .metadata-row {
+    display: flex;
+    margin-bottom: 10px;
+}
+
+#edit-modal .metadata-label {
+    flex: 0 0 120px;
+    color: #666;
+    font-weight: 500;
+}
+
+#edit-modal .metadata-value {
+    flex: 1;
+    color: #333;
+}
+
+#edit-modal .read-document-btn {
+    display: block;
+    width: 180px;
+    padding: 10px 0;
+    margin: 25px auto;
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border: none;
+    border-radius: 20px;
+    text-align: center;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#edit-modal .read-document-btn:hover {
+    background-color: #c8e6c9;
+}
+
+#edit-modal .preview-abstract {
+    margin-top: 25px;
+}
+
+#edit-modal .abstract-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+#edit-modal .abstract-content {
+    color: #555;
+    line-height: 1.6;
+    margin: 0;
+    padding: 15px;
+    background-color: #f5f5f5;
+    border-radius: 8px;
+}
+
+/* Dropdown styling for authors and topics */
+#edit-modal .dropdown {
+    position: relative;
+    width: 100%;
+}
+
+#edit-modal .dropdown-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 10;
+}
+
+#edit-modal .dropdown-item {
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+#edit-modal .dropdown-item:hover {
+    background-color: #f5f5f5;
+}
+
+/* Selected authors/topics pills */
+#edit-modal .select-container {
+    margin-top: 10px;
+}
+
+#edit-modal .selected-authors,
+#edit-modal .selected-topics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+#edit-modal .selected-item {
+    background-color: #f0f0f0;
+    color: #333;
+    padding: 6px 10px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.9rem;
+}
+
+#edit-modal .remove-item {
+    cursor: pointer;
+    color: #666;
+}
+
+/* Fix for the file indicator */
+#edit-modal .file-indicator {
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: #4CAF50;
 }
 
 /* PDF Viewer Modal Specific Styles */

@@ -868,8 +868,9 @@ function addSelectedTopic(topic) {
 }
 
 // File upload functionality
-const uploadBox = document.querySelector('.upload-box');
+const uploadBox = document.getElementById('edit-upload-box');
 const fileInput = document.getElementById('edit-file');
+const fileIndicator = document.getElementById('current-file-container');
 
 uploadBox.addEventListener('click', () => {
     fileInput.click();
@@ -878,7 +879,8 @@ uploadBox.addEventListener('click', () => {
 fileInput.addEventListener('change', function() {
     if (this.files.length > 0) {
         const fileName = this.files[0].name;
-        uploadBox.querySelector('p').textContent = fileName;
+        // Update the file indicator instead of the paragraph
+        fileIndicator.textContent = fileName;
     }
 });
 
@@ -892,15 +894,17 @@ async function editDocument(documentId) {
         
         // Fetch document details
         const response = await fetch(`/api/documents/${documentId}`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        console.log("Fetch response status:", response.status);
         const data = await response.json();
-        console.log('Fetched document data:', data);
         
-        // Handle both single object and array responses
+        // More detailed logging
+        console.log("Complete document data:", data);
+        console.log("Document created_at:", data.created_at);
+        console.log("Document created_at type:", typeof data.created_at);
+        
         const documentData = Array.isArray(data) ? data[0] : data;
-        
+        console.log('Fetched document data:', documentData);
+
         if (!documentData) {
             throw new Error('No document data received');
         }
@@ -933,6 +937,30 @@ async function editDocument(documentId) {
             } else {
                 previewAbstract.innerHTML = '<p>No abstract available.</p>';
             }
+        }
+        
+        // Update added date in preview using the document's creation date
+        const previewAddedDate = document.getElementById('edit-preview-added-date');
+        if (previewAddedDate) {
+            console.log("Document data for added date:", documentData);
+            console.log("updated_at field:", documentData.updated_at);
+            
+            // Use the updated_at field if available, otherwise use current date
+            let dateToShow;
+            if (documentData.updated_at) {
+                dateToShow = new Date(documentData.updated_at);
+            } else {
+                // Fallback to current date if no updated_at field
+                dateToShow = new Date();
+            }
+            
+            const formattedDate = dateToShow.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            
+            previewAddedDate.textContent = formattedDate;
         }
         
         // Clear and populate authors
@@ -1179,8 +1207,8 @@ function openDeleteConfirmation(doc) {
         });
         
         // Close dialog when clicking outside
-        window.addEventListener('click', (e) => {
-            if (e.target === confirmDialog) {
+        window.addEventListener('click', (event) => {
+            if (event.target === confirmDialog) {
                 confirmDialog.style.display = 'none';
             }
         });
@@ -1241,12 +1269,12 @@ async function showDocumentPreview(doc) {
         if (!response.ok) {
             throw new Error('Failed to fetch document details');
         }
-        const documentData = await response.json();
-        console.log('Fetched document details:', documentData);
-
+        const data = await response.json();
+        console.log('Fetched document data:', data);
+        
         // Get the first document if an array is returned
-        const data = Array.isArray(documentData) ? documentData[0] : documentData;
-        console.log('Processing document data:', data);
+        const documentData = Array.isArray(data) ? data[0] : data;
+        console.log('Processing document data:', documentData);
 
         const modal = document.getElementById('preview-modal');
         if (!modal) {
@@ -1323,7 +1351,7 @@ async function showDocumentPreview(doc) {
         }
         
         if (addedDateElement) {
-            const createdAt = data.created_at || doc.created_at;
+            const createdAt = data.updated_at || doc.updated_at;
             const addedDate = createdAt ? new Date(createdAt).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
@@ -1991,7 +2019,7 @@ function showVolumeDropdown(row, category, volume) {
     
     // Add to document body
     document.body.appendChild(volumeDropdownContainer);
-    
+
     // Show dropdown
     dropdown.classList.add("show");
     
@@ -2003,7 +2031,7 @@ function showVolumeDropdown(row, category, volume) {
         }
     };
     
-    // Add event listener with a slight delay to avoid immediate closing
+    // Add event listener with a slight delay
     setTimeout(() => {
         document.addEventListener('click', closeDropdown);
     }, 100);
@@ -2754,4 +2782,3 @@ const abstractStyles = `
 const styleSheet = document.createElement("style");
 styleSheet.textContent = abstractStyles;
 document.head.appendChild(styleSheet);
-
