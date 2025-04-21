@@ -1,29 +1,63 @@
-
 .page-header {
-   
     margin-top: 20px; 
-    
-    
-
 }
 
 .header-content {
-    
     display: flex;
     justify-content: space-between; 
     align-items: center; 
     max-width: 1200px; 
     margin: 0 auto; 
     height: 50px;
-    background-color:  fffff5;
+    background-color: #fffff5;
 }
 
+#reportrange {
+    cursor: pointer;
+    padding: 8px 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+    display: inline-block;
+    font-size: 14px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+#reportrange:hover {
+    border-color: #aaa;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+#reportrange span {
+    margin-right: 5px;
+}
+
+.search-bar {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 5px 10px;
+    background-color: #fff;
+}
+
+.search-bar i {
+    color: #666;
+    margin-right: 8px;
+}
+
+.search-bar input {
+    border: none;
+    outline: none;
+    padding: 5px;
+    width: 180px;
+}
 
 .left-section {
     display: flex;
     flex-direction: column; 
     align-items: flex-start; 
-
 }
 
 .right-section {
@@ -32,12 +66,13 @@
     gap: 10px; 
 }
 
-
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .header-content {
         flex-direction: column; 
         align-items: flex-start;
+        height: auto;
+        padding: 10px 0;
     }
 
     .right-section {
@@ -45,6 +80,9 @@
         flex-direction: column;
         align-items: stretch;
     }
-
     
+    #reportrange, .search-bar {
+        width: 100%;
+        margin-bottom: 10px;
+    }
 }

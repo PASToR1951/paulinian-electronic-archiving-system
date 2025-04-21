@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Date Range Picker</title>
-    <link rel="stylesheet" href="./css/page_header.css">
+    <link rel="stylesheet" href="/admin/Components/css/page_header.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
@@ -14,7 +14,7 @@
 <body>
     <header class="page-header">
         <div class="header-content">
-            <div id="reportrange">
+            <div id="reportrange" style="cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; border-radius: 4px; width: 250px; display: inline-block;">
                 <span></span>
                 <i class="fa fa-calendar"></i>
             </div>
@@ -26,7 +26,9 @@
     </header>
 
     <script>
-        $(function() {
+        // Function to initialize date range picker
+        function initializeDateRangePicker() {
+            console.log('Initializing date range picker');
             var today = moment();
             var start = moment().subtract(1, 'month').startOf('month');
             var minYear = moment().subtract(3, 'years').startOf('year');
@@ -52,7 +54,17 @@
             }, cb);
 
             cb(start, today);
+        }
+
+        // Initialize immediately for standalone usage
+        $(document).ready(function() {
+            initializeDateRangePicker();
         });
+        
+        // Also expose the initialization function for when the component is loaded into another page
+        if (typeof window !== 'undefined') {
+            window.initializePageHeaderDatePicker = initializeDateRangePicker;
+        }
     </script>
 </body>
 </html>

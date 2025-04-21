@@ -362,6 +362,90 @@
     .then(response => response.text())
     .then(data => {
         document.getElementById('page-header').innerHTML = data;
+        
+        // Ensure all necessary scripts are loaded
+        if (!window.jQuery) {
+            console.log("Loading jQuery");
+            const jQueryScript = document.createElement('script');
+            jQueryScript.src = 'https://cdn.jsdelivr.net/jquery/latest/jquery.min.js';
+            jQueryScript.onload = loadMoment;
+            document.head.appendChild(jQueryScript);
+        } else {
+            loadMoment();
+        }
+        
+        function loadMoment() {
+            if (!window.moment) {
+                console.log("Loading moment.js");
+                const momentScript = document.createElement('script');
+                momentScript.src = 'https://cdn.jsdelivr.net/momentjs/latest/moment.min.js';
+                momentScript.onload = loadDateRangePicker;
+                document.head.appendChild(momentScript);
+            } else {
+                loadDateRangePicker();
+            }
+        }
+        
+        function loadDateRangePicker() {
+            if (!$.fn.daterangepicker) {
+                console.log("Loading daterangepicker");
+                const dateRangePickerScript = document.createElement('script');
+                dateRangePickerScript.src = 'https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js';
+                dateRangePickerScript.onload = initializePicker;
+                document.head.appendChild(dateRangePickerScript);
+                
+                const dateRangePickerCSS = document.createElement('link');
+                dateRangePickerCSS.rel = 'stylesheet';
+                dateRangePickerCSS.type = 'text/css';
+                dateRangePickerCSS.href = 'https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css';
+                document.head.appendChild(dateRangePickerCSS);
+            } else {
+                initializePicker();
+            }
+        }
+        
+        function initializePicker() {
+            console.log("Initializing date picker");
+            setTimeout(() => {
+                if (typeof window.initializePageHeaderDatePicker === 'function') {
+                    window.initializePageHeaderDatePicker();
+                    console.log("Date picker initialized in dashboard");
+                } else {
+                    console.warn("Date picker initialization function not found");
+                    // Fallback initialization if the function isn't exposed
+                    initializeFallbackDatePicker();
+                }
+            }, 100);
+        }
+        
+        function initializeFallbackDatePicker() {
+            console.log("Using fallback initialization");
+            var today = moment();
+            var start = moment().subtract(1, 'month').startOf('month');
+            var minYear = moment().subtract(3, 'years').startOf('year');
+            
+            function cb(start, end) {
+                $('#reportrange span').html(start.format('MMMM D, YYYY') + ' - ' + end.format('MMMM D, YYYY'));
+            }
+            
+            $('#reportrange').daterangepicker({
+                startDate: start,
+                endDate: today,
+                minDate: minYear,
+                maxDate: today,
+                showDropdowns: true,
+                ranges: {
+                    'This Year': [moment().startOf('year'), today],
+                    'Last Year': [moment().subtract(1, 'year').startOf('year'), moment().subtract(1, 'year').endOf('year')],
+                    'Last 3 Years': [moment().subtract(3, 'year').startOf('year'), today]
+                },
+                locale: {
+                    format: 'MMMM D, YYYY'
+                }
+            }, cb);
+            
+            cb(start, today);
+        }
     })
     .catch(error => console.error('Error loading header:', error));
 

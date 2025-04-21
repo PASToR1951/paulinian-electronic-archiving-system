@@ -1922,6 +1922,16 @@ async function loadPageHeader() {
                 const html = await response.text();
                 headerContainer.innerHTML = html;
                 console.log("Page header loaded successfully");
+                
+                // Initialize date picker after loading the HTML
+                setTimeout(() => {
+                    if (typeof window.initializePageHeaderDatePicker === 'function') {
+                        window.initializePageHeaderDatePicker();
+                        console.log("Date picker initialized");
+                    } else {
+                        console.warn("Date picker initialization function not found");
+                    }
+                }, 100); // Small delay to ensure DOM is updated
             } else {
                 console.error('Failed to load page header:', response.status);
                 // Provide a fallback header
