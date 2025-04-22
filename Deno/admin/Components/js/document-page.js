@@ -1170,6 +1170,7 @@ function openDeleteConfirmation(doc) {
                 border-radius: 5px;
                 max-width: 400px;
                 width: 90%;
+                height:auto;
                 position: relative;
             ">
                 <h2 style="margin-top: 0;">Confirm Delete</h2>
