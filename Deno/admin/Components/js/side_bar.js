@@ -1,21 +1,44 @@
-fetch('side_bar.html')
-.then(response => response.text())
-.then(data => {
-    document.getElementById('side-bar').innerHTML = data;
-    highlightActiveSidebarLink(); // Call the function after sidebar is injected
-})
-.catch(error => console.error('Error loading sidebar:', error));
+// Wait for the DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Sidebar script loaded');
+    
+    // Get the sidebar container
+    const sidebarContainer = document.getElementById('sidebar-container');
+    if (!sidebarContainer) {
+        console.error('Sidebar container not found. Make sure an element with id="sidebar-container" exists.');
+        return;
+    }
+    
+    fetch('side_bar.html')
+    .then(response => response.text())
+    .then(data => {
+        sidebarContainer.innerHTML = data;
+        
+        // Find the sidebar element inside the container
+        const sideBar = sidebarContainer.querySelector('#side-bar') || sidebarContainer;
+        
+        // If the sidebar exists, highlight the active link
+        if (sideBar) {
+            highlightActiveSidebarLink(sideBar);
+        }
+    })
+    .catch(error => console.error('Error loading sidebar:', error));
+});
 
 // Highlight active sidebar link
-function highlightActiveSidebarLink() {
-    const currentPage = window.location.pathname;
-    const navLinks = document.querySelectorAll('#side-bar a.icon-wrapper');
+function highlightActiveSidebarLink(sideBar) {
+    const currentPage = globalThis.location.pathname;
+    // Find links either in the sidebar element or in the document if sidebar not provided
+    const navLinks = sideBar ? 
+        sideBar.querySelectorAll('a.icon-wrapper') : 
+        document.querySelectorAll('#side-bar a.icon-wrapper');
     
     console.log("Current page:", currentPage); // Check the current page URL
     console.log("Sidebar links:", navLinks); // Check the selected links
 
     navLinks.forEach(link => {
-        const href = new URL(link.href).pathname;
+        // Get the pathname from the link's href
+        const href = new URL(link.href, globalThis.location.origin).pathname;
         console.log("Link href:", href); // Check the href attribute of each link
 
         // Skip highlighting for logout link
@@ -49,22 +72,22 @@ document.addEventListener('DOMContentLoaded', () => {
 // Function to prevent back navigation
 function preventBackNavigation() {
     // Clear all history entries
-    window.history.pushState(null, '', window.location.href);
+    globalThis.history.pushState(null, '', globalThis.location.href);
     
     // Prevent back navigation
-    window.addEventListener('popstate', function() {
-        window.history.pushState(null, '', window.location.href);
+    globalThis.addEventListener('popstate', function() {
+        globalThis.history.pushState(null, '', globalThis.location.href);
     });
     
     // Disable back button
-    window.history.pushState(null, '', window.location.href);
-    window.onpopstate = function() {
-        window.history.pushState(null, '', window.location.href);
+    globalThis.history.pushState(null, '', globalThis.location.href);
+    globalThis.onpopstate = function() {
+        globalThis.history.pushState(null, '', globalThis.location.href);
     };
 }
 
 // Additional prevention for browser back button
-window.addEventListener('beforeunload', function() {
+globalThis.addEventListener('beforeunload', function() {
     preventBackNavigation();
 });
 
@@ -127,14 +150,14 @@ function handleLogout(event) {
   .then(response => {
     console.log("Logout response status:", response.status);
     // Always redirect to index page
-    window.location.href = '/index.html';
+    globalThis.location.href = '/index.html';
   })
   .catch(error => {
     console.error("Error during logout:", error);
     // Still redirect to index page even if fetch fails
-    window.location.href = '/index.html';
+    globalThis.location.href = '/index.html';
   });
 }
 
 // Export the function for use in other files
-window.handleLogout = handleLogout;
+globalThis.handleLogout = handleLogout;

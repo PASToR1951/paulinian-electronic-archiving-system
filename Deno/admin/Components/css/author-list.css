@@ -3,11 +3,12 @@ body{
     width: 100%;
     margin: 0px;
     padding: 0px;
+    background-color: #f0f7f0; /* Light green background like in your screenshot */
 }
-.author-list-page #root{
-    width: 1200px;
-    height: 80%;
+
+#react-author-list{
+    width: 100%;
+    
     margin: auto;
-    max-width: 1200px;
-    margin: 50px auto;
+   
 }

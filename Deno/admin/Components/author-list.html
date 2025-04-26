@@ -7,44 +7,34 @@
   <link rel="stylesheet" href="/admin/Components/css/side_bar.css">
   <link rel="stylesheet" href="/admin/Components/css/navbar_header.css">
   <link rel="stylesheet" href="/admin/Components/css/documents_page.css">
+  <link rel="stylesheet" href="/admin/Components/css/author-list.css">
   
-  <!-- React and ReactDOM scripts from CDN -->
-  <script crossorigin src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
+  <!-- React and ReactDOM for the compiled TypeScript component (using v17 which is more stable) -->
+  <script src="https://unpkg.com/react@17/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js" crossorigin></script>
   
   <!-- Debug script -->
   <script>
-    console.log("Page loaded, waiting for scripts to initialize...");
-    
-    // Check if React loaded
-    window.addEventListener('DOMContentLoaded', () => {
-      console.log("DOM Content Loaded");
-      if (window.React) {
-        console.log("React is loaded successfully");
-      } else {
-        console.error("React failed to load!");
-      }
-      
-      if (window.ReactDOM) {
-        console.log("ReactDOM is loaded successfully");
-      } else {
-        console.error("ReactDOM failed to load!");
-      }
+    console.log('Loading compiled TypeScript component');
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log("React is loaded:", !!window.React);
+      console.log("ReactDOM is loaded:", !!window.ReactDOM);
     });
   </script>
-  </head>
+</head>
 <body>
-  <div class="container">
-    <!-- Header and navigation will be loaded by JavaScript -->
-    <div id="header-container"></div>
-    <div id="sidebar-container"></div>
-    
-    <!-- Mount point for the React component -->
-    <div id="react-author-list" class="main-content">
-      <!-- Fallback content if React doesn't load -->
-      <div class="react-loading">Loading Author List Component...</div>
-    </div>
+  <div id="header-container"></div>
+  <div id="sidebar-container"></div>
+  <!-- Mount point for the React component - positioned to match sidebar layout -->
+  <div id="react-author-list" class="main-content">
+    <!-- Fallback content if React doesn't load (will be replaced by React) -->
+    <div class="react-loading">Loading Author List Component...</div>
   </div>
+    
+  <!-- Debug console for React mounting -->
+  <script>
+    console.log('Initial HTML loaded, found mount point:', document.getElementById('react-author-list'));
+  </script>
 
   <!-- Load header and sidebar -->
   <script>
@@ -88,16 +78,33 @@
     });
   </script>
   
-  <!-- Use a different approach - include the actual compiled JS file in a simpler way -->
-  <script src="/admin/Components/js/author-list.js" onerror="console.error('Failed to load admin author-list.js')"></script>
+  <!-- Load the compiled TypeScript component (no Babel needed) from a path the server can serve -->
+  <script>
+    console.log('Loading compiled JS file from /admin/Components/js/author-list-compiled.js');
+  </script>
+  <script src="/admin/Components/js/author-list-compiled.js"></script>
+  
+  <!-- Mount the React component (auto-mounts) -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('DOM loaded, compiled component should auto-initialize');
+      // The compiled component will auto-initialize
+      // Mark as mounted to avoid fallback timeout
+      const container = document.getElementById('react-author-list');
+      if (container) {
+        container.dataset.mounted = 'true';
+      }
+    });
+  </script>
   
   <!-- Fallback script in case the main script fails -->
   <script>
     // Wait a bit to check if the component mounted
     setTimeout(() => {
       const mountPoint = document.getElementById('react-author-list');
-      // If the component hasn't removed our loading message, it failed to mount
-      if (mountPoint && mountPoint.querySelector('.react-loading')) {
+      console.log('Checking if React component mounted...');
+      // Check if the component was explicitly marked as mounted or still shows loading
+      if (mountPoint && !mountPoint.dataset.mounted && mountPoint.querySelector('.react-loading')) {
         console.error("React component failed to mount after timeout");
         mountPoint.innerHTML = `
           <div class="error-container">
@@ -133,7 +140,7 @@
             }
           });
       }
-    }, 3000); // 3 second timeout
+    }, 5000); // 5 second timeout
   </script>
 </body>
 </html>

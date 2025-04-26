@@ -29,7 +29,7 @@ export async function loadReactComponent(options) {
   
   try {
     // Check if we already have the React runtime loaded
-    if (!window.React || !window.ReactDOM) {
+    if (!globalThis.React || !globalThis.ReactDOM) {
       // Load React and ReactDOM from CDN if not already loaded
       await loadReactRuntime();
     }
@@ -53,7 +53,7 @@ export async function loadReactComponent(options) {
     const WrappedComponent = createProviderWrapper(componentModule.default, props);
     
     // Render the component to the mount point
-    window.ReactDOM.render(WrappedComponent, mountElement);
+    globalThis.ReactDOM.render(WrappedComponent, mountElement);
     
     console.log(`Successfully mounted React component at #${mountPoint}`);
   } catch (error) {
@@ -115,20 +115,46 @@ function loadScript(scriptElement) {
  * @returns {Promise<any>} The component module
  */
 async function loadComponentFromPath(path) {
-  // In a production environment, this would load a bundled component
-  // For this example, we're assuming the component is built and available at buildPath
+  console.log(`Attempting to load component from: ${path}`);
   
-  // Convert the TypeScript path to the expected JavaScript build path
-  const buildPath = path.replace('.tsx', '.js').replace('/React/', '/build/');
-  
+  // First try the direct path (use the TypeScript file directly)
   try {
-    // Dynamically import the component
-    // Note: This requires your build system to output ESM modules
-    const module = await import(buildPath);
+    console.log(`Trying direct import from: ${path}`);
+    const module = await import(path);
+    console.log('Successfully loaded component directly');
     return module;
-  } catch (error) {
-    console.error(`Failed to load component from ${buildPath}:`, error);
-    throw new Error(`Component not found or failed to load: ${path}`);
+  } catch (directError) {
+    console.warn(`Direct import failed:`, directError);
+    
+    // If direct import fails, try various fallback paths
+    const fallbackPaths = [
+      // Original build path
+      path.replace('.tsx', '.js').replace('/React/', '/build/'),
+      // Try without changing the directory structure
+      path.replace('.tsx', '.js'),
+      // Try with just the filename
+      '/js/' + path.split('/').pop().replace('.tsx', '.js'),
+      // Try with admin/js path
+      '/admin/js/' + path.split('/').pop().replace('.tsx', '.js'),
+      // Try with components path
+      '/admin/Components/js/' + path.split('/').pop().replace('.tsx', '.js')
+    ];
+    
+    // Try each fallback path
+    for (const fallbackPath of fallbackPaths) {
+      try {
+        console.log(`Trying fallback import from: ${fallbackPath}`);
+        const module = await import(fallbackPath);
+        console.log(`Successfully loaded component from fallback: ${fallbackPath}`);
+        return module;
+      } catch (fallbackError) {
+        console.warn(`Fallback import failed for ${fallbackPath}:`, fallbackError);
+      }
+    }
+    
+    // If all fallbacks fail, throw an error
+    console.error(`All import attempts failed for component: ${path}`);
+    throw new Error(`Component not found or failed to load: ${path}. Tried multiple fallback paths.`);
   }
 }
 
@@ -167,16 +193,17 @@ function createDenoBridge() {
     documents: {
       compile: async (documentIds, title) => {
         // Implementation that matches the bridge's compile method
-        return fetch('/api/documents/compile', {
+        const response = await fetch('/api/documents/compile', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ documentIds, title }),
-        }).then(res => res.json());
+        });
+        return await response.json();
       },
       
       expand: async (documentId) => {
-        return fetch(`/api/documents/${documentId}/expand`)
-          .then(res => res.json());
+        const response = await fetch(`/api/documents/${documentId}/expand`);
+        return await response.json();
       }
     },
     
