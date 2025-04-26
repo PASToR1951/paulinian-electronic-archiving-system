@@ -9,36 +9,38 @@ body {
 
 /* Main Content Wrapper */
 .main-content {
-    padding-top: 60px; /* Adjust this value based on your navbar height */
+     /* Adjust this value based on your navbar height */
+    padding-top: 20px;
+    padding-bottom: 20px;
     display: flex;
     justify-content: center;
-    min-height: calc(100vh - 60px);
-    
+    align-items: center; /* Add vertical centering */
+    height: 85vh;
 }
 
 /* Main Container */
 .container {
-    margin: 20px auto;
+    margin: 0 auto; /* Changed from 10px to 0 for better centering */
     display: flex;
     width: 1200px;
-    max-width: 100%;
+    max-width: 1200px;
     border-radius: 8px;
-    overflow: hidden;
-    
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    max-height: 700px; /* Limit the overall height */
-    
+    max-height: 40%; /* Limit the overall height */
+    overflow: hidden; /* Prevent content from expanding container */
 }
 
 /* Left Panel */
 .left-panel {
     flex: 1;
-    padding: 20px;
+    padding: 15px; /* Reduced from 20px */
     border-right: 1px solid #ddd;
     background-color: white;
     box-shadow: none;
     max-height: 800px; /* Match container height */
-    overflow-y: hidden; /* Allow scrolling if content exceeds height */
+    overflow-y: auto; /* Only scrollbar should be here */
+    display: flex;
+    flex-direction: column;
 }
 
 .left-panel h2 {
@@ -662,29 +664,389 @@ label {
     width: 100%;
 }
 
-/* Add scrollbar styling for panels */
-.left-panel::-webkit-scrollbar,
+/* Custom scrollbar for left panel */
+.left-panel::-webkit-scrollbar {
+    width: 8px;
+}
+
+.left-panel::-webkit-scrollbar-track {
+    background: #f5f5f5;
+    border-radius: 10px;
+}
+
+.left-panel::-webkit-scrollbar-thumb {
+    background-color: #0a5e43;
+    border-radius: 10px;
+}
+
+/* Remove form scrollbar styles */
+#upload-form::-webkit-scrollbar,
+#upload-form::-webkit-scrollbar-track,
+#upload-form::-webkit-scrollbar-thumb {
+    display: none;
+}
+
+/* Modified contents-section to remove padding and align with other inputs */
+.contents-section {
+    margin-top: 15px; /* Reduced from 20px */
+    padding: 0; /* No padding */
+    background-color: transparent;
+    border: none; /* Removed border */
+    border-radius: 0;
+    overflow: visible;
+    max-height: none !important;
+}
+
+.contents-section h3 {
+    margin-top: 0;
+    margin-bottom: 12px; /* Reduced from 15px */
+    font-size: 16px; /* Reduced from 18px */
+    color: #333;
+}
+
+#document-entries {
+    padding: 5px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Research Number - Reduced font size */
+.research-number {
+    font-weight: 600;
+    color: #0a5e43;
+    font-size: 1.1em; /* Reduced from 1.4em */
+    margin-bottom: 16px; /* Reduced from 24px */
+    display: block;
+    letter-spacing: 0.3px; /* Reduced from 0.5px */
+}
+
+/* Document Entry - removed top/bottom padding */
+.document-entry {
+    background-color: #fff;
+    border: none;
+    padding: 0 15px; /* Removed top/bottom padding, kept horizontal padding */
+    margin-bottom: 15px; /* Reduced from 20px */
+    position: relative;
+    border-radius: 8px; /* Reduced from 10px */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); /* Lighter shadow */
+    transition: all 0.3s ease;
+}
+
+/* Fix for entry fields to align better */
+.entry-field {
+    margin-bottom: 15px; /* Reduced from 22px */
+}
+
+.entry-field label {
+    display: block;
+    margin-bottom: 8px;
+    color: #444;
+    font-size: 0.95em;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.entry-field input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1em;
+    transition: all 0.3s;
+    background-color: #fcfcfc;
+}
+
+.entry-field input:focus {
+    border-color: #0a5e43;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(10, 94, 67, 0.1);
+    background-color: #fff;
+}
+
+.file-upload-area {
+    border: 2px dashed #d0d0d0;
+    padding: 35px 20px;
+    text-align: center;
+    border-radius: 10px;
+    background-color: #fafafa;
+    cursor: pointer;
+    position: relative;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.file-upload-area:hover {
+    border-color: #0a5e43;
+    background-color: #f2f9f6;
+}
+
+.file-upload-area svg {
+    color: #0a5e43;
+    margin-bottom: 15px;
+    opacity: 0.8;
+    transition: transform 0.3s ease;
+}
+
+.file-upload-area:hover svg {
+    transform: translateY(-5px);
+}
+
+.file-upload-area p {
+    color: #666;
+    margin: 0;
+    font-size: 1em;
+    line-height: 1.5;
+}
+
+.file-upload-area input[type="file"] {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+/* Critical fix for preview button container */
+.preview-btn-container {
+    position: absolute !important;
+    top: 25px !important;
+    right: 20px !important;
+    z-index: 99 !important;
+    width: 46px !important;
+    height: 46px !important;
+    display: block !important;
+}
+
+/* Critical fix for preview button styling */
+.preview-btn {
+    background-color: #f7f7f7 !important;
+    color: #666 !important;
+    border: none !important;
+    border-radius: 50% !important;
+    width: 46px !important;
+    height: 46px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.3s !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.preview-btn:hover {
+    background-color: #0a5e43 !important;
+    color: white !important;
+    transform: translateY(-3px) !important;
+    box-shadow: 0 4px 12px rgba(10, 94, 67, 0.2) !important;
+}
+
+.preview-btn svg {
+    width: 22px !important;
+    height: 22px !important;
+    transition: all 0.2s !important;
+    stroke: currentColor !important;
+}
+
+.preview-btn:hover svg {
+    stroke-width: 2.2 !important;
+}
+
+.preview-btn:disabled {
+    background-color: #f5f5f5 !important;
+    color: #ccc !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+}
+
+.preview-btn:disabled:hover {
+    transform: none !important;
+    background-color: #f5f5f5 !important;
+    color: #ccc !important;
+}
+
+.selected-file {
+    margin-top: 12px;
+    color: #0a5e43;
+    font-weight: 500;
+    display: none;
+    padding: 8px 12px;
+    background-color: #e6f3ef;
+    border-radius: 6px;
+    text-align: center;
+    width: fit-content;
+    margin: 12px auto 0;
+}
+
+/* File upload styles */
+.file-upload-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    width: 100%;
+}
+
+.attach-file-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    width: 60%;
+}
+
+.filename {
+    color: #333;
+    font-weight: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 150px;
+}
+
+.file-actions {
+    display: flex;
+    gap: 8px;
+    width: 40%;
+}
+
+/* Selected authors styling */
+.selected-authors {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.selected-author {
+    background-color: #e6f3ef;
+    color: #0a5e43;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 0.95em;
+    display: inline-flex;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s;
+}
+
+.selected-author:hover {
+    background-color: #d7ebe5;
+}
+
+.remove-author, .remove-topic {
+    cursor: pointer;
+    margin-left: 8px;
+    font-weight: bold;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.remove-author:hover, .remove-topic:hover {
+    opacity: 1;
+}
+
+/* Dropdown styling */
+.dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.dropdown-list {
+    position: absolute;
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    display: none;
+    margin-top: 2px;
+}
+
+.dropdown-item {
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.dropdown-item:hover {
+    background-color: #f2f9f6;
+}
+
+.create-author, .create-topic {
+    color: #0a5e43;
+    font-weight: 500;
+}
+
+/* Submit button styling */
+.submit-container {
+    text-align: center;
+    margin-top: 30px;
+    padding: 10px 0;
+}
+
+.submit-container button {
+    background-color: #0a5e43;
+    color: white;
+    border: none;
+    padding: 14px 40px;
+    font-size: 1.1em;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    letter-spacing: 1px;
+}
+
+.submit-container button:hover {
+    background-color: #084835;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(10, 94, 67, 0.2);
+}
+
+/* Fix for file preview section */
+.upload-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+/* Make sure dropdown displays properly */
+.doc-author-list {
+    display: none;
+}
+
+.doc-author-list.active {
+    display: block !important;
+}
+
+/* Right panel scrollbar styling */
 .right-panel::-webkit-scrollbar {
     width: 6px;
 }
 
-.left-panel::-webkit-scrollbar-track,
 .right-panel::-webkit-scrollbar-track {
     background: #f1f1f1;
     border-radius: 3px;
 }
 
-.left-panel::-webkit-scrollbar-thumb,
 .right-panel::-webkit-scrollbar-thumb {
     background: #888;
     border-radius: 3px;
 }
 
-.left-panel::-webkit-scrollbar-thumb:hover,
 .right-panel::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
 
+/* Document preview styles */
 .document-preview {
     background: white;
     border-radius: 12px;
@@ -807,5 +1169,92 @@ label {
     justify-content: center;
     align-items: center;
     z-index: 1000;
+}
+
+/* Hide disabled placeholder options when dropdown is expanded */
+select option[disabled]:first-child {
+    display: none;
+}
+
+/* Upload mode toggle styles */
+.upload-mode-toggle {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 15px;
+}
+
+.toggle-buttons {
+    display: flex;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.toggle-btn {
+    padding: 8px 16px;
+    border: none;
+    background: #f5f5f5;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.toggle-btn.active {
+    background: #0a5e43;
+    color: white;
+}
+
+/* Compiled files list styles */
+.compiled-files-list {
+    margin-top: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.compiled-file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    margin-bottom: 5px;
+    background: #f9f9f9;
+    border-radius: 4px;
+}
+
+.compiled-file-item:last-child {
+    margin-bottom: 0;
+}
+
+.remove-file {
+    cursor: pointer;
+    color: #ff4d4d;
+    font-weight: bold;
+}
+
+.no-files {
+    color: #777;
+    text-align: center;
+    font-style: italic;
+}
+
+/* Document Entry Styling */
+.document-entry:hover {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+/* Fix for compiled form fields */
+#compiled-form-fields {
+    max-height: calc(80vh - 120px);
+    overflow-y: visible;
+}
+
+/* Make sure both forms have same height behavior */
+#single-form-fields, #compiled-form-fields {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
 }
 

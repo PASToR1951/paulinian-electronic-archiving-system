@@ -13,8 +13,8 @@ async function updateWorksSummary() {
         
         // Process each category
         categories.forEach(category => {
-            categoryCounts[category.category_name] = category.file_count;
-            totalWorks += category.file_count;
+            categoryCounts[category.name] = category.count || 0;
+            totalWorks += Number(category.count) || 0;
         });
         
         // Update individual category counts

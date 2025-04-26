@@ -57,14 +57,25 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (response.ok) {
                     // Store the session token
                     if (data.token) {
-                        document.cookie = `session_token=${data.token}; path=/; HttpOnly; SameSite=Strict`;
+                        // Don't set HttpOnly from client side as it won't work
+                        document.cookie = `session_token=${data.token}; path=/`;
+                        console.log("Session token set in cookie");
                     }
                     
                     // Redirect based on role
                     if (data.redirect) {
-                        window.location.href = data.redirect;
+                        console.log(`Redirecting to ${data.redirect}...`);
+                        // Force redirect with explicit window.location assignment
+                        window.location = data.redirect;
+                        
+                        // Fallback redirect in case the above doesn't work
+                        setTimeout(() => {
+                            console.log("Fallback redirect activated");
+                            document.location.href = data.redirect;
+                        }, 500);
                     } else {
-                        window.location.href = "/index.html";
+                        console.log("No redirect URL provided, defaulting to index");
+                        window.location = "http://localhost:8000/index.html";
                     }
                 } else {
                     alert(data.message || "Login failed. Please check your credentials.");

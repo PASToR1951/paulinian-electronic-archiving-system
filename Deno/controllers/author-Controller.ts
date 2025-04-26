@@ -1,5 +1,19 @@
+/**
+ * Author Controller - Handles HTTP request/response for author-related endpoints
+ */
+
 import { client } from "../data/denopost_conn.ts";
-import { Request as OakRequest } from "https://deno.land/x/oak/mod.ts";
+import { createErrorResponse } from "../utils/errors.ts";
+import {
+  getAllAuthors,
+  getAuthorById,
+  getDocumentsByAuthor,
+  createAuthor,
+  updateAuthor,
+  deleteAuthor,
+  restoreAuthor,
+  mapAuthorToResponse
+} from "../services/author-service.ts";
 
 // Define the Author interface
 interface Author {
@@ -17,69 +31,142 @@ interface Author {
   deleted_at?: string | null;
 }
 
-export async function searchAuthors(req: OakRequest) {
+// Enhanced Request interface with additional methods that Deno's Request provides
+interface EnhancedRequest extends Request {
+  json(): Promise<any>;
+}
+
+/**
+ * Search for authors
+ */
+export async function searchAuthors(req: Request): Promise<Response> {
   try {
-      const url = new URL(req.url);
-      const query = url.searchParams.get("q") || ""; // Extract query parameter
-      const includeDeleted = url.searchParams.get("includeDeleted") === "true";
+    const url = new URL(req.url);
+    const query = url.searchParams.get("q") || "";
+    const includeDeleted = url.searchParams.get("includeDeleted") === "true";
 
-      console.log("Searching for authors with query:", query);
+    console.log("Searching for authors with query:", query);
 
-      const result = await client.queryObject<Author>(`
-        SELECT 
-          a.author_id, 
-          a.full_name, 
-          a.department, 
-          a.email,
-          a.affiliation,
-          a.year_of_graduation,
-          a.linkedin,
-          a.biography,
-          a.orcid_id,
-          a.profile_picture,
-          a.deleted_at,
-          COUNT(d.id) as document_count
-        FROM 
-          authors a
-        LEFT JOIN 
-          document_authors da ON a.author_id = da.author_id
-        LEFT JOIN 
-          documents d ON da.document_id = d.id
-        WHERE 
-          a.full_name ILIKE $1
-          ${!includeDeleted ? 'AND a.deleted_at IS NULL' : ''}
-        GROUP BY 
-          a.author_id, a.full_name, a.department, a.email, a.affiliation, a.year_of_graduation,
-          a.linkedin, a.biography, a.orcid_id, a.profile_picture, a.deleted_at
-      `, [`%${query}%`]);
+    // Get authors from service layer
+    const authors = await getAllAuthors(includeDeleted, query);
+    
+    // Map to API response format
+    const mappedAuthors = authors.map(author => mapAuthorToResponse(author));
 
-      console.log("Query Result:", result.rows);
-
-      // Map the response to match what the React app expects
-      const mappedAuthors = result.rows.map(author => ({
-          id: author.author_id,
-          name: author.full_name,
-          department: author.department || '',
-          email: author.email || '',
-          affiliation: author.affiliation || '',
-          documentCount: Number(author.document_count) || 0,
-          orcid: author.orcid_id || '',
-          biography: author.biography || '',
-          profilePicture: author.profile_picture || '',
-          yearOfGraduation: author.year_of_graduation || '',
-          linkedin: author.linkedin || '',
-          gender: 'M', // Default value
-          deleted_at: author.deleted_at || null
-      }));
-
-      return new Response(JSON.stringify(mappedAuthors), {
-          headers: { "Content-Type": "application/json" },
-      });
+    return new Response(JSON.stringify(mappedAuthors), {
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
-      console.error("Error searching authors:", error);
-      return new Response(JSON.stringify({ error: "Failed to search authors" }), {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
+    console.error("Error in searchAuthors:", error);
+    return createErrorResponse(error);
+  }
+}
+
+/**
+ * Get author by ID
+ */
+export async function fetchAuthorById(id: string): Promise<Response> {
+  try {
+    const author = await getAuthorById(id);
+    return new Response(JSON.stringify(mapAuthorToResponse(author)), {
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error(`Error fetching author with ID ${id}:`, error);
+    return createErrorResponse(error);
+  }
+}
+
+/**
+ * Get documents by author ID
+ */
+export async function fetchDocumentsByAuthor(authorId: string): Promise<Response> {
+  try {
+    const documents = await getDocumentsByAuthor(authorId);
+    return new Response(JSON.stringify(documents), {
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error(`Error fetching documents for author ${authorId}:`, error);
+    return createErrorResponse(error);
+  }
+}
+
+/**
+ * Create a new author
+ */
+export async function handleCreateAuthor(req: Request): Promise<Response> {
+  try {
+    // Cast to the EnhancedRequest to use the json method
+    const data = await (req as EnhancedRequest).json();
+    const newAuthor = await createAuthor(data);
+    
+    return new Response(JSON.stringify(mapAuthorToResponse(newAuthor)), {
+      status: 201,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("Error creating author:", error);
+    return createErrorResponse(error);
+  }
+}
+
+/**
+ * Update an existing author
+ */
+export async function handleUpdateAuthor(id: string, req: Request): Promise<Response> {
+  try {
+    // Cast to the EnhancedRequest to use the json method
+    const data = await (req as EnhancedRequest).json();
+    const updatedAuthor = await updateAuthor(id, data);
+    
+    return new Response(JSON.stringify(mapAuthorToResponse(updatedAuthor)), {
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error(`Error updating author with ID ${id}:`, error);
+    return createErrorResponse(error);
+  }
+}
+
+/**
+ * Delete an author (soft delete)
+ */
+export async function handleDeleteAuthor(id: string): Promise<Response> {
+  try {
+    const result = await deleteAuthor(id);
+    
+    if (result.already_deleted) {
+      return new Response(JSON.stringify({
+        message: "Author was already deleted",
+        author_id: id,
+        deleted_at: result.deleted_at
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
       });
+    }
+    
+    // Return 204 No Content on successful deletion
+    return new Response(null, { status: 204 });
+  } catch (error) {
+    console.error(`Error deleting author with ID ${id}:`, error);
+    return createErrorResponse(error);
+  }
+}
+
+/**
+ * Restore a deleted author
+ */
+export async function handleRestoreAuthor(id: string): Promise<Response> {
+  try {
+    const restoredAuthor = await restoreAuthor(id);
+    
+    return new Response(JSON.stringify(mapAuthorToResponse(restoredAuthor)), {
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error(`Error restoring author with ID ${id}:`, error);
+    return createErrorResponse(error);
   }
 }

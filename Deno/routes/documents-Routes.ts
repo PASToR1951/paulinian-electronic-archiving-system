@@ -1,9 +1,11 @@
-import { Router } from "https://deno.land/x/oak@v17.1.4/mod.ts";
-import type { RouterContext } from "https://deno.land/x/oak@v17.1.4/router.ts";
-import { helpers } from "https://deno.land/x/oak@v17.1.4/mod.ts";
-import { Response } from "https://deno.land/x/oak@v17.1.4/response.ts";
+import { Router } from "https://deno.land/x/oak@v12.6.1/mod.ts";
+import type { RouterContext } from "https://deno.land/x/oak@v12.6.1/router.ts";
+import { Response } from "https://deno.land/x/oak@v12.6.1/response.ts";
 import { fetchCategories, fetchDocuments, fetchVolumesByCategory } from "../controllers/document-Controller.ts";
 import { client } from "../data/denopost_conn.ts";
+import { ensureDir } from "https://deno.land/std@0.224.0/fs/mod.ts";
+import { handleSingleDocumentUpload } from "../controllers/single-document-upload.ts";
+import { handleCompiledDocumentUpload } from "../controllers/compiled-document-upload.ts";
 
 const router = new Router();
 
@@ -320,6 +322,158 @@ router.delete("/api/documents/:id", async (context: RouterContext<"/api/document
         context.response.body = { 
             message: "Internal server error",
             details: error instanceof Error ? error.message : String(error)
+        };
+    }
+});
+
+// Upload document endpoint - commenting out as this is already handled in server.ts
+// This avoids the conflict between the two implementations
+router.post("/api/upload-document", async (ctx) => {
+    console.log("Received request: POST /api/upload-document");
+
+    try {
+        // Since there are version mismatches between Oak versions, we'll use a more compatible approach
+        // Convert the request to a web standard Request and extract FormData from there
+        const url = new URL(ctx.request.url);
+        const standardRequest = new Request(url, {
+            method: "POST",
+            headers: ctx.request.headers,
+            body: await ctx.request.arrayBuffer(),
+        });
+
+        // Get FormData from the standard request
+        const formData = await standardRequest.formData();
+        const uploadMode = formData.get("upload_mode")?.toString();
+        
+        console.log("Upload mode:", uploadMode);
+        
+        if (uploadMode === 'compiled') {
+            // Handle compiled document upload
+            await handleCompiledDocumentUpload(ctx, formData);
+        } else {
+            // Handle single document upload
+            await handleSingleDocumentUpload(ctx, formData);
+        }
+    } catch (error) {
+        console.error("Error determining upload type:", error);
+        ctx.response.status = 500;
+        ctx.response.body = { 
+            success: false,
+            message: "Error processing upload request", 
+            error: error instanceof Error ? error.message : String(error)
+        };
+    }
+});
+
+// Update compiled document
+router.put("/api/compiled-documents/:id", async (ctx: RouterContext<"/api/compiled-documents/:id">) => {
+    try {
+        const id = ctx.params.id;
+        const body = await ctx.request.body({ type: "json" }).value;
+        
+        // Check for required fields
+        if (!body.title) {
+            ctx.response.status = 400;
+            ctx.response.body = { message: "Missing required fields" };
+            return;
+        }
+        
+        // Begin transaction
+        await client.queryObject("BEGIN");
+        
+        try {
+            // Update the compiled document in the database
+            const updateResult = await client.queryObject(`
+                UPDATE compiled_documents 
+                SET title = $1, 
+                    start_year = $2, 
+                    end_year = $3, 
+                    volume = $4, 
+                    issued_no = $5,
+                    updated_at = CURRENT_TIMESTAMP 
+                WHERE id = $6 
+                RETURNING *
+            `, [
+                body.title,
+                body.start_year || null,
+                body.end_year || null,
+                body.volume || null,
+                body.issued_no || null,
+                id
+            ]);
+            
+            if (updateResult.rows.length === 0) {
+                await client.queryObject("ROLLBACK");
+                ctx.response.status = 404;
+                ctx.response.body = { message: "Compiled document not found" };
+                return;
+            }
+            
+            // If document ids are provided, update the child documents
+            if (body.document_ids && Array.isArray(body.document_ids)) {
+                // First, remove any existing associations
+                await client.queryObject(
+                    "UPDATE documents SET compiled_document_id = NULL WHERE compiled_document_id = $1",
+                    [id]
+                );
+                
+                // Then, create new associations
+                for (const docId of body.document_ids) {
+                    await client.queryObject(
+                        "UPDATE documents SET compiled_document_id = $1 WHERE id = $2",
+                        [id, docId]
+                    );
+                }
+            }
+            
+            // Commit transaction
+            await client.queryObject("COMMIT");
+            
+            // Fetch the complete updated document with its child documents
+            const compiledDocResult = await client.queryObject(`
+                SELECT 
+                    cd.id,
+                    cd.title,
+                    cd.start_year,
+                    cd.end_year,
+                    cd.volume,
+                    cd.issued_no,
+                    cd.updated_at,
+                    COALESCE(
+                        json_agg(
+                            json_build_object(
+                                'id', d.id,
+                                'title', d.title,
+                                'publication_date', d.publication_date,
+                                'category_name', c.category_name
+                            )
+                        ) FILTER (WHERE d.id IS NOT NULL),
+                        '[]'::json
+                    ) AS child_documents
+                FROM 
+                    compiled_documents cd
+                LEFT JOIN 
+                    documents d ON cd.id = d.compiled_document_id
+                LEFT JOIN 
+                    categories c ON d.category_id = c.id
+                WHERE 
+                    cd.id = $1
+                GROUP BY 
+                    cd.id
+            `, [id]);
+
+            ctx.response.body = compiledDocResult.rows[0];
+        } catch (error) {
+            await client.queryObject("ROLLBACK");
+            throw error;
+        }
+        
+    } catch (error) {
+        console.error("Error updating compiled document:", error);
+        ctx.response.status = 500;
+        ctx.response.body = { 
+            message: "Error updating compiled document", 
+            error: error instanceof Error ? error.message : String(error) 
         };
     }
 });

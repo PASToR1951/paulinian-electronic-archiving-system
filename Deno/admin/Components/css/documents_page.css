@@ -5,12 +5,32 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
     background-color: #fffff5;
     width: 100%;
-    height: 100%;;
+    height: 100vh;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+/* Ensure all elements use the same box sizing model */
+* {
+    box-sizing: border-box;
 }
 
 .docs-container {
     max-width: 1200px;
     margin: 0 auto;
+    width: 100%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    background-color: white;
+    padding: 15px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: calc(100vh - 100px); /* Adjust for headers/footers */
 }
 
 /* Ensure the table has a fixed height */
@@ -38,15 +58,14 @@ table {
     border-collapse: collapse;
     table-layout: fixed;
     margin: 0 auto;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     border-radius: 8px;
     overflow: hidden;
 }
 
 /* Fix table height and enable scroll when needed */
 .docs-table-container {
-    max-height: 300px; /* Adjust height as needed */
-    overflow-y: auto;
+    max-height: 100%;
     width: 100%;
     max-width: 1200px;
     margin: 0 auto;
@@ -75,21 +94,7 @@ th, td {
 th {
     background-color: #008035;
     color: white;
-}
-
-/* Ensure tbody has a minimum height */
-tbody {
-    width: 100%;
-    max-width: 1200px;
-    display: table;
-    min-height: 50vh;
-    overflow-y: auto;
-    box-shadow: -2px 2px 4px rgba(0, 0, 0, 0.1);
-    margin: 0 auto;
-    border-radius: 0 0 8px 8px;
-    background-color: white;
-    border-spacing: 0 8px;
-    padding: 8px;
+    cursor: pointer; /* Add pointer cursor for sortable headers */
 }
 
 /* Keep table rows structured */
@@ -102,15 +107,30 @@ tbody tr {
     background-color: #fffff5;
     box-sizing: border-box;
     margin: 0 auto;
-    border: 1px solid transparent;
+    border: 1px solid #e0e0e0;
     position: relative;
     transition: all 0.2s ease;
+    cursor: pointer; /* Ensure pointer cursor for table rows */
 }
 
 tbody tr:hover {
-    border: 1px solid #4361ee;
+    border-color: transparent; /* Remove border on hover */
     background-color: #f8f9fa;
-    box-shadow: 0 2px 4px rgba(67, 97, 238, 0.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Box shadow when hovering */
+}
+
+/* Ensure tbody has a minimum height */
+tbody {
+    width: 100%;
+    max-width: 1200px;
+    display: table;
+    overflow-y: visible;
+    box-shadow: none; /* Removed shadow since table already has it */
+    margin: 0 auto;
+    border-radius: 0 0 8px 8px;
+    background-color: white;
+    border-spacing: 0 4px;
+    padding: 8px;
 }
 
 /* Empty state message */
@@ -146,46 +166,96 @@ td:first-child {
 .pagination {
     width: 100%;
     max-width: 1200px;
-    margin: auto;
+    margin: 20px auto;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
+    padding: 15px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    box-sizing: border-box;
+    position: relative;
+    z-index: 1;
+    margin-top: 30px !important; /* Add more space when there are expanded documents */
+}
+
+.pagination button {
+    background: #f8f9fa;
+    color: #333;
+    border: 1px solid #e0e0e0;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pagination button:hover {
+    background: #f0f0f0;
+    border-color: #c0c0c0;
+}
+
+.pagination button:disabled {
+    background: #f8f9fa;
+    color: #c0c0c0;
+    border-color: #e0e0e0;
+    cursor: not-allowed;
 }
 
 .entries-info {
-    color: #555;
+    color: #666;
+    font-size: 14px;
+    font-weight: 500;
 }
 
 .page-links {
     display: flex;
     align-items: center;
+    gap: 6px;
 }
 
 .page-number,
 .prev-button,
 .next-button {
-    display: inline-block;
-    padding: 8px 12px;
-    margin: 0 5px;
-    border: 1px solid #ccc;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 8px;
+    border: 1px solid #e0e0e0;
     text-decoration: none;
     color: #333;
     background-color: #fff;
-    border-radius: 5px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.page-number:hover,
+.prev-button:hover,
+.next-button:hover {
+    background-color: #f0f0f0;
+    border-color: #c0c0c0;
 }
 
 .page-number.active {
-    background-color: #007bff;
+    background-color: #008035;
     color: #fff;
-    border-color: #007bff;
+    border-color: #008035;
+    font-weight: 600;
 }
 
 .prev-button:disabled,
 .next-button:disabled {
     opacity: 0.5;
     cursor: default;
+    pointer-events: none;
+    background-color: #f8f9fa;
 }
 
 /* Actions Column */
@@ -210,6 +280,7 @@ td:first-child {
     font-size: 13px;
     width: 85px;
     height: 32px;
+    cursor: pointer; /* Add pointer cursor for action buttons */
 }
 
 .view-icon, .edit-icon {
@@ -290,7 +361,9 @@ td:first-child {
     padding: 10px;
     border-radius: 10px;
     background-color: white;
-    box-shadow: -2px 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+    width: 100%;
 }
 
 .category-header {
@@ -378,15 +451,20 @@ td:first-child {
 .document-card {
     background-color: #fff;
     border-radius: 8px;
-    margin-bottom: 1rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 0.5rem;
+    border: 1px solid #e0e0e0;
     transition: all 0.3s ease;
     position: relative;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    cursor: pointer; /* Add pointer cursor for document cards */
 }
 
 .document-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Box shadow when hovering */
+    border-color: transparent; /* Remove border on hover */
     background-color: #f8f9fa;
 }
 
@@ -987,6 +1065,7 @@ select:focus {
     justify-content: center;
     align-items: center;
     transition: background-color 0.3s ease, transform 0.2s ease;
+    cursor: pointer;
 }
 
 .read-document-btn:hover {
@@ -1025,6 +1104,7 @@ select:focus {
 .view-icon {
     color: #4CAF50;
     margin-right: 10px;
+    cursor: pointer;
 }
 
 .view-icon:hover {
@@ -1834,4 +1914,376 @@ select:focus {
     margin-bottom: 0.5rem;
     color: #333;
     font-weight: 500;
+}
+
+/* Add styles for compilation document entries */
+.document-card.compilation {
+    background-color: #f0f7ff;
+    border-left: none; /* Removed the green left border */
+}
+
+.document-card.compilation .doc-title {
+    font-weight: bold;
+    color: #3876e3;
+}
+
+.document-card.compilation .doc-studies-count {
+    background-color: #3876e3;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.85em;
+    margin: 0 8px;
+}
+
+.toggle-studies {
+    background-color: #3876e3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s;
+}
+
+.toggle-studies:hover {
+    background-color: #2a5bb9;
+}
+
+/* Styles for compilation dropdown */
+.compilation-dropdown {
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.compilation-header {
+    padding: 12px 16px;
+    background-color: #f0f7ff;
+    border-bottom: 1px solid #ddd;
+}
+
+.compilation-header h3 {
+    margin: 0;
+    color: #3876e3;
+    font-size: 1.1em;
+}
+
+.compilation-studies-list {
+    padding: 0;
+}
+
+.compilation-study-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s;
+    cursor: pointer; /* Add pointer cursor for compilation items */
+}
+
+.compilation-study-item:hover {
+    background-color: #f9f9f9;
+}
+
+.compilation-study-item:last-child {
+    border-bottom: none;
+}
+
+.study-info {
+    flex: 1;
+}
+
+.study-title {
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.study-author {
+    color: #666;
+    font-size: 0.9em;
+    margin-bottom: 6px;
+}
+
+.study-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.study-actions a {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    color: #555;
+    text-decoration: none;
+    transition: background-color 0.2s;
+}
+
+.study-actions a:hover {
+    background-color: #f0f0f0;
+}
+
+.study-actions .view-icon:hover {
+    color: #3876e3;
+}
+
+.study-actions .edit-icon:hover {
+    color: #00a854;
+}
+
+/* Override any potential inline styles from the JS */
+#documents-container {
+    max-width: 1200px !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 600px !important;
+    overflow-y: auto !important; /* Enable scrolling for overflow content */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    border-radius: 8px !important;
+    background-color: white !important;
+    padding: 15px !important;
+    box-sizing: border-box !important;
+    position: relative !important;
+    overflow: visible !important;
+}
+
+/* Add styles for when the container has scrolling enabled */
+#documents-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+#documents-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 8px;
+}
+
+#documents-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 8px;
+}
+
+#documents-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Add styles for the compiled document container */
+.compilation-wrapper {
+    width: 100%;
+    position: relative;
+    margin-bottom: 15px;
+    z-index: 2;
+}
+
+.children-container {
+    position: relative;
+    z-index: 10; /* Ensure it appears above other elements */
+    background-color: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 0 0 4px 4px;
+    padding: 15px;
+    margin-top: -1px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    overflow: visible !important; /* Ensure overflow content is visible */
+    max-height: none !important;
+}
+
+.children-header {
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #333;
+    font-size: 16px;
+}
+
+.child-document-card {
+    margin-bottom: 8px !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+    background-color: white !important;
+    transition: transform 0.2s, box-shadow 0.2s !important;
+    border: 1px solid #e0e0e0 !important;
+    position: relative;
+    z-index: 2;
+}
+
+.child-document-card:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+}
+
+.child-document-card .card-title {
+    font-size: 14px !important;
+    font-weight: 500 !important;
+}
+
+.child-document-card .card-metadata {
+    font-size: 12px !important;
+    color: #666 !important;
+}
+
+.child-document-card .card-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.child-document-card .action-button.view {
+    padding: 4px 10px;
+    background-color: #008035;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.2s;
+}
+
+.child-document-card .action-button.view:hover {
+    background-color: #006028;
+}
+
+.no-children-message {
+    padding: 10px;
+    color: #666;
+    font-style: italic;
+    text-align: center;
+}
+
+/* Document card expansion styles */
+.document-card.compilation {
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+}
+
+.document-card.compilation[data-is-expanded="true"] {
+    background-color: #f0f8ff;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom: 1px dashed #ccc;
+}
+
+.expand-icon {
+    display: inline-block;
+    width: 16px;
+    margin-right: 5px;
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+/* Fix for expanded container at bottom of page */
+#documents-container {
+    position: relative;
+    overflow: visible !important; /* Override any overflow constraints */
+}
+
+/* When a document is expanded at the bottom, ensure it's visible */
+.document-card.compilation[data-is-expanded="true"] + .children-container {
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+/* Special handling for compiled documents at the bottom of the page */
+.compilation-wrapper.last-in-page {
+    position: relative;
+    z-index: 100; /* Higher z-index to ensure it's above other elements */
+}
+
+.compilation-wrapper.last-in-page .children-container {
+    position: absolute;
+    width: 100%;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    max-height: none !important;
+    overflow: visible !important;
+    background-color: white;
+}
+
+/* Improve the pagination container to stay below expanded content */
+.pagination {
+    position: relative;
+    z-index: 1;
+    margin-top: 30px !important; /* Add more space when there are expanded documents */
+}
+
+/* Add styles for author list */
+.author-list-container {
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.authors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.author-card {
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background-color: #f9f9f9;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.author-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.author-card h3 {
+    margin-top: 0;
+    color: #2c3e50;
+    font-size: 18px;
+}
+
+.author-card p {
+    color: #7f8c8d;
+    margin-bottom: 15px;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+}
+
+.btn-edit {
+    background-color: #3498db;
+    color: white;
+}
+
+.btn-edit:hover {
+    background-color: #2980b9;
+}
+
+.btn-delete {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.btn-delete:hover {
+    background-color: #c0392b;
+}
+
+.error {
+    color: #e74c3c;
+    padding: 10px;
+    border-radius: 4px;
+    background-color: #fadbd8;
 }

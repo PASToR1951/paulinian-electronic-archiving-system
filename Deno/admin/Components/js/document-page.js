@@ -3,8 +3,26 @@ let currentPage = 1;
 const pageSize = 5;
 let totalEntries = 0;
 let currentCategoryFilter = null; // Track current category filter
-let currentVolumeFilter = null; // Track current volume filter
+// Volume filtering has been removed - now handled by compiled documents
 let currentSortOrder = 'latest'; // Track current sort order
+// New variable to track the actual count of visible entries on the page (counting compiled docs as one)
+let visibleEntriesCount = 0;
+// Keep track of expanded compiled documents
+let expandedDocuments = new Set();
+
+// Remove custom CSS for document container as it's now handled in CSS files
+// const docContainerStyle = document.createElement('style');
+// docContainerStyle.textContent = `
+//     #documents-container {
+//         height: 600px; /* Set fixed height */
+//         max-height: 600px;
+//         overflow-y: auto; /* Enable vertical scrolling */
+//         padding: 10px;
+//         border: 1px solid #eee;
+//         border-radius: 8px;
+//     }
+// `;
+// document.head.appendChild(docContainerStyle);
 
 async function loadCategories() {
     try {
@@ -20,7 +38,7 @@ async function loadCategories() {
         // Calculate total file count for the "All" category
         let totalFileCount = 0;
         categories.forEach(category => {
-            totalFileCount += Number(category.file_count) || 0;
+            totalFileCount += Number(category.count) || 0;
         });
 
         console.log('Total file count:', totalFileCount);
@@ -41,13 +59,13 @@ async function loadCategories() {
 
         // Update individual category counts
         categories.forEach(category => {
-            console.log(`Processing category: ${category.category_name} with count: ${category.file_count}`);
-            const categoryElement = document.querySelector(`.category[data-category="${category.category_name}"]`);
+            console.log(`Processing category: ${category.name} with count: ${category.count}`);
+            const categoryElement = document.querySelector(`.category[data-category="${category.name}"]`);
             if (categoryElement) {
                 const fileCountElement = categoryElement.querySelector(".category-file-count");
                 if (fileCountElement) {
-                    const count = Number(category.file_count) || 0;
-                    console.log(`Setting count for ${category.category_name}:`, count);
+                    const count = Number(category.count) || 0;
+                    console.log(`Setting count for ${category.name}:`, count);
                     fileCountElement.textContent = `${count} files`;
                 } else {
                     console.warn(`Could not find file count element for ${category.category_name}`);
@@ -56,15 +74,14 @@ async function loadCategories() {
                 // Add click handler for category filtering
                 categoryElement.removeEventListener('click', categoryElement.clickHandler);
                 categoryElement.clickHandler = () => {
-                    filterByCategory(category.category_name);
+                    filterByCategory(category.name);
                 };
                 categoryElement.addEventListener('click', categoryElement.clickHandler);
                 categoryElement.style.cursor = 'pointer';
                 
-                // Add volume dropdown functionality
-                setupVolumeDropdown(categoryElement, category.category_name);
+                // Volume dropdown functionality removed as it's now handled by compiled documents
             } else {
-                console.warn(`Could not find category element for ${category.category_name}`);
+                console.warn(`Could not find category element for ${category.name}`);
             }
         });
 
@@ -77,204 +94,68 @@ async function loadCategories() {
     }
 }
 
-// Setup volume dropdown for a category
-async function setupVolumeDropdown(categoryElement, categoryName) {
-    try {
-        console.log(`Setting up volume dropdown for ${categoryName}`);
-        
-        // Get documents for this category to determine available volumes
-        const response = await fetch(`/api/documents${categoryName !== "All" ? `?category=${encodeURIComponent(categoryName)}` : ''}`);
-        
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-        }
-        
-        const responseData = await response.json();
-        const documents = responseData.documents || [];
-        
-        // Extract unique volumes from documents
-        const volumes = new Set();
-        documents.forEach(doc => {
-            if (doc.volume) {
-                volumes.add(doc.volume);
-            }
-        });
-        
-        // Convert to array and sort
-        const availableVolumes = Array.from(volumes).sort((a, b) => {
-            const numA = parseInt(a) || 0;
-            const numB = parseInt(b) || 0;
-            return numA - numB;
-        });
-        
-        console.log(`Available volumes for ${categoryName}:`, availableVolumes);
-        
-        // Create volume indicator
-        const volumeIndicator = document.createElement('div');
-        volumeIndicator.className = 'volume-indicator';
-        volumeIndicator.textContent = availableVolumes.length;
-        categoryElement.appendChild(volumeIndicator);
-        
-        // Create dropdown container
-        const dropdown = document.createElement('div');
-        dropdown.className = 'volume-dropdown';
-        
-        // Add "All Volumes" option
-        const allVolumesItem = document.createElement('div');
-        allVolumesItem.className = 'volume-item';
-        allVolumesItem.textContent = 'All Volumes';
-        allVolumesItem.addEventListener('click', (event) => {
-            event.stopPropagation(); // Prevent category click
-            filterByVolume(categoryName, null);
-            dropdown.classList.remove('show');
-            
-            // Update active state
-            dropdown.querySelectorAll('.volume-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            allVolumesItem.classList.add('active');
-        });
-        dropdown.appendChild(allVolumesItem);
-        
-        // Add volume options
-        availableVolumes.forEach(volume => {
-            const volumeItem = document.createElement('div');
-            volumeItem.className = 'volume-item';
-            volumeItem.textContent = `Volume ${volume}`;
-            volumeItem.addEventListener('click', (event) => {
-                event.stopPropagation(); // Prevent category click
-                filterByVolume(categoryName, volume);
-                dropdown.classList.remove('show');
-                
-                // Update active state
-                dropdown.querySelectorAll('.volume-item').forEach(item => {
-                    item.classList.remove('active');
-                });
-                volumeItem.classList.add('active');
-            });
-            dropdown.appendChild(volumeItem);
-        });
-        
-        // Add dropdown to category
-        categoryElement.appendChild(dropdown);
-        
-        // Handle category click - only for filtering, not for showing dropdown
-        categoryElement.addEventListener('click', (event) => {
-            // If clicking on the dropdown or volume indicator, don't process
-            if (event.target.closest('.volume-dropdown') || event.target.closest('.volume-indicator')) {
-                return;
-            }
-            
-            // Filter by category
-            filterByCategory(categoryName);
-            
-            // Close any open dropdowns
-            document.querySelectorAll('.volume-dropdown.show').forEach(d => {
-                d.classList.remove('show');
-            });
-        });
-        
-        // Reset category selection when clicking another category
-        document.querySelectorAll('.category').forEach(cat => {
-            if (cat !== categoryElement) {
-                cat.addEventListener('click', () => {
-                    dropdown.classList.remove('show');
-                });
-            }
-        });
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (event) => {
-            if (!categoryElement.contains(event.target)) {
-                dropdown.classList.remove('show');
-            }
-        });
-    } catch (error) {
-        console.error(`Error setting up volume dropdown for category ${categoryName}:`, error);
-        // Don't throw the error, just log it and continue
-    }
-}
+// Volume dropdown functionality removed as it's now handled by compiled documents
 
-// Filter documents by volume
-function filterByVolume(categoryName, volume) {
-    console.log(`Filtering by volume: ${volume} in category: ${categoryName}`);
-    
-    // Set the category filter if not already set
-    if (categoryName && categoryName !== 'All' && currentCategoryFilter !== categoryName) {
-        currentCategoryFilter = categoryName;
-        // Update category visual state
-            document.querySelectorAll('.category').forEach(cat => {
-            if (cat.getAttribute('data-category') === categoryName) {
-                    cat.classList.add('active');
-                } else {
-                    cat.classList.remove('active');
-                }
-            });
-    }
-            
-    // Set the volume filter
-    currentVolumeFilter = volume;
-    
-    // Reset to first page and reload documents with filter
-            currentPage = 1;
-            loadDocuments(currentPage);
-    
-    // Update the filter indicator
-    updateFilterIndicator();
-}
+// Volume filtering functionality removed as it's now handled by compiled documents
 
-// Update the filterByCategory function to handle volume filters
+// Category filtering function
 window.filterByCategory = function(categoryName) {
     console.log(`Filtering by category: ${categoryName}`);
     
-        // Toggle filter if clicking the same category again
-        if (currentCategoryFilter === categoryName) {
-            console.log("Clearing category filter");
-            currentCategoryFilter = null;
-        currentVolumeFilter = null; // Clear volume filter too
-            document.querySelectorAll('.category').forEach(cat => {
-                cat.classList.remove('active');
-            });
-        } else {
-            console.log(`Setting filter to: ${categoryName}`);
-            currentCategoryFilter = categoryName;
-        currentVolumeFilter = null; // Reset volume filter when changing category
-            
-            // Highlight the selected category
-            document.querySelectorAll('.category').forEach(cat => {
-                const catName = cat.getAttribute('data-category');
-            if (catName && catName.toLowerCase() === categoryName.toLowerCase()) {
-                    cat.classList.add('active');
-                    console.log(`Activated category: ${categoryName}`);
-                } else {
-                    cat.classList.remove('active');
-                }
-            });
-        }
+    // Toggle filter if clicking the same category again
+    if (currentCategoryFilter === categoryName) {
+        console.log("Clearing category filter");
+        currentCategoryFilter = null;
+        document.querySelectorAll('.category').forEach(cat => {
+            cat.classList.remove('active');
+        });
+    } else {
+        console.log(`Setting filter to: ${categoryName}`);
+        currentCategoryFilter = categoryName;
         
-        // Reset to first page and reload documents with filter
-        currentPage = 1;
-        loadDocuments(currentPage);
+        // Highlight the selected category
+        document.querySelectorAll('.category').forEach(cat => {
+            const catName = cat.getAttribute('data-category');
+            if (catName && catName.toLowerCase() === categoryName.toLowerCase()) {
+                cat.classList.add('active');
+                console.log(`Activated category: ${categoryName}`);
+            } else {
+                cat.classList.remove('active');
+            }
+        });
+    }
+    
+    // Reset to first page and reload documents with filter
+    currentPage = 1;
+    loadDocuments(currentPage);
 
     // Update the filter indicator
     updateFilterIndicator();
 }
 
-// Update the loadDocuments function
+// Update the loadDocuments function to handle grouped documents
 async function loadDocuments(page = 1) {
     try {
-        let url = `/api/documents?page=${page}&size=${pageSize}`;
+        // Remember which documents were expanded before we refresh
+        const expandedDocIds = [];
+        document.querySelectorAll('.document-card.compilation[data-is-expanded="true"]').forEach(card => {
+            expandedDocIds.push(card.getAttribute('data-id'));
+        });
+        
+        // Calculate an adjusted page size to account for compiled documents
+        // Request more documents than needed to ensure we have enough visible ones
+        const adjustedPageSize = pageSize + 5; // Request extra documents to account for hidden compiled children
+        
+        // Add cache-busting parameter to prevent caching
+        const cacheBuster = new Date().getTime();
+        let url = `/api/documents?page=${page}&size=${adjustedPageSize}&_=${cacheBuster}`;
         
         // Apply category filter if set
         if (currentCategoryFilter && currentCategoryFilter !== 'All') {
             url += `&category=${encodeURIComponent(currentCategoryFilter)}`;
         }
         
-        // Apply volume filter if set
-        if (currentVolumeFilter) {
-            url += `&volume=${encodeURIComponent(currentVolumeFilter)}`;
-        }
+        // Volume filter has been removed - now handled by compiled documents
         
         // Apply sort order
         url += `&sort=${encodeURIComponent(currentSortOrder)}`;
@@ -283,8 +164,14 @@ async function loadDocuments(page = 1) {
         const response = await fetch(url);
         
         if (!response.ok) {
-            const errorData = await response.json();
+            const errorText = await response.text();
+            console.error('API Error Response:', errorText);
+            try {
+                const errorData = JSON.parse(errorText);
             throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            } catch (parseError) {
+                throw new Error(`HTTP error! status: ${response.status}, response: ${errorText.substring(0, 100)}...`);
+            }
         }
         
         const responseData = await response.json();
@@ -292,267 +179,139 @@ async function loadDocuments(page = 1) {
         
         const { documents, totalCount, totalPages } = responseData;
         console.log('Documents received:', documents);
+        console.log('First document from API:', documents.length > 0 ? JSON.stringify(documents[0], null, 2) : 'No documents');
         
-        // Update total entries
+        // Update total entries - we'll use the totalCount from the server
         totalEntries = totalCount;
         
         // Update current page
         currentPage = page;
         
-        const tbody = document.querySelector("#docs-table tbody");
-        if (!tbody) {
-            console.error("Table body not found");
+        const documentContainer = document.querySelector("#documents-container");
+        if (!documentContainer) {
+            console.error("Document container not found");
             return;
         }
         
-        tbody.innerHTML = "";
+        // Clear existing contents
+        documentContainer.innerHTML = "";
+
+        // Ensure the container can expand when needed
+        documentContainer.style.overflow = 'visible';
+        documentContainer.style.position = 'relative';
 
         if (!documents || documents.length === 0) {
             let filterMessage = '';
             if (currentCategoryFilter && currentCategoryFilter !== "All") {
                 filterMessage += ` in category "${currentCategoryFilter}"`;
             }
-            if (currentVolumeFilter) {
-                filterMessage += ` and volume "${currentVolumeFilter}"`;
-            }
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="empty-message">
-                        No documents found${filterMessage}
-                    </td>
-                </tr>
+            documentContainer.innerHTML = `
+                <div class="empty-message">
+                    No documents found${filterMessage}
+                </div>
             `;
             return;
         }
 
-        // Group documents by title
-        const groupedDocuments = documents.reduce((groups, doc) => {
-            const title = doc.title || 'Untitled';
-            if (!groups[title]) {
-                groups[title] = [];
+        // Track how many visible documents we've displayed
+        let visibleDocCount = 0;
+        const maxVisibleDocs = pageSize; // Display at most 5 documents
+        
+        // Reset visible entries count for this page
+        visibleEntriesCount = 0;
+        
+        // Group documents by type - regular documents and compiled document parents
+        const regularDocs = [];
+        const compiledDocs = [];
+        
+        // Separate documents into regular and compiled categories
+        documents.forEach(doc => {
+            if (doc.is_compiled_parent) {
+                compiledDocs.push(doc);
+            } else if (!doc.compiled_document_id) {
+                regularDocs.push(doc);
             }
-            groups[title].push(doc);
-            return groups;
-        }, {});
-
-        // Display grouped documents
-        Object.entries(groupedDocuments).forEach(([title, docs]) => {
-            const row = document.createElement("tr");
-            row.className = "document-card";
-            row.setAttribute('data-category', docs[0].category_name || '');
-            row.setAttribute('data-title', title);
-            row.style.cursor = 'pointer';
-            
-            // Create the main document row
-            const categoryIcon = getCategoryIcon(docs[0].category_name);
-            
-            const iconCell = document.createElement("td");
-            iconCell.className = "doc-icon";
-            iconCell.innerHTML = `<img src="${categoryIcon}" alt="${docs[0].category_name} Icon">`;
-            
-            const infoCell = document.createElement("td");
-            infoCell.className = "doc-info";
-            
-            // Get all unique authors from all volumes
-            const allAuthors = new Set();
-            docs.forEach(doc => {
-                if (doc.author_names && Array.isArray(doc.author_names)) {
-                    doc.author_names.forEach(author => allAuthors.add(author));
-                } else if (doc.author_name) {
-                    allAuthors.add(doc.author_name);
-                }
-            });
-            const authorDisplay = allAuthors.size > 0 ? Array.from(allAuthors).join(', ') : 'No Author Listed';
-            
-            let headerContent = `<span class="doc-title">${title}</span>`;
-            if (docs.length > 1) {
-                headerContent += ` | <span class="doc-volume-count">${docs.length} Volumes</span>`;
-            } else if (docs[0].volume) {
-                headerContent += ` | <span class="doc-volume">Volume ${docs[0].volume}</span>`;
+            // Skip individual compiled documents as they'll be displayed under their parent
+        });
+        
+        // Combine the documents in the order from the server
+        const displayDocuments = [];
+        let regularIndex = 0;
+        let compiledIndex = 0;
+        
+        documents.forEach(doc => {
+            if (doc.is_compiled_parent && compiledIndex < compiledDocs.length) {
+                displayDocuments.push(compiledDocs[compiledIndex++]);
+            } else if (!doc.compiled_document_id && regularIndex < regularDocs.length) {
+                displayDocuments.push(regularDocs[regularIndex++]);
             }
-            headerContent += ` | <span class="doc-author">${authorDisplay}</span>`;
-            
-            if (docs[0].publication_date) {
-                headerContent += ` | <span class="doc-year">${new Date(docs[0].publication_date).getFullYear()}</span>`;
+        });
+        
+        // Ensure we only show the maximum number of visible documents
+        const docsToDisplay = displayDocuments.slice(0, maxVisibleDocs);
+        
+        // Render each document
+        docsToDisplay.forEach((doc, index) => {
+            if (doc.is_compiled_parent) {
+                // This is a compiled document parent - use our specialized function
+                const wrapper = createCompiledDocumentRow(doc, documentContainer);
+                
+                // Special handling for compiled documents in the last row
+                if (index === maxVisibleDocs - 1) {
+                    // This is the last document in the page and it's a compiled document
+                    wrapper.classList.add('last-in-page');
+                }
+                
+                // Check if this document was previously expanded
+                if (expandedDocIds.includes(doc.id)) {
+                    // Expand it again
+                    const card = wrapper.querySelector('.document-card');
+                    const childrenContainer = wrapper.querySelector('.children-container');
+                    const expandIcon = card.querySelector('.expand-icon');
+                    
+                    card.setAttribute('data-is-expanded', 'true');
+                    expandIcon.textContent = '▼';
+                    childrenContainer.style.display = 'block';
+                    childrenContainer.style.maxHeight = 'none';
+                    childrenContainer.style.overflow = 'visible';
+                    
+                    // Make sure it's fully visible
+                    setTimeout(() => {
+                        const rect = childrenContainer.getBoundingClientRect();
+                        const viewportHeight = window.innerHeight;
+                        
+                        if (rect.bottom > viewportHeight) {
+                            childrenContainer.scrollIntoView({behavior: 'smooth', block: 'start'});
+                        }
+                    }, 100);
+                }
+                
+                visibleDocCount++;
+                visibleEntriesCount++; // Count compiled document as one entry
+            } else if (!doc.compiled_document_id) {
+                // This is a regular document (not part of a compilation)
+                const card = createDocumentRow(doc);
+                documentContainer.appendChild(card);
+                visibleDocCount++;
+                visibleEntriesCount++; // Count regular document as one entry
             }
-            
-            infoCell.innerHTML = `
-                <div class="doc-header">
-                    ${headerContent}
-                </div>
-                <div class="doc-tags">
-                    <span class="tag document-type">${docs[0].category_name || 'Uncategorized'}</span>
-                    ${getTopicsHtml(docs[0])}
-                </div>
-            `;
-            
-            // Append cells to row
-            row.appendChild(iconCell);
-            row.appendChild(infoCell);
-            
-            // Add click handler for the row
-            row.addEventListener('click', (e) => {
-                // Don't trigger if clicking on action buttons
-                if (e.target.closest('.action-buttons')) {
-                    return;
-                }
-
-                // Check if there's an existing dropdown for this row
-                const existingDropdown = document.querySelector('.similar-docs-dropdown');
-                if (existingDropdown) {
-                    // If clicking the same row that has the dropdown open, close it
-                    const rowRect = row.getBoundingClientRect();
-                    const dropdownTop = parseInt(existingDropdown.style.top) - window.scrollY;
-                    if (Math.abs(dropdownTop - rowRect.bottom) < 2) {
-                        existingDropdown.remove();
-                        return;
-                    }
-                }
-
-                // Remove any existing dropdowns
-                document.querySelectorAll('.similar-docs-dropdown').forEach(dropdown => {
-                    dropdown.remove();
-                });
-
-                const dropdownContainer = document.createElement('div');
-                dropdownContainer.className = 'similar-docs-dropdown';
-                
-                const listContainer = document.createElement('div');
-                listContainer.className = 'similar-docs-list';
-                
-                // Add each document version to the dropdown
-                docs.forEach(doc => {
-                    const docItem = document.createElement('div');
-                    docItem.className = 'similar-doc-item';
-                    
-                    // Get authors for this specific volume
-                    let volumeAuthors = 'No Author Listed';
-                    if (doc.author_names && Array.isArray(doc.author_names)) {
-                        volumeAuthors = doc.author_names.join(', ');
-                    } else if (doc.author_name) {
-                        volumeAuthors = doc.author_name;
-                    }
-                    
-                    docItem.innerHTML = `
-                        <div class="doc-icon">
-                            <img src="${categoryIcon}" alt="${doc.category_name} Icon">
-                        </div>
-                        <div class="doc-info">
-                            <div class="doc-header">
-                                <span class="doc-title">${doc.title || 'Untitled'}</span>
-                                ${doc.volume ? `<span class="doc-volume">Volume ${doc.volume}</span>` : ''}
-                                <span class="doc-author">${volumeAuthors}</span>
-                                <span class="doc-year">${new Date(doc.publication_date).getFullYear()}</span>
-                            </div>
-                            <div class="doc-tags">
-                                <span class="tag document-type">${doc.category_name || 'Uncategorized'}</span>
-                                ${getTopicsHtml(doc)}
-                            </div>
-                        </div>
-                        <div class="actions">
-                            <div class="action-buttons">
-                                <a href="#" class="view-icon" title="View Document">
-                                    👁️ <span>View</span>
-                                </a>
-                                <a href="#" class="edit-icon" title="Edit Document">
-                                    ✏️ <span>Edit</span>
-                                </a>
-                                <a href="#" class="delete-icon" title="Delete Document">
-                                    🗑️
-                                </a>
-                            </div>
-                        </div>
-                    `;
-                    
-                    // Add event listeners for buttons
-                    const viewButton = docItem.querySelector('.view-icon');
-                    viewButton.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        openPdfModal(doc);
-                    });
-                    
-                    const editButton = docItem.querySelector('.edit-icon');
-                    editButton.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        editDocument(doc.id || doc.document_id);
-                    });
-                    
-                    const deleteButton = docItem.querySelector('.delete-icon');
-                    deleteButton.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        openDeleteConfirmation(doc);
-                    });
-                    
-                    listContainer.appendChild(docItem);
-                });
-                
-                dropdownContainer.appendChild(listContainer);
-                
-                // Position the dropdown
-                const table = document.querySelector('#docs-table');
-                const tableRect = table.getBoundingClientRect();
-                const rowRect = row.getBoundingClientRect();
-                
-                dropdownContainer.style.position = 'absolute';
-                dropdownContainer.style.top = `${rowRect.bottom + window.scrollY}px`;
-                dropdownContainer.style.left = `${tableRect.left}px`;
-                dropdownContainer.style.width = `${tableRect.width}px`;
-                dropdownContainer.style.zIndex = '1000';
-                
-                // Add to document body
-                document.body.appendChild(dropdownContainer);
-
-                // Add mouseleave event to close dropdown when mouse leaves
-                dropdownContainer.addEventListener('mouseleave', () => {
-                    dropdownContainer.remove();
-                });
-
-                // Add mouseenter event to prevent closing when hovering over dropdown
-                dropdownContainer.addEventListener('mouseenter', () => {
-                    // Clear any existing timeout
-                    if (dropdownContainer._closeTimeout) {
-                        clearTimeout(dropdownContainer._closeTimeout);
-                    }
-                });
-
-                // Add mouseleave event to the row to close dropdown when leaving the row
-                row.addEventListener('mouseleave', (e) => {
-                    // Check if mouse is moving to the dropdown
-                    const relatedTarget = e.relatedTarget;
-                    if (!relatedTarget || !dropdownContainer.contains(relatedTarget)) {
-                        dropdownContainer._closeTimeout = setTimeout(() => {
-                            dropdownContainer.remove();
-                        }, 100); // Small delay to allow for mouse movement to dropdown
-                    }
-                });
-
-                // Close dropdown when clicking outside
-                const closeDropdown = (event) => {
-                    if (!dropdownContainer.contains(event.target) && !row.contains(event.target)) {
-                        dropdownContainer.remove();
-                        document.removeEventListener('click', closeDropdown);
-                    }
-                };
-                
-                // Add event listener with a slight delay
-                setTimeout(() => {
-                    document.addEventListener('click', closeDropdown);
-                }, 100);
-            });
-            
-            tbody.appendChild(row);
         });
 
-        // Update pagination UI
-        updatePagination();
+        console.log(`Displayed ${visibleEntriesCount} visible entries (${visibleDocCount} visible documents)`);
+        
+        // Update pagination
+        updatePagination(totalPages);
     } catch (error) {
         console.error("Error loading documents:", error);
-        const tbody = document.querySelector("#docs-table tbody");
-        if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="5" class="empty-message">Error loading documents: ${error.message}</td></tr>`;
+        // Display error message to user
+        const documentContainer = document.querySelector("#documents-container");
+        if (documentContainer) {
+            documentContainer.innerHTML = `
+                <div class="error-message">
+                    <h3>Error loading documents</h3>
+                    <p>${error.message || "Unknown error"}</p>
+                </div>
+            `;
         }
     }
 }
@@ -590,21 +349,27 @@ function getCategoryIcon(categoryName) {
     return '/admin/Components/icons/Category-icons/default_category_icon.png';
 }
 
-// Update the updatePagination function
-function updatePagination() {
-    const totalPages = Math.ceil(totalEntries / pageSize);
+// Update the updatePagination function to improve handling of compiled documents
+function updatePagination(totalPages) {
     const entriesInfo = document.getElementById("entries-info");
     const pageLinks = document.getElementById("page-links");
 
     if (!entriesInfo || !pageLinks) return;
 
-    // Update entries info
-    const startEntry = Math.min((currentPage - 1) * pageSize + 1, totalEntries);
-    const endEntry = Math.min(currentPage * pageSize, totalEntries);
+    // Calculate the start and end entries for display
+    const startEntry = totalEntries > 0 ? (currentPage - 1) * pageSize + 1 : 0;
+    const endEntry = Math.min(startEntry + visibleEntriesCount - 1, totalEntries);
+    
+    // Update entries info to show actual visible entries
     entriesInfo.textContent = `Showing ${startEntry} to ${endEntry} of ${totalEntries} entries`;
 
     // Clear existing pagination
     pageLinks.innerHTML = "";
+
+    // If there are no entries, don't show pagination
+    if (totalEntries === 0 || totalPages === 0) {
+        return;
+    }
 
     // Previous button
     const prevButton = document.createElement("button");
@@ -613,7 +378,21 @@ function updatePagination() {
     prevButton.disabled = currentPage === 1;
     prevButton.addEventListener("click", () => {
         if (currentPage > 1) {
-            loadDocuments(currentPage - 1);
+            // Remember scroll position
+            const scrollPosition = window.scrollY;
+            
+            // Close any expanded documents before changing page
+            document.querySelectorAll('.document-card.compilation[data-is-expanded="true"]').forEach(card => {
+                const childrenContainer = card.nextElementSibling;
+                card.setAttribute('data-is-expanded', 'false');
+                card.querySelector('.expand-icon').textContent = '▶';
+                childrenContainer.style.display = 'none';
+            });
+            
+            loadDocuments(currentPage - 1).then(() => {
+                // Restore scroll position
+                window.scrollTo(0, scrollPosition);
+            });
         }
     });
     pageLinks.appendChild(prevButton);
@@ -629,7 +408,7 @@ function updatePagination() {
 
     // First page and ellipsis
     if (startPage > 1) {
-        const firstButton = createPageButton(1);
+        const firstButton = createPageButton(1, totalPages);
         pageLinks.appendChild(firstButton);
         if (startPage > 2) {
             const ellipsis = document.createElement("span");
@@ -641,7 +420,7 @@ function updatePagination() {
 
     // Page numbers
     for (let i = startPage; i <= endPage; i++) {
-        const pageButton = createPageButton(i);
+        const pageButton = createPageButton(i, totalPages);
         pageLinks.appendChild(pageButton);
     }
 
@@ -653,7 +432,7 @@ function updatePagination() {
             ellipsis.className = "pagination-ellipsis";
             pageLinks.appendChild(ellipsis);
         }
-        const lastButton = createPageButton(totalPages);
+        const lastButton = createPageButton(totalPages, totalPages);
         pageLinks.appendChild(lastButton);
     }
 
@@ -664,19 +443,48 @@ function updatePagination() {
     nextButton.disabled = currentPage === totalPages;
     nextButton.addEventListener("click", () => {
         if (currentPage < totalPages) {
-            loadDocuments(currentPage + 1);
+            // Remember scroll position
+            const scrollPosition = window.scrollY;
+            
+            // Close any expanded documents before changing page
+            document.querySelectorAll('.document-card.compilation[data-is-expanded="true"]').forEach(card => {
+                const childrenContainer = card.nextElementSibling;
+                card.setAttribute('data-is-expanded', 'false');
+                card.querySelector('.expand-icon').textContent = '▶';
+                childrenContainer.style.display = 'none';
+            });
+            
+            loadDocuments(currentPage + 1).then(() => {
+                // Restore scroll position
+                window.scrollTo(0, scrollPosition);
+            });
         }
     });
     pageLinks.appendChild(nextButton);
 }
 
-function createPageButton(pageNum) {
+// Updated createPageButton to handle compiled documents better
+function createPageButton(pageNum, totalPages) {
     const button = document.createElement("button");
     button.textContent = pageNum;
     button.className = "pagination-btn page-number" + (pageNum === currentPage ? " active" : "");
     button.addEventListener("click", () => {
         if (pageNum !== currentPage) {
-            loadDocuments(pageNum);
+            // Remember scroll position
+            const scrollPosition = window.scrollY;
+            
+            // Close any expanded documents before changing page
+            document.querySelectorAll('.document-card.compilation[data-is-expanded="true"]').forEach(card => {
+                const childrenContainer = card.nextElementSibling;
+                card.setAttribute('data-is-expanded', 'false');
+                card.querySelector('.expand-icon').textContent = '▶';
+                childrenContainer.style.display = 'none';
+            });
+            
+            loadDocuments(pageNum).then(() => {
+                // Restore scroll position
+                window.scrollTo(0, scrollPosition);
+            });
         }
     });
     return button;
@@ -884,8 +692,44 @@ fileInput.addEventListener('change', function() {
     }
 });
 
-// Edit document functionality
+// Main document edit handler - determines which modal to show based on document type
 async function editDocument(documentId) {
+    try {
+        console.log('Fetching document with ID:', documentId);
+        
+        // Fetch document details to determine type
+        const response = await fetch(`/api/documents/${documentId}`);
+        console.log("Fetch response status:", response.status);
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch document: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const documentData = Array.isArray(data) ? data[0] : data;
+        
+        if (!documentData) {
+            throw new Error('No document data received');
+        }
+        
+        console.log('Document data:', documentData);
+        
+        // Determine which modal to show based on document type
+        if (documentData.is_compiled_parent || documentData.child_documents) {
+            // This is a compiled document
+            await editCompiledDocument(documentId, documentData);
+        } else {
+            // This is a single document
+            await editSingleDocument(documentId, documentData);
+        }
+    } catch (error) {
+        console.error('Error determining document type:', error);
+        alert('Error loading document: ' + error.message);
+    }
+}
+
+// Edit for single documents
+async function editSingleDocument(documentId, documentData) {
     try {
         const modal = document.getElementById('edit-modal');
         modal.style.display = 'flex';
@@ -1115,7 +959,286 @@ async function editDocument(documentId) {
     }
 }
 
-// Close edit modal
+// Edit for compiled documents
+async function editCompiledDocument(documentId, documentData) {
+    try {
+        const modal = document.getElementById('compiled-edit-modal');
+        modal.style.display = 'flex';
+        
+        console.log('Loading compiled document data:', documentData);
+
+        // Populate form fields
+        const titleInput = document.getElementById('compiled-edit-title');
+        if (titleInput) titleInput.value = documentData.title || '';
+        
+        // Set years
+        const startYearInput = document.getElementById('compiled-edit-start-year');
+        if (startYearInput) startYearInput.value = documentData.start_year || '';
+        
+        const endYearInput = document.getElementById('compiled-edit-end-year');
+        if (endYearInput) endYearInput.value = documentData.end_year || '';
+        
+        // Set volume and issue
+        const volumeInput = document.getElementById('compiled-edit-volume');
+        if (volumeInput) volumeInput.value = documentData.compiled_volume || documentData.volume || '';
+        
+        const issueInput = document.getElementById('compiled-edit-issue');
+        if (issueInput) issueInput.value = documentData.compiled_issued_no || '';
+        
+        // Set category
+        const categorySelect = document.getElementById('compiled-edit-category');
+        if (categorySelect && documentData.category_name) {
+            categorySelect.value = documentData.category_name.toLowerCase();
+        }
+        
+        // Update preview sections
+        const previewTitle = document.getElementById('compiled-edit-preview-title');
+        if (previewTitle) previewTitle.textContent = documentData.title || 'Untitled Compilation';
+        
+        // Update years display
+        const previewYears = document.getElementById('compiled-edit-preview-years');
+        if (previewYears) {
+            const startYear = documentData.start_year || '?';
+            const endYear = documentData.end_year || '?';
+            previewYears.textContent = `${startYear}-${endYear}`;
+        }
+        
+        // Update volume
+        const previewVolume = document.getElementById('compiled-edit-preview-volume');
+        if (previewVolume) {
+            previewVolume.textContent = documentData.compiled_volume || documentData.volume || '?';
+        }
+        
+        // Update added date
+        const previewDate = document.getElementById('compiled-edit-preview-date');
+        if (previewDate && documentData.updated_at) {
+            const date = new Date(documentData.updated_at);
+            previewDate.textContent = date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        }
+        
+        // Populate child documents/studies
+        const childDocuments = documentData.child_documents || [];
+        const studiesContainer = document.getElementById('compiled-studies-list');
+        const previewStudiesList = document.getElementById('compiled-edit-preview-studies-list');
+        const previewStudiesCount = document.getElementById('compiled-edit-preview-studies');
+        
+        if (studiesContainer) studiesContainer.innerHTML = '';
+        if (previewStudiesList) previewStudiesList.innerHTML = '';
+        if (previewStudiesCount) previewStudiesCount.textContent = childDocuments.length;
+        
+        // Add each study to the list
+        childDocuments.forEach((study, index) => {
+            // Add to the form list
+            if (studiesContainer) {
+                // Create document entry similar to upload form
+                const entryContainer = document.createElement('div');
+                entryContainer.className = 'document-entry';
+                entryContainer.setAttribute('data-id', study.id);
+                
+                // Create document entry header with entry number
+                const entryHeader = document.createElement('div');
+                entryHeader.className = 'entry-header';
+                
+                const entryNumber = document.createElement('div');
+                entryNumber.className = 'entry-number';
+                entryNumber.textContent = index + 1;
+                
+                // Create title bar
+                const titleBar = document.createElement('div');
+                titleBar.className = 'title-bar';
+                
+                // Entry title
+                const entryTitle = document.createElement('div');
+                entryTitle.className = 'entry-title';
+                entryTitle.textContent = study.title || 'Untitled Study';
+                
+                // Entry actions
+                const entryActions = document.createElement('div');
+                entryActions.className = 'entry-actions';
+                
+                // Edit button
+                const editBtn = document.createElement('button');
+                editBtn.type = 'button';
+                editBtn.className = 'edit-btn';
+                editBtn.innerHTML = '<span>✏️</span> Edit';
+                editBtn.setAttribute('data-id', study.id);
+                
+                // Remove button
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'remove-btn';
+                removeBtn.innerHTML = '<span>🗑️</span> Remove';
+                removeBtn.setAttribute('data-id', study.id);
+                
+                // Add actions to entry actions
+                entryActions.appendChild(editBtn);
+                entryActions.appendChild(removeBtn);
+                
+                // Add to title bar
+                titleBar.appendChild(entryTitle);
+                titleBar.appendChild(entryActions);
+                
+                // Create document info area
+                const entryInfo = document.createElement('div');
+                entryInfo.className = 'entry-info';
+                
+                // Add author info
+                const authorInfo = document.createElement('div');
+                authorInfo.className = 'author-info';
+                authorInfo.innerHTML = `<strong>Author(s):</strong> ${Array.isArray(study.author_names) ? study.author_names.join(', ') : 'No Author Listed'}`;
+                
+                // Add publication date
+                const pubDateInfo = document.createElement('div');
+                pubDateInfo.className = 'publication-date';
+                if (study.publication_date) {
+                    const date = new Date(study.publication_date);
+                    pubDateInfo.innerHTML = `<strong>Publication Year:</strong> ${date.getFullYear()}`;
+                } else {
+                    pubDateInfo.innerHTML = '<strong>Publication Year:</strong> Not specified';
+                }
+                
+                // Add category info
+                const categoryInfo = document.createElement('div');
+                categoryInfo.className = 'category-info';
+                categoryInfo.innerHTML = `<strong>Category:</strong> ${study.category_name || 'Not specified'}`;
+                
+                // Add all info elements
+                entryInfo.appendChild(authorInfo);
+                entryInfo.appendChild(pubDateInfo);
+                entryInfo.appendChild(categoryInfo);
+                
+                // Assemble entry header
+                entryHeader.appendChild(entryNumber);
+                entryHeader.appendChild(titleBar);
+                
+                // Assemble entry container
+                entryContainer.appendChild(entryHeader);
+                entryContainer.appendChild(entryInfo);
+                
+                // Add event listeners
+                editBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    editSingleDocument(study.id, study);
+                });
+                
+                removeBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Show confirmation before removing
+                    if (confirm(`Are you sure you want to remove "${study.title}" from this compilation?`)) {
+                        // Handle study removal
+                        console.log('Removing study:', study.id);
+                        // This would need API implementation for removing a study from compilation
+                        entryContainer.remove();
+                    }
+                });
+                
+                // Add to studies container
+                studiesContainer.appendChild(entryContainer);
+            }
+            
+            // Add to preview list
+            if (previewStudiesList) {
+                const previewItem = document.createElement('div');
+                previewItem.className = 'preview-study-item';
+                previewItem.innerHTML = `
+                    <div class="preview-study-title">${study.title || 'Untitled Study'}</div>
+                    <div class="preview-study-author">
+                        ${Array.isArray(study.author_names) ? study.author_names.join(', ') : 'No Author Listed'}
+                    </div>
+                `;
+                previewStudiesList.appendChild(previewItem);
+            }
+        });
+        
+        // Handle form submission
+        const form = document.getElementById('compiled-edit-form');
+        if (form) {
+            form.onsubmit = async (e) => {
+                e.preventDefault();
+                
+                try {
+                    // Create JSON payload instead of FormData
+                    const compiledDocumentData = {
+                        title: document.getElementById('compiled-edit-title').value,
+                        start_year: document.getElementById('compiled-edit-start-year').value || null,
+                        end_year: document.getElementById('compiled-edit-end-year').value || null,
+                        volume: document.getElementById('compiled-edit-volume').value || null,
+                        issued_no: document.getElementById('compiled-edit-issue').value || null
+                    };
+                    
+                    // Get the selected category value
+                    const categorySelect = document.getElementById('compiled-edit-category');
+                    const selectedCategory = categorySelect.value;
+                    if (selectedCategory === 'default') {
+                        throw new Error('Please select a valid category');
+                    }
+                    compiledDocumentData.category = selectedCategory;
+                    
+                    // Get document IDs from the studies list
+                    const studiesContainer = document.getElementById('compiled-studies-list');
+                    const documentEntries = studiesContainer.querySelectorAll('.document-entry');
+                    const documentIds = Array.from(documentEntries).map(entry => entry.getAttribute('data-id'));
+                    compiledDocumentData.document_ids = documentIds;
+                    
+                    // Show loading state
+                    const submitButton = form.querySelector('button[type="submit"]');
+                    const originalButtonText = submitButton.innerHTML;
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = 'Saving...';
+                    
+                    console.log('Sending compiled document update:', compiledDocumentData);
+                    
+                    const updateResponse = await fetch(`/api/compiled-documents/${documentId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(compiledDocumentData)
+                    });
+
+                    if (!updateResponse.ok) {
+                        const errorData = await updateResponse.json();
+                        throw new Error(errorData.message || 'Failed to update compilation');
+                    }
+
+                    // Show success modal
+                    const successModal = document.getElementById('success-modal');
+                    if (successModal) {
+                        successModal.style.display = 'flex';
+                        
+                        // Close modals and refresh documents after delay
+                        setTimeout(() => {
+                            successModal.style.display = 'none';
+                            closeCompiledEditModal();
+                            loadDocuments(currentPage);
+                        }, 2000);
+                    }
+                } catch (error) {
+                    console.error('Error updating compilation:', error);
+                    alert('Error updating compilation: ' + error.message);
+                } finally {
+                    // Reset submit button state
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                        submitButton.innerHTML = originalButtonText;
+                    }
+                }
+            };
+        }
+    } catch (error) {
+        console.error('Error editing compiled document:', error);
+        alert('Error editing compilation: ' + error.message);
+        closeCompiledEditModal();
+    }
+}
+
+// Close single document edit modal
 function closeEditModal() {
     const modal = document.getElementById('edit-modal');
     if (modal) {
@@ -1139,6 +1262,26 @@ function closeEditModal() {
     if (currentFileContainer) {
         currentFileContainer.innerHTML = '';
     }
+}
+
+// Close compiled document edit modal
+function closeCompiledEditModal() {
+    const modal = document.getElementById('compiled-edit-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    
+    // Reset form
+    const form = document.getElementById('compiled-edit-form');
+    if (form) {
+        form.reset();
+    }
+    
+    // Clear studies list
+    const studiesContainer = document.getElementById('compiled-studies-list');
+    const previewStudiesList = document.getElementById('compiled-edit-preview-studies-list');
+    if (studiesContainer) studiesContainer.innerHTML = '';
+    if (previewStudiesList) previewStudiesList.innerHTML = '';
 }
 
 // Function to open delete confirmation
@@ -1457,17 +1600,13 @@ function createCategoryElement(category, count) {
     return div;
 }
 
-// Update the filter indicator to show volume filter
+// Update the filter indicator to show category filter
 function updateFilterIndicator() {
     const filterIndicator = document.getElementById('filter-indicator');
     if (!filterIndicator) return;
     
     if (currentCategoryFilter && currentCategoryFilter !== "All") {
         let filterText = `Category: ${currentCategoryFilter}`;
-        
-        if (currentVolumeFilter) {
-            filterText += ` | Volume: ${currentVolumeFilter}`;
-        }
         
         filterIndicator.innerHTML = `
             <span class="filter-badge">${filterText}</span>
@@ -1476,12 +1615,8 @@ function updateFilterIndicator() {
         
         document.getElementById('clear-filter').addEventListener('click', () => {
             currentCategoryFilter = null;
-            currentVolumeFilter = null;
             document.querySelectorAll('.category').forEach(cat => {
                 cat.classList.remove('active');
-            });
-            document.querySelectorAll('.volume-item').forEach(item => {
-                item.classList.remove('active');
             });
             loadDocuments(1);
             updateFilterIndicator();
@@ -1491,13 +1626,17 @@ function updateFilterIndicator() {
     }
 }
 
-// Initialize the page
+// Initialize the page - consolidate all DOMContentLoaded handlers into a single one
 document.addEventListener('DOMContentLoaded', async () => {
     try {
+        console.log('Initializing document page...');
+        
+        // Add compiled document styles
+        addCompiledDocumentStyles();
+        
         // Load sidebar and navbar
         await loadSidebar();
         await loadNavbar();
-        await loadPageHeader();
         
         // Load categories first
         await loadCategories();
@@ -1507,6 +1646,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Setup volume filter dropdown
         setupVolumeFilterDropdown();
+        
+        // Setup sort functionality - do this before loading documents
+        setupSort();
         
         // Load initial documents
         await loadDocuments(1);
@@ -1532,17 +1674,60 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Setup department filter
         setupDepartmentFilter();
         
-        // Setup sort functionality
-        setupSort();
-        
         // Setup filter indicator
         updateFilterIndicator();
+        
+        // Setup file input handler for edit form
+        const editFileInput = document.getElementById('edit-file');
+        if (editFileInput) {
+            editFileInput.addEventListener('change', async (event) => {
+                const file = event.target.files[0];
+                if (file && file.type === "application/pdf") {
+                    try {
+                        // Extract text and abstract from PDF
+                        const extractedText = await extractTextFromPDF(file);
+                        console.log('Extracted abstract:', extractedText);
+                        
+                        // Update preview abstract
+                        const previewAbstract = document.getElementById('edit-preview-abstract');
+                        if (previewAbstract) {
+                            previewAbstract.innerHTML = extractedText;
+                        }
+                        
+                        // Store the abstract for form submission
+                        window.extractedAbstract = extractedText;
+                        
+                        // Get page count
+                        const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+                        const pageCount = pdf.numPages;
+                        const pageCountElement = document.getElementById('edit-page-count');
+                        if (pageCountElement) {
+                            pageCountElement.textContent = pageCount;
+                        }
+                        
+                    } catch (error) {
+                        console.error('Error processing PDF:', error);
+                        const previewAbstract = document.getElementById('edit-preview-abstract');
+                        if (previewAbstract) {
+                            previewAbstract.textContent = "Error extracting abstract from the document.";
+                        }
+                    }
+                } else {
+                    const previewAbstract = document.getElementById('edit-preview-abstract');
+                    if (previewAbstract) {
+                        previewAbstract.textContent = "Please upload a PDF file to extract the abstract.";
+                    }
+                }
+            });
+        }
         
         console.log('Page initialized successfully');
     } catch (error) {
         console.error('Error initializing page:', error);
     }
 });
+
+// Remove the other DOMContentLoaded event listeners since they're now consolidated
 
 // Helper function to set up category handlers
 function setupCategoryHandler(categoryName) {
@@ -1650,13 +1835,19 @@ async function updateVolumeOptions(categoryName) {
         // Clear existing options except "All Volumes"
         options.innerHTML = '<div class="volume-filter-option" data-volume="all">All Volumes</div>';
         
-        // Extract unique volumes from documents
-        const volumes = new Set();
-        documents.forEach(doc => {
+        // Group compiled documents and format the results
+        const documentsMap = new Map();
+        const compiledDocumentsMap = new Map();
+        const compiledDocuments = Array.from(documents).reduce((acc, doc) => {
             if (doc.volume) {
-                volumes.add(doc.volume);
+                acc[doc.volume] = acc[doc.volume] || [];
+                acc[doc.volume].push(doc);
             }
-        });
+            return acc;
+        }, {});
+        
+        // Extract unique volumes from documents
+        const volumes = new Set(Object.keys(compiledDocuments));
         
         // Sort volumes numerically
         const sortedVolumes = Array.from(volumes).sort((a, b) => {
@@ -1664,21 +1855,6 @@ async function updateVolumeOptions(categoryName) {
             const numB = parseInt(b) || 0;
             return numA - numB;
         });
-        
-        // Add volume options
-        sortedVolumes.forEach(volume => {
-            const option = document.createElement('div');
-            option.className = 'volume-filter-option';
-            option.setAttribute('data-volume', volume);
-            option.textContent = `Volume ${volume}`;
-            options.appendChild(option);
-        });
-        
-        // Reset selected text
-        selected.textContent = 'All Volumes';
-        
-        // Reset volume filter
-        currentVolumeFilter = null;
     } catch (error) {
         console.error(`Error fetching volumes for category ${categoryName}:`, error);
     }
@@ -1765,12 +1941,27 @@ function setupDepartmentFilter() {
 function setupSort() {
     const sortDropdown = document.getElementById('sort-order');
     if (sortDropdown) {
+        // Set the dropdown to reflect the current sort order state
+        sortDropdown.value = currentSortOrder;
+        
         sortDropdown.addEventListener('change', (event) => {
             console.log('Sort order changed to:', event.target.value);
             currentSortOrder = event.target.value; // Update the current sort order
             currentPage = 1; // Reset to first page
             loadDocuments(currentPage);
+            
+            // Store sorting preference in local storage for persistence
+            localStorage.setItem('documentSortOrder', currentSortOrder);
         });
+        
+        // Check if there's a stored preference
+        const storedSortOrder = localStorage.getItem('documentSortOrder');
+        if (storedSortOrder) {
+            currentSortOrder = storedSortOrder;
+            sortDropdown.value = currentSortOrder;
+        }
+    } else {
+        console.error('Sort dropdown element not found');
     }
 }
 
@@ -1911,42 +2102,6 @@ async function loadNavbar() {
     }
 }
 
-// Load page header
-async function loadPageHeader() {
-    console.log("Loading page header");
-    const headerContainer = document.getElementById('page-header');
-    if (headerContainer) {
-        try {
-            const response = await fetch('/admin/Components/page_header.html');
-            if (response.ok) {
-                const html = await response.text();
-                headerContainer.innerHTML = html;
-                console.log("Page header loaded successfully");
-            } else {
-                console.error('Failed to load page header:', response.status);
-                // Provide a fallback header
-                headerContainer.innerHTML = `
-                    <div class="page-header">
-                        <h1>Documents</h1>
-                        <p>Manage and view all documents in the system</p>
-                    </div>
-                `;
-            }
-        } catch (error) {
-            console.error('Error loading page header:', error);
-            // Provide a fallback header
-            headerContainer.innerHTML = `
-                <div class="page-header">
-                    <h1>Documents</h1>
-                    <p>Manage and view all documents in the system</p>
-                </div>
-            `;
-        }
-    } else {
-        console.error('Page header container not found');
-    }
-}
-
 // Function to show volume dropdown for a document row
 function showVolumeDropdown(row, category, volume) {
     // Remove any existing dropdowns
@@ -2031,7 +2186,7 @@ function showVolumeDropdown(row, category, volume) {
         }
     };
     
-    // Add event listener with a slight delay
+    // Add click listener with a small delay to avoid immediate trigger
     setTimeout(() => {
         document.addEventListener('click', closeDropdown);
     }, 100);
@@ -2084,128 +2239,6 @@ style.textContent = `
         background-color: #f8f9fa;
         transform: translateY(-1px);
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    }
-
-    .similar-doc-item .doc-icon {
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .similar-doc-item .doc-icon img {
-        width: 32px;
-        height: 32px;
-        object-fit: contain;
-    }
-
-    .similar-doc-item .doc-info {
-        min-width: 0;
-    }
-
-    .similar-doc-item .doc-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-        margin-bottom: 4px;
-    }
-
-    .similar-doc-item .doc-title {
-        font-weight: 500;
-        color: #333;
-    }
-
-    .similar-doc-item .doc-volume {
-        color: #1976d2;
-    }
-
-    .similar-doc-item .doc-author,
-    .similar-doc-item .doc-year {
-        color: #666;
-    }
-
-    .similar-doc-item .doc-tags {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-
-    .similar-doc-item .tag {
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 0.85em;
-        background-color: #f0f0f0;
-        color: #666;
-    }
-
-    .similar-doc-item .tag.document-type {
-        background-color: #e3f2fd;
-        color: #1976d2;
-    }
-
-    .similar-doc-item .actions {
-        display: flex;
-        align-items: flex-start;
-        gap: 8px;
-        justify-content: flex-end;
-    }
-
-    .similar-doc-item .action-buttons {
-        display: grid;
-        grid-template-areas:
-            "view delete"
-            "edit delete";
-        gap: 8px;
-        min-width: 140px;
-        position: relative;
-        z-index: 101;
-    }
-
-    .similar-doc-item .view-icon,
-    .similar-doc-item .edit-icon,
-    .similar-doc-item .delete-icon {
-        padding: 8px 12px;
-        border-radius: 4px;
-        text-decoration: none;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        transition: background-color 0.2s;
-        white-space: nowrap;
-        z-index: 102;
-    }
-
-    .similar-doc-item .view-icon {
-        color: #1976d2;
-        grid-area: view;
-    }
-
-    .similar-doc-item .edit-icon {
-        color: #00796b;
-        grid-area: edit;
-    }
-
-    .similar-doc-item .delete-icon {
-        color: #d32f2f;
-        grid-area: delete;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .similar-doc-item .view-icon:hover {
-        background-color: #e3f2fd;
-    }
-
-    .similar-doc-item .edit-icon:hover {
-        background-color: #e0f2f1;
-    }
-
-    .similar-doc-item .delete-icon:hover {
-        background-color: #ffebee;
     }
 
     /* Modal styles with higher z-index */
@@ -2400,50 +2433,140 @@ function closePdfModal() {
     });
 }
 
-// Update the createDocumentRow function to use the modal viewer
+// Function to create a card for a regular document
 function createDocumentRow(doc) {
-    console.log('Creating row for document:', doc);
-    const row = document.createElement("tr");
-    row.className = "document-card";
+    console.debug('Creating card for document:', JSON.stringify(doc, null, 2));
+    const card = document.createElement("div");
+    card.className = "document-card";
+    card.setAttribute('data-id', doc.id);
     
-    // Create cells
-    const titleCell = document.createElement("td");
-    const authorCell = document.createElement("td");
-    const dateCell = document.createElement("td");
-    const categoryCell = document.createElement("td");
-    const actionsCell = document.createElement("td");
+    // Create card icon (using category icon)
+    const cardIcon = document.createElement("div");
+    cardIcon.className = "card-icon";
     
-    // Set content
-    titleCell.textContent = doc.title;
-    authorCell.textContent = Array.isArray(doc.author_names) ? doc.author_names.join(", ") : "";
-    dateCell.textContent = new Date(doc.publication_date).toLocaleDateString();
-    categoryCell.textContent = doc.category_name;
+    // Get the appropriate icon based on category
+    const iconImg = document.createElement("img");
+    let iconPath = "/admin/Components/icons/Category-icons/default_category_icon.png";
     
-    // Create dropdown for actions
-    const dropdownContent = document.createElement("div");
-    dropdownContent.className = "dropdown-content";
-    dropdownContent.style.display = "none";
+    // Set icon based on category name (lowercase for case-insensitive comparison)
+    const categoryName = (doc.category_name || "").toLowerCase();
+    if (categoryName === "confluence") {
+        iconPath = "/admin/Components/icons/Category-icons/confluence.png";
+    } else if (categoryName === "dissertation") {
+        iconPath = "/admin/Components/icons/Category-icons/dissertation.png";
+    } else if (categoryName === "thesis") {
+        iconPath = "/admin/Components/icons/Category-icons/thesis.png";
+    } else if (categoryName === "synergy") {
+        iconPath = "/admin/Components/icons/Category-icons/synergy.png";
+    }
+    
+    iconImg.src = iconPath;
+    iconImg.alt = doc.category_name || "Category Icon";
+    cardIcon.appendChild(iconImg);
+    
+    // Create card content
+    const cardContent = document.createElement("div");
+    cardContent.className = "card-content";
+    
+    // Create title
+    const cardTitle = document.createElement("div");
+    cardTitle.className = "card-title";
+    cardTitle.textContent = doc.title || "Untitled";
+    
+    // Create metadata based on the format in the image
+    const cardMetadata = document.createElement("div");
+    cardMetadata.className = "card-metadata";
+    
+    // Format components in order: Title | Volume # | Author | Year
+    // We'll use doc.title in the card title, not in metadata
+    const volumeText = doc.volume ? `Volume ${doc.volume}` : "";
+    
+    // Handle issue field
+    const issueText = doc.issued_no ? `Issue ${doc.issued_no}` : "";
+    
+    // Ensure author_names is properly handled
+    let authorText = "";
+    if (Array.isArray(doc.author_names) && doc.author_names.length > 0) {
+        // Filter out any empty or null values before joining
+        authorText = doc.author_names.filter(author => author).join(", ");
+        console.debug(`Using author_names array: ${authorText}`);
+    } else if (typeof doc.author_name === 'string' && doc.author_name) {
+        authorText = doc.author_name;
+        console.debug(`Using author_name string: ${authorText}`);
+    } else {
+        console.debug(`No author information found!`);
+    }
+    
+    // Format year from publication date
+    let yearText = "";
+    if (doc.publication_date) {
+        // If it's a date string like "2020-01-01", extract just the year
+        if (typeof doc.publication_date === 'string' && doc.publication_date.includes('-')) {
+            yearText = doc.publication_date.split('-')[0];
+            console.debug(`Using publication_date year from string: ${yearText}`);
+        } else {
+            try {
+        yearText = new Date(doc.publication_date).getFullYear().toString();
+                console.debug(`Using publication_date year from Date object: ${yearText}`);
+            } catch (e) {
+                console.error("Error parsing publication date:", e);
+                yearText = "";
+            }
+        }
+    } else {
+        console.debug(`No year information found!`);
+    }
+    
+    // Combine metadata parts in the specified order, filtering out empty ones
+    // Order: Volume | Issue | Author | Year
+    const metadataParts = [];
+    if (volumeText) metadataParts.push(volumeText);
+    if (issueText) metadataParts.push(issueText);
+    if (authorText) metadataParts.push(authorText);
+    if (yearText) metadataParts.push(yearText);
+    
+    cardMetadata.textContent = metadataParts.join(' | ');
+    
+    // Create tags container with only one tag for document type
+    const cardTags = document.createElement("div");
+    cardTags.className = "card-tags";
+    
+    // Add document type tag (using category name)
+    const docTypeTag = document.createElement("div");
+    docTypeTag.className = "tag document-type";
+    docTypeTag.textContent = doc.category_name || "Uncategorized";
+    
+    cardTags.appendChild(docTypeTag);
+    
+    // Add all content elements to card content
+    cardContent.appendChild(cardTitle);
+    cardContent.appendChild(cardMetadata);
+    cardContent.appendChild(cardTags);
+    
+    // Create card actions
+    const cardActions = document.createElement("div");
+    cardActions.className = "card-actions";
     
     // Create action buttons
     const viewButton = document.createElement("button");
+    viewButton.className = "action-button view";
     viewButton.textContent = "View";
     viewButton.onclick = (e) => {
         e.stopPropagation();
         console.log('View button clicked for document:', doc);
-        console.log('Document file path:', doc.file);
-        console.log('Document properties:', Object.keys(doc));
-        // Pass the full document object instead of just the title
         openPdfModal(doc);
     };
     
     const editButton = document.createElement("button");
+    editButton.className = "action-button edit";
     editButton.textContent = "Edit";
     editButton.onclick = (e) => {
         e.stopPropagation();
-        openEditModal(doc);
+        editDocument(doc.id);
     };
     
     const deleteButton = document.createElement("button");
+    deleteButton.className = "action-button delete";
     deleteButton.textContent = "Delete";
     deleteButton.onclick = (e) => {
         e.stopPropagation();
@@ -2452,36 +2575,582 @@ function createDocumentRow(doc) {
         }
     };
     
-    // Add buttons to dropdown
-    dropdownContent.appendChild(viewButton);
-    dropdownContent.appendChild(editButton);
-    dropdownContent.appendChild(deleteButton);
+    // Add buttons to actions
+    cardActions.appendChild(viewButton);
+    cardActions.appendChild(editButton);
+    cardActions.appendChild(deleteButton);
     
-    // Add dropdown to actions cell
-    actionsCell.appendChild(dropdownContent);
+    // Assemble the card
+    card.appendChild(cardIcon);
+    card.appendChild(cardContent);
+    card.appendChild(cardActions);
     
-    // Add click handler to row
-    row.onclick = function() {
-        // Close all other dropdowns
-        const allDropdowns = document.querySelectorAll('.dropdown-content');
-        allDropdowns.forEach(dropdown => {
-            if (dropdown !== dropdownContent) {
-                dropdown.style.display = 'none';
+    return card;
+}
+
+// Function to create a card for a compiled document with expandable child documents
+function createCompiledDocumentRow(compiledDoc, container) {
+    // Create parent card
+    const card = document.createElement("div");
+    card.className = "document-card compilation";
+    card.setAttribute('data-id', compiledDoc.id);
+    card.setAttribute('data-is-expanded', 'false');
+    
+    // Create card icon (using category icon)
+    const cardIcon = document.createElement("div");
+    cardIcon.className = "card-icon";
+    
+    // Get the appropriate icon based on category
+    const iconImg = document.createElement("img");
+    let iconPath = "/admin/Components/icons/Category-icons/default_category_icon.png";
+    
+    // Set icon based on category name (lowercase for case-insensitive comparison)
+    const categoryName = (compiledDoc.category_name || "").toLowerCase();
+    if (categoryName === "confluence") {
+        iconPath = "/admin/Components/icons/Category-icons/confluence.png";
+    } else if (categoryName === "dissertation") {
+        iconPath = "/admin/Components/icons/Category-icons/dissertation.png";
+    } else if (categoryName === "thesis") {
+        iconPath = "/admin/Components/icons/Category-icons/thesis.png";
+    } else if (categoryName === "synergy") {
+        iconPath = "/admin/Components/icons/Category-icons/synergy.png";
+    }
+    
+    iconImg.src = iconPath;
+    iconImg.alt = compiledDoc.category_name || "Category Icon";
+    cardIcon.appendChild(iconImg);
+    
+    // Create card content
+    const cardContent = document.createElement("div");
+    cardContent.className = "card-content";
+    
+    // Create title with dropdown icon
+    const cardTitle = document.createElement("div");
+    cardTitle.className = "card-title";
+    cardTitle.innerHTML = `<span class="expand-icon">▶</span> ${compiledDoc.title}`;
+    
+    // Create metadata based on the format in the image
+    const cardMetadata = document.createElement("div");
+    cardMetadata.className = "card-metadata";
+    
+    // Format components in the same order as regular documents
+    const volumeText = compiledDoc.volume ? `Volume ${compiledDoc.volume}` : "";
+    const issueText = compiledDoc.issued_no ? `Issue ${compiledDoc.issued_no}` : "";
+    
+    // Get authors from child documents if available
+    let authorText = "";
+    if (Array.isArray(compiledDoc.author_names) && compiledDoc.author_names.length > 0) {
+        // Filter out any empty or null values
+        authorText = compiledDoc.author_names.filter(author => author).join(", ");
+    } else if (compiledDoc.child_documents && compiledDoc.child_documents.length > 0) {
+        const authors = new Set();
+        compiledDoc.child_documents.forEach(childDoc => {
+            if (childDoc.author_names && Array.isArray(childDoc.author_names)) {
+                childDoc.author_names.filter(author => author).forEach(author => authors.add(author));
+            } else if (childDoc.author_name) {
+                authors.add(childDoc.author_name);
             }
         });
+        authorText = Array.from(authors).join(', ');
+    }
+    
+    // Format year from the compilation data
+    let yearText = "";
+    if (compiledDoc.start_year && compiledDoc.end_year) {
+        yearText = `${compiledDoc.start_year}-${compiledDoc.end_year}`;
+    } else if (compiledDoc.publication_date) {
+        // If it's a date string like "2020-01-01", extract just the year
+        if (typeof compiledDoc.publication_date === 'string' && compiledDoc.publication_date.includes('-')) {
+            yearText = compiledDoc.publication_date.split('-')[0];
+        } else {
+            try {
+        yearText = new Date(compiledDoc.publication_date).getFullYear().toString();
+            } catch (e) {
+                console.error("Error parsing publication date:", e);
+                yearText = "";
+            }
+        }
+    }
+    
+    // Combine metadata parts in specified order, filtering out empty ones
+    // Order: Volume | Issue | Author | Year
+    const metadataParts = [];
+    if (volumeText) metadataParts.push(volumeText);
+    if (issueText) metadataParts.push(issueText);
+    if (authorText) metadataParts.push(authorText);
+    if (yearText) metadataParts.push(yearText);
+    
+    cardMetadata.textContent = metadataParts.join(' | ');
+    
+    // Create tags container with only one tag for document type
+    const cardTags = document.createElement("div");
+    cardTags.className = "card-tags";
+    
+    // Add document type tag (using category name)
+    const docTypeTag = document.createElement("div");
+    docTypeTag.className = "tag document-type";
+    docTypeTag.textContent = compiledDoc.category_name || "Uncategorized";
+    cardTags.appendChild(docTypeTag);
+    
+    // Add content elements to card
+    cardContent.appendChild(cardTitle);
+    cardContent.appendChild(cardMetadata);
+    cardContent.appendChild(cardTags);
+    
+    // Create actions container for buttons
+    const cardActions = document.createElement("div");
+    cardActions.className = "card-actions";
+    
+    // Create dropdown container for child documents
+    const childrenContainer = document.createElement("div");
+    childrenContainer.className = "children-container";
+    childrenContainer.style.display = 'none'; // Initially hidden
+    
+    // Add each child document to the dropdown
+    if (compiledDoc.child_documents && compiledDoc.child_documents.length > 0) {
+        // Add a header for the child documents section
+        const childHeader = document.createElement("div");
+        childHeader.className = "children-header";
+        childHeader.textContent = `Included Documents (${compiledDoc.child_documents.length})`;
+        childrenContainer.appendChild(childHeader);
         
-        // Toggle this dropdown
-        dropdownContent.style.display = dropdownContent.style.display === 'none' ? 'block' : 'none';
+        // IMPORTANT: Add all child documents, even if this is the last row in pagination
+        compiledDoc.child_documents.forEach(childDoc => {
+            // Create a simplified child card with only the view button
+            const childCard = document.createElement("div");
+            childCard.className = "document-card child-document-card";
+            childCard.setAttribute('data-id', childDoc.id);
+            
+            // Create card icon
+            const childCardIcon = document.createElement("div");
+            childCardIcon.className = "card-icon";
+            
+            // Get the appropriate icon based on category
+            const childIconImg = document.createElement("img");
+            let childIconPath = "/admin/Components/icons/Category-icons/default_category_icon.png";
+            
+            // Set icon based on category name
+            const childCategoryName = (childDoc.category_name || "").toLowerCase();
+            if (childCategoryName === "confluence") {
+                childIconPath = "/admin/Components/icons/Category-icons/confluence.png";
+            } else if (childCategoryName === "dissertation") {
+                childIconPath = "/admin/Components/icons/Category-icons/dissertation.png";
+            } else if (childCategoryName === "thesis") {
+                childIconPath = "/admin/Components/icons/Category-icons/thesis.png";
+            } else if (childCategoryName === "synergy") {
+                childIconPath = "/admin/Components/icons/Category-icons/synergy.png";
+            }
+            
+            childIconImg.src = childIconPath;
+            childIconImg.alt = childDoc.category_name || "Category Icon";
+            childCardIcon.appendChild(childIconImg);
+            
+            // Create card content
+            const childCardContent = document.createElement("div");
+            childCardContent.className = "card-content";
+            
+            // Create title
+            const childCardTitle = document.createElement("div");
+            childCardTitle.className = "card-title";
+            childCardTitle.textContent = childDoc.title || "Untitled";
+            
+            // Create metadata
+            const childCardMetadata = document.createElement("div");
+            childCardMetadata.className = "card-metadata";
+            
+            // Format metadata parts
+            const childVolume = childDoc.volume ? `Volume ${childDoc.volume}` : "";
+            const childIssue = childDoc.issued_no ? `Issue ${childDoc.issued_no}` : "";
+            
+            // Ensure proper author display
+            let childAuthor = "";
+            if (Array.isArray(childDoc.author_names) && childDoc.author_names.length > 0) {
+                childAuthor = childDoc.author_names.filter(author => author).join(", ");
+            } else if (typeof childDoc.author_name === 'string' && childDoc.author_name) {
+                childAuthor = childDoc.author_name;
+            }
+            
+            // Format year
+            let childYear = "";
+            if (childDoc.start_year && childDoc.end_year) {
+                childYear = `${childDoc.start_year}-${childDoc.end_year}`;
+            } else if (childDoc.publication_date) {
+                // If it's a date string like "2020-01-01", extract just the year
+                if (typeof childDoc.publication_date === 'string' && childDoc.publication_date.includes('-')) {
+                    childYear = childDoc.publication_date.split('-')[0];
+                } else {
+                    try {
+                childYear = new Date(childDoc.publication_date).getFullYear().toString();
+                    } catch (e) {
+                        console.error("Error parsing publication date:", e);
+                        childYear = "";
+                    }
+                }
+            }
+            
+            const childMetadataParts = [];
+            if (childVolume) childMetadataParts.push(childVolume);
+            if (childIssue) childMetadataParts.push(childIssue);
+            if (childAuthor) childMetadataParts.push(childAuthor);
+            if (childYear) childMetadataParts.push(childYear);
+            
+            childCardMetadata.textContent = childMetadataParts.join(' | ');
+            
+            // Add content elements
+            childCardContent.appendChild(childCardTitle);
+            childCardContent.appendChild(childCardMetadata);
+            
+            // Create card actions with only View button
+            const childCardActions = document.createElement("div");
+            childCardActions.className = "card-actions";
+            
+            // Create view button
+            const childViewButton = document.createElement("button");
+            childViewButton.className = "action-button view";
+            childViewButton.textContent = "View";
+            childViewButton.onclick = (e) => {
+                e.stopPropagation();
+                openPdfModal(childDoc);
+            };
+            
+            // Add view button to actions
+            childCardActions.appendChild(childViewButton);
+            
+            // Assemble child card
+            childCard.appendChild(childCardIcon);
+            childCard.appendChild(childCardContent);
+            childCard.appendChild(childCardActions);
+            
+            childrenContainer.appendChild(childCard);
+        });
+    } else {
+        // No child documents
+        const noDocsMessage = document.createElement("div");
+        noDocsMessage.className = "no-children-message";
+        noDocsMessage.textContent = "No documents in this compilation";
+        childrenContainer.appendChild(noDocsMessage);
+    }
+    
+    // Create edit button
+    const editButton = document.createElement("button");
+    editButton.className = "action-button edit";
+    editButton.textContent = "Edit";
+    editButton.onclick = (e) => {
+        e.stopPropagation();
+        editDocument(compiledDoc.id);
     };
     
-    // Add cells to row
-    row.appendChild(titleCell);
-    row.appendChild(authorCell);
-    row.appendChild(dateCell);
-    row.appendChild(categoryCell);
-    row.appendChild(actionsCell);
+    // Create delete button
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "action-button delete";
+    deleteButton.textContent = "Delete";
+    deleteButton.onclick = (e) => {
+        e.stopPropagation();
+        if (confirm("Are you sure you want to delete this compilation?")) {
+            deleteDocument(compiledDoc.id);
+        }
+    };
     
-    return row;
+    // Add buttons to actions
+    cardActions.appendChild(editButton);
+    cardActions.appendChild(deleteButton);
+    
+    // Assemble the card
+    card.appendChild(cardIcon);
+    card.appendChild(cardContent);
+    card.appendChild(cardActions);
+    
+    // Add click handler to toggle expansion
+    card.addEventListener('click', function(e) {
+        // Only toggle if clicking on the card itself or title, not child elements
+        if (e.target.closest('.action-button') || e.target.closest('.child-document-card')) {
+            return;
+        }
+        
+        const isExpanded = card.getAttribute('data-is-expanded') === 'true';
+        
+        if (isExpanded) {
+            // Collapse
+            card.setAttribute('data-is-expanded', 'false');
+            cardTitle.querySelector('.expand-icon').textContent = '▶';
+            childrenContainer.style.display = 'none';
+        } else {
+            // Expand
+            card.setAttribute('data-is-expanded', 'true');
+            cardTitle.querySelector('.expand-icon').textContent = '▼';
+            childrenContainer.style.display = 'block';
+            
+            // Make sure all child documents are loaded and visible when expanded
+            ensureAllChildDocumentsLoaded(compiledDoc, childrenContainer);
+            
+            // Make sure the container is fully visible when expanded
+            // This ensures it's not cut off by pagination constraints
+            childrenContainer.style.maxHeight = 'none';
+            childrenContainer.style.overflow = 'visible';
+            
+            // Ensure this expanded container is properly positioned
+            // and doesn't get cut off at the bottom of the page
+            const rect = childrenContainer.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            
+            // If the bottom of the container is beyond the viewport bottom
+            if (rect.bottom > viewportHeight) {
+                // Scroll to show the whole container
+                childrenContainer.scrollIntoView({behavior: 'smooth', block: 'start'});
+            }
+        }
+    });
+    
+    // Create main wrapper that includes both the card and its children
+    const wrapper = document.createElement("div");
+    wrapper.className = "compilation-wrapper";
+    wrapper.appendChild(card);
+    wrapper.appendChild(childrenContainer);
+    
+    // Add the compilation to the container
+    container.appendChild(wrapper);
+    
+    return wrapper;
+}
+
+// Function to ensure all child documents in a compilation are loaded
+function ensureAllChildDocumentsLoaded(compiledDoc, childrenContainer) {
+    // Check if we need to load more child documents
+    if (compiledDoc.child_documents && compiledDoc.child_documents.length > 0) {
+        // Clear the container first
+        const existingChildCards = childrenContainer.querySelectorAll('.child-document-card');
+        if (existingChildCards.length < compiledDoc.child_documents.length) {
+            console.log(`Loading all ${compiledDoc.child_documents.length} child documents`);
+            
+            // Show a loading indicator
+            const loadingIndicator = document.createElement("div");
+            loadingIndicator.className = "loading-indicator";
+            loadingIndicator.textContent = "Loading all documents...";
+            loadingIndicator.style.textAlign = "center";
+            loadingIndicator.style.padding = "10px";
+            loadingIndicator.style.color = "#666";
+            childrenContainer.appendChild(loadingIndicator);
+            
+            // Add all child documents with a small delay to ensure DOM updates
+            setTimeout(() => {
+                // Remove loading indicator
+                loadingIndicator.remove();
+                
+                // Add all child documents
+                compiledDoc.child_documents.forEach(childDoc => {
+                    // Check if this child document already exists
+                    const existingChild = childrenContainer.querySelector(`.child-document-card[data-id="${childDoc.id}"]`);
+                    if (!existingChild) {
+                        // Create a simplified child card with only the view button
+                        const childCard = document.createElement("div");
+                        childCard.className = "document-card child-document-card";
+                        childCard.setAttribute('data-id', childDoc.id);
+                        
+                        // Create card icon
+                        const childCardIcon = document.createElement("div");
+                        childCardIcon.className = "card-icon";
+                        
+                        // Get the appropriate icon based on category
+                        const childIconImg = document.createElement("img");
+                        let childIconPath = "/admin/Components/icons/Category-icons/default_category_icon.png";
+                        
+                        // Set icon based on category name
+                        const childCategoryName = (childDoc.category_name || "").toLowerCase();
+                        if (childCategoryName === "confluence") {
+                            childIconPath = "/admin/Components/icons/Category-icons/confluence.png";
+                        } else if (childCategoryName === "dissertation") {
+                            childIconPath = "/admin/Components/icons/Category-icons/dissertation.png";
+                        } else if (childCategoryName === "thesis") {
+                            childIconPath = "/admin/Components/icons/Category-icons/thesis.png";
+                        } else if (childCategoryName === "synergy") {
+                            childIconPath = "/admin/Components/icons/Category-icons/synergy.png";
+                        }
+                        
+                        childIconImg.src = childIconPath;
+                        childIconImg.alt = childDoc.category_name || "Category Icon";
+                        childCardIcon.appendChild(childIconImg);
+                        
+                        // Create card content
+                        const childCardContent = document.createElement("div");
+                        childCardContent.className = "card-content";
+                        
+                        // Create title
+                        const childCardTitle = document.createElement("div");
+                        childCardTitle.className = "card-title";
+                        childCardTitle.textContent = childDoc.title || "Untitled";
+                        
+                        // Create metadata
+                        const childCardMetadata = document.createElement("div");
+                        childCardMetadata.className = "card-metadata";
+                        
+                        // Format metadata parts
+                        const childVolume = childDoc.volume ? `Volume ${childDoc.volume}` : "";
+                        const childIssue = childDoc.issued_no ? `Issue ${childDoc.issued_no}` : "";
+                        
+                        // Ensure proper author display
+                        let childAuthor = "";
+                        if (Array.isArray(childDoc.author_names) && childDoc.author_names.length > 0) {
+                            childAuthor = childDoc.author_names.filter(author => author).join(", ");
+                        } else if (typeof childDoc.author_name === 'string' && childDoc.author_name) {
+                            childAuthor = childDoc.author_name;
+        }
+        
+                        // Format year
+                        let childYear = "";
+                        if (childDoc.start_year && childDoc.end_year) {
+                            childYear = `${childDoc.start_year}-${childDoc.end_year}`;
+                        } else if (childDoc.publication_date) {
+                            // If it's a date string like "2020-01-01", extract just the year
+                            if (typeof childDoc.publication_date === 'string' && childDoc.publication_date.includes('-')) {
+                                childYear = childDoc.publication_date.split('-')[0];
+                            } else {
+                                try {
+                                    childYear = new Date(childDoc.publication_date).getFullYear().toString();
+                                } catch (e) {
+                                    console.error("Error parsing publication date:", e);
+                                    childYear = "";
+        }
+                            }
+                        }
+                        
+                        const childMetadataParts = [];
+                        if (childVolume) childMetadataParts.push(childVolume);
+                        if (childIssue) childMetadataParts.push(childIssue);
+                        if (childAuthor) childMetadataParts.push(childAuthor);
+                        if (childYear) childMetadataParts.push(childYear);
+                        
+                        childCardMetadata.textContent = childMetadataParts.join(' | ');
+                        
+                        // Add content elements
+                        childCardContent.appendChild(childCardTitle);
+                        childCardContent.appendChild(childCardMetadata);
+                        
+                        // Create card actions with only View button
+                        const childCardActions = document.createElement("div");
+                        childCardActions.className = "card-actions";
+                        
+                        // Create view button
+                        const childViewButton = document.createElement("button");
+                        childViewButton.className = "action-button view";
+                        childViewButton.textContent = "View";
+                        childViewButton.onclick = (e) => {
+                            e.stopPropagation();
+                            openPdfModal(childDoc);
+                        };
+                        
+                        // Add view button to actions
+                        childCardActions.appendChild(childViewButton);
+                        
+                        // Assemble child card
+                        childCard.appendChild(childCardIcon);
+                        childCard.appendChild(childCardContent);
+                        childCard.appendChild(childCardActions);
+                        
+                        childrenContainer.appendChild(childCard);
+                    }
+                });
+                
+                // Make sure the container is properly positioned and visible
+                childrenContainer.style.maxHeight = 'none';
+                childrenContainer.style.overflow = 'visible';
+                
+                // Ensure this expanded container is properly positioned
+                // and doesn't get cut off at the bottom of the page
+                const rect = childrenContainer.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                
+                if (rect.bottom > viewportHeight) {
+                    // Scroll to show the whole container
+                    childrenContainer.scrollIntoView({behavior: 'smooth', block: 'start'});
+                }
+            }, 100);
+        }
+    }
+}
+
+// Add CSS for compiled documents
+function addCompiledDocumentStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        /* Compiled document styles */
+        .document-card.compilation {
+            cursor: pointer;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 12px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .document-children-container {
+            padding: 0;
+            margin: 0 0 0 20px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease;
+        }
+        
+        .document-card.compilation[data-is-expanded="true"] .document-children-container {
+            max-height: 1000px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .compilation-toggle {
+            position: absolute;
+            left: 10px;
+            top: 20px;
+            font-size: 16px;
+            color: #555;
+            transition: transform 0.3s ease;
+        }
+        
+        .document-card.compilation[data-is-expanded="true"] .compilation-toggle {
+            transform: rotate(90deg);
+        }
+        
+        .child-document {
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border-left: 3px solid #1976d2;
+            position: relative;
+        }
+        
+        .child-document .document-title {
+            font-weight: 500;
+            margin: 0 0 4px 0;
+        }
+        
+        .child-document .document-metadata {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .child-document .document-actions {
+            text-align: right;
+        }
+        
+        .view-doc-btn,
+        .view-all-btn {
+            padding: 4px 8px;
+            font-size: 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .view-doc-btn:hover,
+        .view-all-btn:hover {
+            background-color: #45a049;
+        }
+    `;
+    
+    document.head.appendChild(style);
 }
 
 // Update the preview modal's view button
@@ -2512,273 +3181,3 @@ function updatePreviewModal(doc) {
     
     // ... rest of the existing code ...
 }
-
-function showPreview(document) {
-    // Update preview content with document details
-    document.getElementById('previewTitle').textContent = document.title || 'Title of Document';
-    document.getElementById('previewAuthor').textContent = `by ${document.author_names?.join(', ') || 'Author Name'}`;
-    document.getElementById('previewPublishDate').textContent = document.publication_date || '2021';
-    document.getElementById('previewTopics').textContent = document.topics?.map(t => t.topic_name).join(', ') || 'None';
-    document.getElementById('previewPages').textContent = document.pages || '0';
-    document.getElementById('previewAddedDate').textContent = document.added_date || 'April 4, 2025';
-    document.getElementById('previewAbstract').textContent = document.abstract || 'This is the default abstract text...';
-
-    // Set up read document button
-    const readBtn = document.getElementById('readDocumentBtn');
-    readBtn.onclick = () => openPdfModal(document);
-}
-
-// Function to extract text from PDF using PDF.js
-async function extractTextFromPDF(file) {
-    try {
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        
-        // Search through pages for abstract
-        const maxPagesToSearch = Math.min(5, pdf.numPages);
-        let abstractText = "";
-        let isAbstractSection = false;
-        let abstractStartPage = -1;
-        let abstractEndFound = false;
-        let lastLineWasIncomplete = false;
-        
-        for (let pageNum = 1; pageNum <= maxPagesToSearch && !abstractEndFound; pageNum++) {
-            const page = await pdf.getPage(pageNum);
-            const textContent = await page.getTextContent();
-            
-            // Join text items into lines while preserving their positions
-            const lines = [];
-            let currentLine = [];
-            let lastY = null;
-            
-            // Sort items by vertical position (top to bottom) and horizontal position (left to right)
-            const sortedItems = textContent.items.sort((a, b) => {
-                const yDiff = Math.abs(a.transform[5] - b.transform[5]);
-                if (yDiff > 2) {
-                    return b.transform[5] - a.transform[5];
-                }
-                return a.transform[4] - b.transform[4];
-            });
-            
-            // Group items into lines
-            for (const item of sortedItems) {
-                if (lastY === null || Math.abs(item.transform[5] - lastY) <= 2) {
-                    currentLine.push(item);
-                } else {
-                    if (currentLine.length > 0) {
-                        lines.push(currentLine);
-                    }
-                    currentLine = [item];
-                }
-                lastY = item.transform[5];
-            }
-            if (currentLine.length > 0) {
-                lines.push(currentLine);
-            }
-            
-            // Convert lines to text while preserving formatting
-            const pageLines = lines.map(line => {
-                const text = line.map(item => item.str).join('');
-                return text.trim();
-            }).filter(line => line.length > 0);
-            
-            const pageText = pageLines.join('\n');
-            
-            // Check if this page contains the abstract
-            if (!isAbstractSection) {
-                const abstractStart = findAbstractStart(pageText);
-                if (abstractStart) {
-                    isAbstractSection = true;
-                    abstractStartPage = pageNum;
-                    abstractText = abstractStart;
-                    lastLineWasIncomplete = !abstractStart.endsWith('.') && 
-                                          !abstractStart.endsWith('?') && 
-                                          !abstractStart.endsWith('!');
-                }
-            } else {
-                const endMarkerRegex = new RegExp(
-                    "^\\s*(introduction|keywords?:?|index terms:?|background|acknowledg(e|ement|ments)|1\\.?|i\\.?|chapter|section|references)\\b",
-                    "im"
-                );
-                const endMatch = pageText.match(endMarkerRegex);
-
-                if (endMatch) {
-                    const markerPosition = pageText.indexOf(endMatch[0]);
-                    const abstractPart = pageText.substring(0, markerPosition).trim();
-
-                    if (abstractPart.length > 30) {
-                        abstractText += (lastLineWasIncomplete ? ' ' : '\n') + abstractPart;
-                        abstractEndFound = true;
-                        break;
-                    }
-                } else if (pageNum === abstractStartPage) {
-                    // Same page as abstract start, content already added
-                    continue;
-                } else {
-                    // Add content only if it appears to be continuation of the abstract
-                    const cleanedText = pageText.replace(/^[\d\s\w]+$|Page \d+|^\d+$/gm, '').trim();
-                    if (cleanedText && 
-                        (lastLineWasIncomplete || /^[a-z,;)]/.test(cleanedText) || /[a-z][.?!]$/.test(abstractText)) && 
-                        !cleanedText.toLowerCase().includes('acknowledge') &&
-                        !cleanedText.includes('©') && 
-                        !cleanedText.includes('copyright') &&
-                        !/^\s*\d+\s*$/.test(cleanedText)) {
-                        abstractText += (lastLineWasIncomplete ? ' ' : '\n') + cleanedText;
-                        lastLineWasIncomplete = !cleanedText.endsWith('.') && 
-                                              !cleanedText.endsWith('?') && 
-                                              !cleanedText.endsWith('!');
-                    } else {
-                        abstractEndFound = true;
-                    }
-                }
-            }
-        }
-        
-        // Clean up the abstract text
-        if (abstractText) {
-            abstractText = abstractText
-                .replace(/^ABSTRACT\s*[:.]?\s*/i, '') // Remove "ABSTRACT" header
-                .replace(/\n{3,}/g, '\n\n') // Normalize multiple line breaks
-                .replace(/\s+/g, ' ') // Normalize spaces
-                .replace(/\n\s*\n/g, '\n') // Remove empty lines
-                .replace(/acknowledgements?.*$/is, '') // Remove any acknowledgement section
-                .replace(/\s+/g, ' ') // Normalize spaces again after cleanup
-                .trim();
-            
-            // Split into paragraphs more accurately
-            const paragraphs = abstractText
-                .split(/(?<=[.?!])\s+(?=[A-Z])/g) // keep only full-stop + capital start
-                .map(p => p.trim())
-                .filter(p => p.length > 0 && !p.match(/^(keywords?|chapter|section|index terms|acknowledge)/i));
-            
-            return `<div class="abstract-text">${paragraphs.map(p => 
-                `<p>${p}</p>`).join('')}</div>`;
-        }
-        
-        return "No abstract found in the document.";
-    } catch (error) {
-        console.error('Error extracting text from PDF:', error);
-        return "Unable to extract abstract from PDF.";
-    }
-}
-
-// Function to find the start of the abstract
-function findAbstractStart(text) {
-    const abstractMarkers = [
-        "abstract",
-        "abstract:",
-        "ABSTRACT",
-        "ABSTRACT:",
-        "Abstract",
-        "Abstract:",
-        "A B S T R A C T",
-        "A B S T R A C T:"
-    ];
-    
-    const lowerText = text.toLowerCase();
-    for (const marker of abstractMarkers) {
-        const index = lowerText.indexOf(marker.toLowerCase());
-        if (index !== -1) {
-            // Get the text after the abstract marker
-            const startIndex = index + marker.length;
-            let abstractText = text.substring(startIndex).trim();
-            
-            // Remove any leading colons or spaces
-            abstractText = abstractText.replace(/^[:.\s]+/, '').trim();
-            
-            return abstractText;
-        }
-    }
-    return null;
-}
-
-// Add event listener for file input in edit form
-document.addEventListener('DOMContentLoaded', () => {
-    const editFileInput = document.getElementById('edit-file');
-    if (editFileInput) {
-        editFileInput.addEventListener('change', async (event) => {
-            const file = event.target.files[0];
-            if (file && file.type === "application/pdf") {
-                try {
-                    // Extract text and abstract from PDF
-                    const extractedText = await extractTextFromPDF(file);
-                    console.log('Extracted abstract:', extractedText);
-                    
-                    // Update preview abstract
-                    const previewAbstract = document.getElementById('edit-preview-abstract');
-                    if (previewAbstract) {
-                        previewAbstract.innerHTML = extractedText;
-                    }
-                    
-                    // Store the abstract for form submission
-                    window.extractedAbstract = extractedText;
-                    
-                    // Get page count
-                    const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
-                    const pageCount = pdf.numPages;
-                    const pageCountElement = document.getElementById('edit-page-count');
-                    if (pageCountElement) {
-                        pageCountElement.textContent = pageCount;
-                    }
-                    
-                } catch (error) {
-                    console.error('Error processing PDF:', error);
-                    const previewAbstract = document.getElementById('edit-preview-abstract');
-                    if (previewAbstract) {
-                        previewAbstract.textContent = "Error extracting abstract from the document.";
-                    }
-                }
-            } else {
-                const previewAbstract = document.getElementById('edit-preview-abstract');
-                if (previewAbstract) {
-                    previewAbstract.textContent = "Please upload a PDF file to extract the abstract.";
-                }
-            }
-        });
-    }
-});
-
-// Update the CSS for abstract formatting
-const abstractStyles = `
-    .abstract-content {
-        background-color: #f8f9fa;
-        padding: 20px;
-        border-radius: 8px;
-        font-family: "Times New Roman", Times, serif;
-        font-size: 12pt;
-        line-height: 1.6;
-        font-weight: normal !important;
-    }
-    
-    .abstract-text {
-        text-align: justify;
-        hyphens: auto;
-        font-weight: normal !important;
-    }
-    
-    .abstract-text p {
-        margin: 0 0 1em 0;
-        text-indent: 0.5in;
-        font-weight: normal !important;
-        font-family: inherit;
-    }
-    
-    .abstract-text p:first-child {
-        text-indent: 0;
-        font-weight: normal !important;
-    }
-    
-    #edit-preview-abstract {
-        color: #333;
-        font-weight: normal !important;
-    }
-    
-    #edit-preview-abstract * {
-        font-weight: normal !important;
-    }
-`;
-
-// Add styles to document
-const styleSheet = document.createElement("style");
-styleSheet.textContent = abstractStyles;
-document.head.appendChild(styleSheet);

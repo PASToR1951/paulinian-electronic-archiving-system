@@ -1,3 +1,8 @@
+/**
+ * Logout functionality
+ * Handles the user logout process
+ */
+
 // Function to prevent back navigation
 function preventBackNavigation() {
     // Clear all history entries
@@ -15,35 +20,32 @@ function preventBackNavigation() {
     };
 }
 
-async function handleLogout(event) {
-    event.preventDefault();
-    try {
-        // Clear all stored data
-        localStorage.clear();
-        sessionStorage.clear();
-        
-        // Remove any cookies
-        document.cookie.split(";").forEach(function(c) { 
-            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-        });
-
-        // Call the logout endpoint
-        const response = await fetch('/logout', {
-            method: 'GET',
-            credentials: 'include'
-        });
-        
-        if (response.ok) {
-            // Force redirect to index
-            window.location.replace('/index.html');
-        } else {
-            console.error('Logout failed');
-            window.location.replace('/index.html');
-        }
-    } catch (error) {
-        console.error('Error during logout:', error);
-        window.location.replace('/index.html');
+function handleLogout(event) {
+  event.preventDefault();
+  
+  console.log("Logout function called");
+  
+  // Call the logout endpoint
+  fetch('/logout', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
     }
+  })
+  .then(response => {
+    if (response.ok || response.status === 200) {
+      console.log("Logout successful");
+      // Redirect to login page
+      window.location.href = '/login.html';
+    } else {
+      console.error("Logout failed:", response.statusText);
+      alert("Failed to logout. Please try again.");
+    }
+  })
+  .catch(error => {
+    console.error("Error during logout:", error);
+    alert("An error occurred during logout. Please try again.");
+  });
 }
 
 // Initialize prevention on page load
@@ -52,4 +54,7 @@ window.addEventListener('load', preventBackNavigation);
 // Additional prevention for browser back button
 window.addEventListener('beforeunload', function() {
     preventBackNavigation();
-}); 
+});
+
+// Export the function for use in other files
+window.handleLogout = handleLogout; 

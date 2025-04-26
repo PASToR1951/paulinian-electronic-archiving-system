@@ -2,27 +2,30 @@ import { findUser } from "../auth/userStore.ts";
 import { createSessionToken } from "../auth/session.ts";
 
 async function handleLoginRequest(req: Request): Promise<Response> {
-    console.log("Received /login request");
+    console.log("Received /login request", { method: req.method, url: req.url });
+    console.log("Headers:", Object.fromEntries(req.headers.entries()));
 
     try {
-        // Validate content type
-        const contentType = req.headers.get("content-type")?.toLowerCase() || "";
-        if (!contentType.includes("application/json")) {
-            console.error("Request body is not JSON!");
-            return jsonResponse({ message: "Invalid request format" }, 400);
-        }
-
-        // Parse request body safely
+        // Get the request body as text first
+        const bodyText = await req.text();
+        console.log("Raw request body:", bodyText);
+        
+        // Try to parse as JSON
         let requestData;
         try {
-            requestData = await req.json();
+            requestData = JSON.parse(bodyText);
         } catch (jsonError) {
             console.error("Failed to parse request JSON:", jsonError);
             return jsonResponse({ message: "Invalid JSON format" }, 400);
         }
 
-        const { ID, Password } = requestData;
-        console.log("Received Login Data:", { ID, Password });
+        console.log("Parsed request data:", requestData);
+
+        // Extract credentials - be flexible with field names
+        const ID = requestData.ID || requestData.id || requestData.username || requestData.user_id || "";
+        const Password = requestData.Password || requestData.password || "";
+        
+        console.log("Extracted credentials:", { ID: ID || "[missing]", Password: Password ? "[provided]" : "[missing]" });
 
         if (!ID || !Password) {
             console.error("Missing ID or Password!");
@@ -31,46 +34,53 @@ async function handleLoginRequest(req: Request): Promise<Response> {
 
         // Authenticate user
         console.log(`Checking user in database: ID=${ID}`);
-        const user = await findUser(ID, Password);
-        if (!user) {
-            console.error("Invalid credentials for ID:", ID);
-            return jsonResponse({ message: "Invalid credentials" }, 401);
+        try {
+            const user = await findUser(ID, Password);
+            console.log("Auth result:", user ? "User found" : "No matching user");
+            
+            if (!user) {
+                return jsonResponse({ message: "Invalid credentials" }, 401);
+            }
+
+            console.log(`User authenticated: ${JSON.stringify(user)}`);
+
+            // Generate session token
+            const token = await createSessionToken(user.school_id, user.role);
+            console.log(`Generated session token: ${token}`);
+
+            // Check role and redirect accordingly
+            const role = user.role.toLowerCase();
+            console.log(`User role (lowercase): ${role}`);
+            
+            let redirectUrl;
+            if (role === "admin" || role === "isadmin" || role === "administrator") {
+                // Use absolute URL to ensure proper redirection
+                redirectUrl = "http://localhost:8000/admin/dashboard.html";
+            } else {
+                redirectUrl = "http://localhost:8000/index.html";
+            }
+            
+            console.log(`Redirecting User (${role}) to: ${redirectUrl}`);
+
+            // Create response with session token cookie
+            const response = jsonResponse({ 
+                message: "Login successful", 
+                token, 
+                redirect: redirectUrl,
+                role: user.role 
+            }, 200);
+
+            // Set the session token cookie
+            response.headers.set(
+                "Set-Cookie",
+                `session_token=${token}; Path=/; HttpOnly; SameSite=Strict`
+            );
+
+            return response;
+        } catch (authError) {
+            console.error("Error during authentication:", authError);
+            return jsonResponse({ message: "Authentication error", details: authError.message }, 500);
         }
-
-        console.log(`User authenticated: ${JSON.stringify(user)}`);
-
-        // Generate session token
-        const token = await createSessionToken(user.school_id, user.role);
-        console.log(`Generated session token: ${token}`);
-
-        // Check role and redirect accordingly
-        const role = user.role.toLowerCase();
-        console.log(`User role (lowercase): ${role}`);
-        
-        let redirectUrl;
-        if (role === "admin" || role === "isadmin" || role === "administrator") {
-            redirectUrl = "/admin/dashboard.html";
-        } else {
-            redirectUrl = "/index.html";
-        }
-        
-        console.log(`Redirecting User (${role}) to: ${redirectUrl}`);
-
-        // Create response with session token cookie
-        const response = jsonResponse({ 
-            message: "Login successful", 
-            token, 
-            redirect: redirectUrl,
-            role: user.role 
-        }, 200);
-
-        // Set the session token cookie
-        response.headers.set(
-            "Set-Cookie",
-            `session_token=${token}; Path=/; HttpOnly; SameSite=Strict`
-        );
-
-        return response;
     } catch (error) {
         console.error("Unexpected error in handleLoginRequest:", error);
         return jsonResponse({ message: "Internal Server Error", error: error.message }, 500);
@@ -80,7 +90,12 @@ async function handleLoginRequest(req: Request): Promise<Response> {
 function jsonResponse(data: object, status: number): Response {
     return new Response(JSON.stringify(data), {
         status,
-        headers: { "Content-Type": "application/json" }
+        headers: { 
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization"
+        }
     });
 }
 

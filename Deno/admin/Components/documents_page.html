@@ -11,15 +11,19 @@
     <link rel="stylesheet" href="css/page_header.css">
     <link rel="stylesheet" href="css/pdf-modal.css">
     <link rel="stylesheet" href="css/preview.css">
-</head>
+    <link rel="stylesheet" href="css/document-cards.css">
+    <link rel="stylesheet" href="css/compiled-document-modal.css">
+  </head>
 
 <body>
-    <div id="side-bar"></div>
-    <div id="navbar-header"></div>
+  <!-- Sidebar container -->
+  <div id="side-bar"></div>
+  
+  <!-- Navbar container -->
+  <div id="navbar-header"></div>
 
+  <!-- Rest of your HTML content -->
     <div class="docs-container">
-        <div id="page-header"></div>
-
         <div class="category-container">
             <div class="category-header">
                 <div class="label">Categories</div>
@@ -85,22 +89,9 @@
             </div>
         </div>
 
-        <table id="docs-table">
-            <thead>
-                <tr>
-                    <th>Cover</th>
-                    <th>Book Title</th>
-                    <th>Author</th>
-                    <th>Year Published</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr id="no-docs-message">
-                    <td colspan="5" class="no-docs">No documents found</td>
-                </tr>
-            </tbody>
-        </table>
+        <div id="documents-container" class="document-cards-container">
+            <div id="no-docs-message" class="no-docs">No documents found</div>
+        </div>
 
         <div class="pagination">
             <div id="entries-info"></div>
@@ -230,6 +221,110 @@
         </div>
     </div>
 
+    <!-- Compiled Document Edit Modal -->
+    <div id="compiled-edit-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="container">
+                <div class="left-panel">
+                    <h2>Edit Compiled Document</h2>
+                    <form id="compiled-edit-form" method="POST" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="compiled-edit-title">Compilation Title</label>
+                            <input type="text" id="compiled-edit-title" name="title" required placeholder="Enter compilation title">
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group publication-years">
+                                <label>Publication Year</label>
+                                <div class="year-fields">
+                                    <input type="number" id="compiled-edit-start-year" name="start_year" required placeholder="Start Year" min="1900" max="2099">
+                                    <span class="year-separator">to</span>
+                                    <input type="number" id="compiled-edit-end-year" name="end_year" required placeholder="End Year" min="1900" max="2099">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="compiled-edit-volume">Volume</label>
+                                <input type="text" id="compiled-edit-volume" name="volume" required placeholder="Enter volume number">
+                            </div>
+                            
+                            <div class="form-group" id="compiled-edit-issued-no-container">
+                                <label for="compiled-edit-issue">Issued No.</label>
+                                <input type="text" id="compiled-edit-issue" name="issue" placeholder="Enter issue number">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="compiled-edit-category">Category</label>
+                                <select id="compiled-edit-category" name="category" required>
+                                    <option value="default" disabled selected>Select category</option>
+                                    <option value="thesis">Thesis</option>
+                                    <option value="dissertation">Dissertation</option>
+                                    <option value="confluence">Confluence</option>
+                                    <option value="synergy">Synergy</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="contents-section">
+                            <h3>Contents Section</h3>
+                            <div id="compiled-studies-list" class="document-entries">
+                                <!-- Studies will be dynamically added here -->
+                            </div>
+                        </div>
+
+                        <div class="submit-container">
+                            <button type="button" class="btn-secondary" onclick="closeCompiledEditModal()">Cancel</button>
+                            <button type="submit" class="btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="right-panel">
+                    <div class="preview-container">
+                        <div class="preview-header">
+                            <div class="preview-icon">
+                                C
+                            </div>
+                            <div class="preview-title-section">
+                                <h2 class="preview-title" id="compiled-edit-preview-title">Compilation Title</h2>
+                                <p class="preview-author" id="compiled-edit-preview-author">Multiple Authors</p>
+                            </div>
+                        </div>
+
+                        <div class="preview-metadata">
+                            <div class="metadata-row">
+                                <span class="metadata-label">Years:</span>
+                                <span class="metadata-value" id="compiled-edit-preview-years">2020-2023</span>
+                            </div>
+                            <div class="metadata-row">
+                                <span class="metadata-label">Volume:</span>
+                                <span class="metadata-value" id="compiled-edit-preview-volume">1</span>
+                            </div>
+                            <div class="metadata-row">
+                                <span class="metadata-label">Studies:</span>
+                                <span class="metadata-value" id="compiled-edit-preview-studies">0</span>
+                            </div>
+                            <div class="metadata-row">
+                                <span class="metadata-label">Last Updated:</span>
+                                <span class="metadata-value" id="compiled-edit-preview-date">April 25, 2025</span>
+                            </div>
+                        </div>
+
+                        <div class="preview-abstract">
+                            <h3 class="abstract-title">Studies in this compilation</h3>
+                            <div class="compilation-preview" id="compiled-edit-preview-studies-list">
+                                <!-- Studies will be listed here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Success Modal -->
     <div id="success-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
@@ -296,13 +391,7 @@
     </div>
 
     <script>
-        fetch('./page_header.html')
-          .then(response => response.text())
-          .then(data => {
-              document.getElementById('page-header').innerHTML = data;
-          })
-          .catch(error => console.error('Error loading header:', error));
-
+      document.addEventListener('DOMContentLoaded', function() {
         fetch('./side_bar.html')
             .then(response => response.text())
             .then(data => {
@@ -316,6 +405,7 @@
                 document.getElementById('navbar-header').innerHTML = data;
             })
             .catch(error => console.error('Error loading navbar:', error));
+      });
     </script>
 
     <script src="js/document-page.js"></script>

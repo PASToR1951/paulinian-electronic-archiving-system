@@ -3,9 +3,12 @@
   "version": "1.0.0",
   "description": "Electronic archiving system for Paulinian documents",
   "main": "index.js",
+  "homepage": "/static",
   "scripts": {
     "start": "webpack serve --mode development --open",
     "build": "webpack --mode production",
+    "build:author-list": "webpack --entry=./admin/pages/author-list-entry.tsx --mode production --output-path=../Deno/static/js --output-filename=author-list.js",
+    "build:for-deno": "node build-for-deno.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {

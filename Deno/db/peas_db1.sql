@@ -5,7 +5,7 @@
 -- Dumped from database version 17.4
 -- Dumped by pg_dump version 17.4
 
--- Started on 2025-04-11 00:22:30
+-- Started on 2025-04-24 13:21:30
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -71,7 +71,7 @@ CREATE SEQUENCE public.admins_id_seq
 ALTER SEQUENCE public.admins_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5056 (class 0 OID 0)
+-- TOC entry 5058 (class 0 OID 0)
 -- Dependencies: 218
 -- Name: admins_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -98,6 +98,7 @@ CREATE TABLE public.authors (
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     gender character varying(1),
+    deleted_at timestamp without time zone,
     CONSTRAINT authors_gender_check CHECK (((gender)::text = ANY ((ARRAY['M'::character varying, 'F'::character varying])::text[])))
 );
 
@@ -134,7 +135,7 @@ CREATE SEQUENCE public.categories_id_seq
 ALTER SEQUENCE public.categories_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5057 (class 0 OID 0)
+-- TOC entry 5059 (class 0 OID 0)
 -- Dependencies: 221
 -- Name: categories_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -192,7 +193,7 @@ CREATE SEQUENCE public.departments_id_seq
 ALTER SEQUENCE public.departments_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5058 (class 0 OID 0)
+-- TOC entry 5060 (class 0 OID 0)
 -- Dependencies: 224
 -- Name: departments_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -240,7 +241,9 @@ CREATE TABLE public.documents (
     category_id integer,
     volume text,
     department character varying(255),
-    abstract text
+    abstract text,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 );
 
 
@@ -263,7 +266,7 @@ CREATE SEQUENCE public.documents_id_seq
 ALTER SEQUENCE public.documents_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5059 (class 0 OID 0)
+-- TOC entry 5061 (class 0 OID 0)
 -- Dependencies: 227
 -- Name: documents_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -301,7 +304,7 @@ CREATE SEQUENCE public.roles_id_seq
 ALTER SEQUENCE public.roles_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5060 (class 0 OID 0)
+-- TOC entry 5062 (class 0 OID 0)
 -- Dependencies: 229
 -- Name: roles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -341,7 +344,7 @@ CREATE SEQUENCE public.saved_documents_id_seq
 ALTER SEQUENCE public.saved_documents_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5061 (class 0 OID 0)
+-- TOC entry 5063 (class 0 OID 0)
 -- Dependencies: 231
 -- Name: saved_documents_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -382,7 +385,7 @@ CREATE SEQUENCE public.tokens_id_seq
 ALTER SEQUENCE public.tokens_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5062 (class 0 OID 0)
+-- TOC entry 5064 (class 0 OID 0)
 -- Dependencies: 233
 -- Name: tokens_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -420,7 +423,7 @@ CREATE SEQUENCE public.topics_id_seq
 ALTER SEQUENCE public.topics_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5063 (class 0 OID 0)
+-- TOC entry 5065 (class 0 OID 0)
 -- Dependencies: 235
 -- Name: topics_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -463,7 +466,7 @@ CREATE SEQUENCE public.user_permissions_id_seq
 ALTER SEQUENCE public.user_permissions_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5064 (class 0 OID 0)
+-- TOC entry 5066 (class 0 OID 0)
 -- Dependencies: 237
 -- Name: user_permissions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -507,7 +510,7 @@ CREATE SEQUENCE public.users_id_seq
 ALTER SEQUENCE public.users_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5065 (class 0 OID 0)
+-- TOC entry 5067 (class 0 OID 0)
 -- Dependencies: 239
 -- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -548,7 +551,7 @@ ALTER TABLE ONLY public.documents ALTER COLUMN id SET DEFAULT nextval('public.do
 
 
 --
--- TOC entry 4818 (class 2604 OID 90276)
+-- TOC entry 4820 (class 2604 OID 90276)
 -- Name: roles id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -556,7 +559,7 @@ ALTER TABLE ONLY public.roles ALTER COLUMN id SET DEFAULT nextval('public.roles_
 
 
 --
--- TOC entry 4819 (class 2604 OID 90277)
+-- TOC entry 4821 (class 2604 OID 90277)
 -- Name: saved_documents id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -564,7 +567,7 @@ ALTER TABLE ONLY public.saved_documents ALTER COLUMN id SET DEFAULT nextval('pub
 
 
 --
--- TOC entry 4821 (class 2604 OID 90278)
+-- TOC entry 4823 (class 2604 OID 90278)
 -- Name: tokens id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -572,7 +575,7 @@ ALTER TABLE ONLY public.tokens ALTER COLUMN id SET DEFAULT nextval('public.token
 
 
 --
--- TOC entry 4823 (class 2604 OID 90279)
+-- TOC entry 4825 (class 2604 OID 90279)
 -- Name: topics id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -580,7 +583,7 @@ ALTER TABLE ONLY public.topics ALTER COLUMN id SET DEFAULT nextval('public.topic
 
 
 --
--- TOC entry 4824 (class 2604 OID 90280)
+-- TOC entry 4826 (class 2604 OID 90280)
 -- Name: user_permissions id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -588,7 +591,7 @@ ALTER TABLE ONLY public.user_permissions ALTER COLUMN id SET DEFAULT nextval('pu
 
 
 --
--- TOC entry 4829 (class 2604 OID 90281)
+-- TOC entry 4831 (class 2604 OID 90281)
 -- Name: users id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -596,7 +599,7 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 
 
 --
--- TOC entry 5027 (class 0 OID 90197)
+-- TOC entry 5029 (class 0 OID 90197)
 -- Dependencies: 217
 -- Data for Name: admins; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -607,21 +610,25 @@ COPY public.admins (id, school_id, department_id) FROM stdin;
 
 
 --
--- TOC entry 5029 (class 0 OID 90201)
+-- TOC entry 5031 (class 0 OID 90201)
 -- Dependencies: 219
 -- Data for Name: authors; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.authors (author_id, full_name, affiliation, department, year_of_graduation, email, linkedin, orcid_id, bio, profile_picture, created_at, updated_at, gender) FROM stdin;
-dd53d3b0-6e95-46ed-bcca-b99d8a1f3781	Charlie Evans	Stanford University	Biotechnology	\N	CharlieEvans@marvels.com	https://linkedin.com/in/charlieevans	\N	ngano?\n	/uploads/charlie.jpg	2025-03-30 22:28:23.272887	2025-04-10 19:42:33.687826	M
-d4f1367c-7845-4d48-aafa-d159a609559f	Alice Johnson	Harvard University	College of Nursing	2018	alice.johnson@email.com	https://linkedin.com/in/alicejohnson	0000-0001-2345-6789	sure uy	/uploads/alice.jpg	2025-03-30 22:28:23.272887	2025-04-10 19:43:32.662517	F
-9ac21f33-a527-45a8-9310-94d247f3fc86	Bob Smith	\N	Physics	\N	bob.smith@email.com	\N	\N	hello kitty?	\N	2025-03-30 22:28:23.272887	2025-04-10 19:50:15.791837	M
-3dc1aa42-c73b-4a56-b397-8d8b404334cd	Diana Lopez	\N	Philosophy	\N	diana.lopez@email.com	\N	\N	alege	\N	2025-03-30 22:28:23.272887	2025-04-10 19:51:33.881277	M
+COPY public.authors (author_id, full_name, affiliation, department, year_of_graduation, email, linkedin, orcid_id, biography, profile_picture, created_at, updated_at, gender, deleted_at) FROM stdin;
+9ac21f33-a527-45a8-9310-94d247f3fc86	Bob Smith	\N	Physics	\N	bob.smith@email.com	\N	\N	hello kitty?	\N	2025-03-30 22:28:23.272887	2025-04-10 19:50:15.791837	M	\N
+3dc1aa42-c73b-4a56-b397-8d8b404334cd	Diana Lopez	\N	Philosophy	\N	diana.lopez@email.com	\N	\N	alege	\N	2025-03-30 22:28:23.272887	2025-04-10 19:51:33.881277	M	\N
+dd53d3b0-6e95-46ed-bcca-b99d8a1f3781	Charlie Evans	St. Paul University Manila	Biotechnology	\N	CharlieEvans@marvels.com	https://linkedin.com/in/charlieevans	\N	ngano?\n	\N	2025-03-30 22:28:23.272887	2025-04-11 00:42:55.544405	M	\N
+1d8fcd13-b2c6-479f-aa17-ae2ee1ab7960	alice johnson d	SPUP	Computer Science	\N	\N	\N	\N	\N	\N	2025-04-16 00:38:16.038869	2025-04-16 00:38:16.038869	\N	\N
+d4f1367c-7845-4d48-aafa-d159a609559f	Alice Johnson	Harvard University	College of Nursing	\N	alice.johnson@email.com	https://linkedin.com/in/alicejohnson	\N	heasd	\N	2025-03-30 22:28:23.272887	2025-04-20 15:12:31.750564	M	\N
+a32ad744-f69b-4bd9-a32a-858c9543fc9c	alice ko	SPUP	Computer Science	\N	\N	\N	\N	\N	\N	2025-04-20 15:19:00.206273	2025-04-20 15:19:00.206273	\N	\N
+d5d15f17-7829-471f-b6e6-0a3330ce09d1	cj	\N	\N	\N	\N	\N	\N	\N	\N	2025-04-20 15:14:31.849831	2025-04-21 00:55:21.363078	\N	\N
+7ace48e2-a77a-428e-8bcf-83313b76da46	James Smith	SPUP	Computer Science	\N	\N	\N	\N	\N	\N	2025-04-22 10:28:13.47546	2025-04-22 10:28:13.47546	\N	\N
 \.
 
 
 --
--- TOC entry 5030 (class 0 OID 90209)
+-- TOC entry 5032 (class 0 OID 90209)
 -- Dependencies: 220
 -- Data for Name: categories; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -635,7 +642,7 @@ COPY public.categories (id, category_name) FROM stdin;
 
 
 --
--- TOC entry 5032 (class 0 OID 90213)
+-- TOC entry 5034 (class 0 OID 90213)
 -- Dependencies: 222
 -- Data for Name: credentials; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -648,7 +655,7 @@ USER-002	userpassword456	2
 
 
 --
--- TOC entry 5033 (class 0 OID 90218)
+-- TOC entry 5035 (class 0 OID 90218)
 -- Dependencies: 223
 -- Data for Name: department; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -660,45 +667,58 @@ COPY public.department (id, cbit, cons, casee, baed, faculty, staff, grad_school
 
 
 --
--- TOC entry 5050 (class 0 OID 114752)
+-- TOC entry 5052 (class 0 OID 114752)
 -- Dependencies: 240
 -- Data for Name: document_authors; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.document_authors (document_id, author_id) FROM stdin;
-39	d4f1367c-7845-4d48-aafa-d159a609559f
-72	dd53d3b0-6e95-46ed-bcca-b99d8a1f3781
+85	d5d15f17-7829-471f-b6e6-0a3330ce09d1
+86	a32ad744-f69b-4bd9-a32a-858c9543fc9c
+87	d4f1367c-7845-4d48-aafa-d159a609559f
+90	1d8fcd13-b2c6-479f-aa17-ae2ee1ab7960
+91	1d8fcd13-b2c6-479f-aa17-ae2ee1ab7960
+92	7ace48e2-a77a-428e-8bcf-83313b76da46
 \.
 
 
 --
--- TOC entry 5035 (class 0 OID 90229)
+-- TOC entry 5037 (class 0 OID 90229)
 -- Dependencies: 225
 -- Data for Name: document_topics; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.document_topics (document_id, topic_id) FROM stdin;
-38	22
-39	1
-72	1
+85	1
+85	40
+86	22
+87	69
+90	1
+90	22
+91	1
+91	22
+92	22
 \.
 
 
 --
--- TOC entry 5036 (class 0 OID 90232)
+-- TOC entry 5038 (class 0 OID 90232)
 -- Dependencies: 226
 -- Data for Name: documents; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.documents (id, title, pages, publication_date, file, category_id, volume, department, abstract) FROM stdin;
-38	qwerty	\N	2025-04-01	./filepathpdf/ED591309.pdf	1	1	Computer Science	<div class="abstract-text"><p>This quantitative study uses a survey to determine how public school teachers perceive the efficacy of the intervention of the Dignity For All Student’s Act on the climate of civility in the classroom at one specific public middle school located in Upstate New York.</p><p>The intent is to explore the perceived efficacy of the intervention put into place in 2012 to address cyberharassment and to cultivate civility in the classroom.</p><p>A total of 47 teachers participated in this study.</p><p>This study provides background on the prevalence of cyberharassment in schools.</p><p>The results show that the cyberharassment behaviors of sexting, stalking, bullying, spreading rumors, and sending embarassing pictures have occurred with some frequency over the 2017-2018 school year.</p><p>Sexting was the most witnessed by teachers (38.3 percent) with 36.2 percent indicating a frequency of once a year.</p><p>The sending of pictures to embarrass was observed by 23.4 percent of the teachers, 12.8 percent observed the frequency of once a month.</p><p>The spreading sexual rumors was observed by 34.0 percent of the teachers with a frequency of 27.7 percent stating it occurs once a week.</p><p>The findings further suggest an inconsistency among teachers in addressing online behavior with their students.</p><p>Some teachers (38 percent) indicated they discuss appropriate online behavior with their students “as needed,” while 29 percent indicate they never do.</p><p>Additionally, 55.3 percent view the Dignity For All Students Act as having an average effect on cultivating civility as a part of the school’s culture.</p><p>Additionally, 78.7 percent of the respondents believe DASA has had little impact on cyberharassment incidents.</p></div>
-39	I love the morning sun	\N	2025-04-01	./filepathpdf/ED591309.pdf	1	1	Computer Science	<div class="abstract-text"><p>This quantitative study uses a survey to determine how public school teachers perceive the efficacy of the intervention of the Dignity For All Student’s Act on the climate of civility in the classroom at one specific public middle school located in Upstate New York.</p><p>The intent is to explore the perceived efficacy of the intervention put into place in 2012 to address cyberharassment and to cultivate civility in the classroom.</p><p>A total of 47 teachers participated in this study.</p><p>This study provides background on the prevalence of cyberharassment in schools.</p><p>The results show that the cyberharassment behaviors of sexting, stalking, bullying, spreading rumors, and sending embarassing pictures have occurred with some frequency over the 2017-2018 school year.</p><p>Sexting was the most witnessed by teachers (38.3 percent) with 36.2 percent indicating a frequency of once a year.</p><p>The sending of pictures to embarrass was observed by 23.4 percent of the teachers, 12.8 percent observed the frequency of once a month.</p><p>The spreading sexual rumors was observed by 34.0 percent of the teachers with a frequency of 27.7 percent stating it occurs once a week.</p><p>The findings further suggest an inconsistency among teachers in addressing online behavior with their students.</p><p>Some teachers (38 percent) indicated they discuss appropriate online behavior with their students “as needed,” while 29 percent indicate they never do.</p><p>Additionally, 55.3 percent view the Dignity For All Students Act as having an average effect on cultivating civility as a part of the school’s culture.</p><p>Additionally, 78.7 percent of the respondents believe DASA has had little impact on cyberharassment incidents.</p></div>
-72	sample 	\N	2025-04-03	./filepathpdf/ED591309.pdf	3	1	Computer Science	<div class="abstract-text"><p>This quantitative study uses a survey to determine how public school teachers perceive the efficacy of the intervention of the Dignity For All Student’s Act on the climate of civility in the classroom at one specific public middle school located in Upstate New York.</p><p>The intent is to explore the perceived efficacy of the intervention put into place in 2012 to address cyberharassment and to cultivate civility in the classroom.</p><p>A total of 47 teachers participated in this study.</p><p>This study provides background on the prevalence of cyberharassment in schools.</p><p>The results show that the cyberharassment behaviors of sexting, stalking, bullying, spreading rumors, and sending embarassing pictures have occurred with some frequency over the 2017-2018 school year.</p><p>Sexting was the most witnessed by teachers (38.3 percent) with 36.2 percent indicating a frequency of once a year.</p><p>The sending of pictures to embarrass was observed by 23.4 percent of the teachers, 12.8 percent observed the frequency of once a month.</p><p>The spreading sexual rumors was observed by 34.0 percent of the teachers with a frequency of 27.7 percent stating it occurs once a week.</p><p>The findings further suggest an inconsistency among teachers in addressing online behavior with their students.</p><p>Some teachers (38 percent) indicated they discuss appropriate online behavior with their students “as needed,” while 29 percent indicate they never do.</p><p>Additionally, 55.3 percent view the Dignity For All Students Act as having an average effect on cultivating civility as a part of the school’s culture.</p><p>Additionally, 78.7 percent of the respondents believe DASA has had little impact on cyberharassment incidents.</p></div>
+COPY public.documents (id, title, pages, publication_date, file, category_id, volume, department, abstract, updated_at, created_at) FROM stdin;
+90	i love her	\N	2025-04-01	./filepathpdf/ED591309.pdf	3	1	Computer Science	<div class="abstract-text"><p>This quantitative study uses a survey to determine how public school teachers perceive the efficacy of the intervention of the Dignity For All Student’s Act on the climate of civility in the classroom at one specific public middle school located in Upstate New York.</p><p>The intent is to explore the perceived efficacy of the intervention put into place in 2012 to address cyberharassment and to cultivate civility in the classroom.</p><p>A total of 47 teachers participated in this study.</p><p>This study provides background on the prevalence of cyberharassment in schools.</p><p>The results show that the cyberharassment behaviors of sexting, stalking, bullying, spreading rumors, and sending embarassing pictures have occurred with some frequency over the 2017-2018 school year.</p><p>Sexting was the most witnessed by teachers (38.3 percent) with 36.2 percent indicating a frequency of once a year.</p><p>The sending of pictures to embarrass was observed by 23.4 percent of the teachers, 12.8 percent observed the frequency of once a month.</p><p>The spreading sexual rumors was observed by 34.0 percent of the teachers with a frequency of 27.7 percent stating it occurs once a week.</p><p>The findings further suggest an inconsistency among teachers in addressing online behavior with their students.</p><p>Some teachers (38 percent) indicated they discuss appropriate online behavior with their students “as needed,” while 29 percent indicate they never do.</p><p>Additionally, 55.3 percent view the Dignity For All Students Act as having an average effect on cultivating civility as a part of the school’s culture.</p><p>Additionally, 78.7 percent of the respondents believe DASA has had little impact on cyberharassment incidents.</p></div>	2025-04-22 02:35:23.841422	2025-04-22 02:35:23.841422
+91	i love her	\N	2025-04-01	./filepathpdf/ED591309.pdf	3	2	Computer Science	<div class="abstract-text"><p>This quantitative study uses a survey to determine how public school teachers perceive the efficacy of the intervention of the Dignity For All Student’s Act on the climate of civility in the classroom at one specific public middle school located in Upstate New York.</p><p>The intent is to explore the perceived efficacy of the intervention put into place in 2012 to address cyberharassment and to cultivate civility in the classroom.</p><p>A total of 47 teachers participated in this study.</p><p>This study provides background on the prevalence of cyberharassment in schools.</p><p>The results show that the cyberharassment behaviors of sexting, stalking, bullying, spreading rumors, and sending embarassing pictures have occurred with some frequency over the 2017-2018 school year.</p><p>Sexting was the most witnessed by teachers (38.3 percent) with 36.2 percent indicating a frequency of once a year.</p><p>The sending of pictures to embarrass was observed by 23.4 percent of the teachers, 12.8 percent observed the frequency of once a month.</p><p>The spreading sexual rumors was observed by 34.0 percent of the teachers with a frequency of 27.7 percent stating it occurs once a week.</p><p>The findings further suggest an inconsistency among teachers in addressing online behavior with their students.</p><p>Some teachers (38 percent) indicated they discuss appropriate online behavior with their students “as needed,” while 29 percent indicate they never do.</p><p>Additionally, 55.3 percent view the Dignity For All Students Act as having an average effect on cultivating civility as a part of the school’s culture.</p><p>Additionally, 78.7 percent of the respondents believe DASA has had little impact on cyberharassment incidents.</p></div>	2025-04-22 02:35:30.055927	2025-04-22 02:35:30.055927
+85	test	\N	2025-03-06	./filepathpdf/ED591309.pdf	4	1	Computer Science	<div class="abstract-text"><p>This quantitative study uses a survey to determine how public school teachers perceive the efficacy of the intervention of the Dignity For All Student’s Act on the climate of civility in the classroom at one specific public middle school located in Upstate New York.</p><p>The intent is to explore the perceived efficacy of the intervention put into place in 2012 to address cyberharassment and to cultivate civility in the classroom.</p><p>A total of 47 teachers participated in this study.</p><p>This study provides background on the prevalence of cyberharassment in schools.</p><p>The results show that the cyberharassment behaviors of sexting, stalking, bullying, spreading rumors, and sending embarassing pictures have occurred with some frequency over the 2017-2018 school year.</p><p>Sexting was the most witnessed by teachers (38.3 percent) with 36.2 percent indicating a frequency of once a year.</p><p>The sending of pictures to embarrass was observed by 23.4 percent of the teachers, 12.8 percent observed the frequency of once a month.</p><p>The spreading sexual rumors was observed by 34.0 percent of the teachers with a frequency of 27.7 percent stating it occurs once a week.</p><p>The findings further suggest an inconsistency among teachers in addressing online behavior with their students.</p><p>Some teachers (38 percent) indicated they discuss appropriate online behavior with their students “as needed,” while 29 percent indicate they never do.</p><p>Additionally, 55.3 percent view the Dignity For All Students Act as having an average effect on cultivating civility as a part of the school’s culture.</p><p>Additionally, 78.7 percent of the respondents believe DASA has had little impact on cyberharassment incidents.</p></div>	2025-04-20 15:18:08.318463	2025-04-20 16:35:43.7254
+92	A SAMPLE RESEARCH PAPER/THESIS/DISSERTATION ON ASPECTS OF ELEMENTARY LINEARY ALGEBRA	\N	2025-04-01	./filepathpdf/thesis.pdf	1	1	Computer Science	<div class="abstract-text"><p>OF THE DISSERTATION OF NAME OF STUDENT, for the Doctor of Philosophy degree in MAJOR FIELD, presented on DATE OF DEFENSE, at Southern Illinois University Car- bondale. (Do not use abbreviations.) TITLE: A SAMPLE RESEARCH PAPER ON ASPECTS OF ELEMENTARY LINEAR ALGEBRA MAJOR PROFESSOR: Dr.</p><p>J.</p><p>Jones (Begin the abstract here, typewritten and double-spaced.</p><p>A thesis abstract should consist of 350 words or less including the heading.</p><p>A page and one-half is approximately 350 words.) iii</p></div>	2025-04-22 10:28:13.47546	2025-04-22 10:28:13.47546
+86	sample 01	\N	2025-03-01	./filepathpdf/ED591309.pdf	1	1	Computer Science	<div class="abstract-text"><p>This quantitative study uses a survey to determine how public school teachers perceive the efficacy of the intervention of the Dignity For All Student’s Act on the climate of civility in the classroom at one specific public middle school located in Upstate New York.</p><p>The intent is to explore the perceived efficacy of the intervention put into place in 2012 to address cyberharassment and to cultivate civility in the classroom.</p><p>A total of 47 teachers participated in this study.</p><p>This study provides background on the prevalence of cyberharassment in schools.</p><p>The results show that the cyberharassment behaviors of sexting, stalking, bullying, spreading rumors, and sending embarassing pictures have occurred with some frequency over the 2017-2018 school year.</p><p>Sexting was the most witnessed by teachers (38.3 percent) with 36.2 percent indicating a frequency of once a year.</p><p>The sending of pictures to embarrass was observed by 23.4 percent of the teachers, 12.8 percent observed the frequency of once a month.</p><p>The spreading sexual rumors was observed by 34.0 percent of the teachers with a frequency of 27.7 percent stating it occurs once a week.</p><p>The findings further suggest an inconsistency among teachers in addressing online behavior with their students.</p><p>Some teachers (38 percent) indicated they discuss appropriate online behavior with their students “as needed,” while 29 percent indicate they never do.</p><p>Additionally, 55.3 percent view the Dignity For All Students Act as having an average effect on cultivating civility as a part of the school’s culture.</p><p>Additionally, 78.7 percent of the respondents believe DASA has had little impact on cyberharassment incidents.</p></div>	2025-04-20 15:53:23.468646	2025-04-20 16:35:43.7254
+87	sample 022	\N	2025-03-30	./filepathpdf/ED591309.pdf	1	1	Computer Science	<div class="abstract-text"><p>This quantitative study uses a survey to determine how public school teachers perceive the efficacy of the intervention of the Dignity For All Student’s Act on the climate of civility in the classroom at one specific public middle school located in Upstate New York.</p><p>The intent is to explore the perceived efficacy of the intervention put into place in 2012 to address cyberharassment and to cultivate civility in the classroom.</p><p>A total of 47 teachers participated in this study.</p><p>This study provides background on the prevalence of cyberharassment in schools.</p><p>The results show that the cyberharassment behaviors of sexting, stalking, bullying, spreading rumors, and sending embarassing pictures have occurred with some frequency over the 2017-2018 school year.</p><p>Sexting was the most witnessed by teachers (38.3 percent) with 36.2 percent indicating a frequency of once a year.</p><p>The sending of pictures to embarrass was observed by 23.4 percent of the teachers, 12.8 percent observed the frequency of once a month.</p><p>The spreading sexual rumors was observed by 34.0 percent of the teachers with a frequency of 27.7 percent stating it occurs once a week.</p><p>The findings further suggest an inconsistency among teachers in addressing online behavior with their students.</p><p>Some teachers (38 percent) indicated they discuss appropriate online behavior with their students “as needed,” while 29 percent indicate they never do.</p><p>Additionally, 55.3 percent view the Dignity For All Students Act as having an average effect on cultivating civility as a part of the school’s culture.</p><p>Additionally, 78.7 percent of the respondents believe DASA has had little impact on cyberharassment incidents.</p></div>	2025-04-20 16:17:53.627105	2025-04-20 16:35:43.7254
 \.
 
 
 --
--- TOC entry 5038 (class 0 OID 90238)
+-- TOC entry 5040 (class 0 OID 90238)
 -- Dependencies: 228
 -- Data for Name: roles; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -710,7 +730,7 @@ COPY public.roles (id, role_name) FROM stdin;
 
 
 --
--- TOC entry 5040 (class 0 OID 90242)
+-- TOC entry 5042 (class 0 OID 90242)
 -- Dependencies: 230
 -- Data for Name: saved_documents; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -720,7 +740,7 @@ COPY public.saved_documents (id, school_id, document_id, date_saved) FROM stdin;
 
 
 --
--- TOC entry 5042 (class 0 OID 90247)
+-- TOC entry 5044 (class 0 OID 90247)
 -- Dependencies: 232
 -- Data for Name: tokens; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -779,11 +799,45 @@ COPY public.tokens (id, token, user_id, user_role, created_at) FROM stdin;
 90	a9b56ac9-ea41-4e4a-80bc-9ed82db2a8b8	ADMIN-001	Isadmin	2025-04-10 08:20:23.052
 91	89755d3d-d3ca-4c5d-9190-949ffcfd8b69	ADMIN-001	Isadmin	2025-04-10 10:41:22.741
 92	e832bbb8-e588-4e35-a1af-71a2d26076b9	ADMIN-001	Isadmin	2025-04-10 11:03:15.886
+94	986a0757-37eb-4812-99f2-fbcd91ef5a35	ADMIN-001	Isadmin	2025-04-14 15:47:22.864
+95	3bb1c9be-35d1-4a07-93a1-a2f259020b4c	ADMIN-001	Isadmin	2025-04-14 16:03:26.222
+96	3ba0b331-6898-47bc-a079-401802edd153	ADMIN-001	Isadmin	2025-04-14 16:04:41.552
+97	5189b5cf-ef80-49d6-9dae-826f75ec8a14	ADMIN-001	Isadmin	2025-04-14 16:06:39.943
+98	6017c80b-a8cb-4663-9769-a7d0ffa5727f	ADMIN-001	Isadmin	2025-04-14 16:12:29.641
+100	3d1fa48a-f1d8-4803-aeda-1c464891ad4b	ADMIN-001	Isadmin	2025-04-14 16:27:33.899
+102	f8433bef-ded3-4cb2-a0e7-dbc74ded8a63	ADMIN-001	Isadmin	2025-04-14 16:31:34.453
+103	61872654-1d3f-45a5-a01b-9009f48cba06	ADMIN-001	Isadmin	2025-04-14 16:45:18.112
+104	712c73c3-254a-41b5-82cb-4002a3a17030	ADMIN-001	Isadmin	2025-04-14 16:49:16.195
+105	0619e09c-3c76-4aae-8142-b2dd98196d28	ADMIN-001	Isadmin	2025-04-15 08:37:21.003
+106	a251467d-bed2-44a5-9076-afc405db0926	ADMIN-001	Isadmin	2025-04-15 08:53:27.136
+107	c5d36ddb-d055-44bc-9593-ca53dbaefb2e	ADMIN-001	Isadmin	2025-04-15 09:36:25.439
+108	1f6f5fb2-bdcf-4f57-a2a6-11d9034c33f5	ADMIN-001	Isadmin	2025-04-15 16:18:29.406
+110	987d7a6d-749e-4df7-94f7-fed956232fa1	ADMIN-001	Isadmin	2025-04-15 16:53:34.504
+111	3d3a0980-cf66-4da6-b3ef-1b90412268c4	ADMIN-001	Isadmin	2025-04-15 16:58:28.87
+112	1622f45c-ec01-4d95-adf9-8bc02fc2edb1	ADMIN-001	Isadmin	2025-04-15 17:01:36.615
+113	fce9dc9b-c89d-4b2d-8a86-2316ae9e4f8e	ADMIN-001	Isadmin	2025-04-15 17:07:00.936
+114	51bd05ba-c733-4d49-b83c-9686edea0ec7	ADMIN-001	Isadmin	2025-04-15 17:08:20.573
+115	d0bdd5b1-3483-455b-8695-fd0686ba4ce0	ADMIN-001	Isadmin	2025-04-16 12:52:23.838
+116	934e276e-6cb2-4a47-9cc5-508169550e2d	ADMIN-001	Isadmin	2025-04-16 18:46:09.469
+117	1c6728bd-18f8-4337-8655-7bc6e409f614	ADMIN-001	Isadmin	2025-04-17 16:01:54.034
+118	4fb68591-ef42-41c8-8dbf-0d891b69b1d4	ADMIN-001	Isadmin	2025-04-18 18:25:13.792
+119	418659ee-a7d1-4919-a2d2-868be1acbca5	ADMIN-001	Isadmin	2025-04-18 19:05:45.829
+120	b3c3f65a-c20b-4602-bd0b-51c8a4c54d5c	ADMIN-001	Isadmin	2025-04-19 14:50:23.239
+121	57bf06ba-4435-4496-a3d3-b7082fc56df2	ADMIN-001	Isadmin	2025-04-19 20:13:17.334
+122	36b3e471-502b-4caa-8c50-fbcad5a5b761	ADMIN-001	Isadmin	2025-04-20 06:15:54.81
+123	9b270c66-a79e-4617-98b4-22edb4c457bf	ADMIN-001	Isadmin	2025-04-20 16:55:49.818
+124	eb9940ed-bfba-4ad3-bdda-80e2f767cb4b	ADMIN-001	Isadmin	2025-04-21 16:24:17.211
+125	93d25286-1e84-4fd9-a52b-fe039e65906e	ADMIN-001	Isadmin	2025-04-21 18:13:42.263
+126	87f8fada-e7c2-44f6-9240-653d9c0f74e7	ADMIN-001	Isadmin	2025-04-21 18:22:45.526
+127	b230cfa0-cc1b-424f-9776-eb807c0a1736	ADMIN-001	Isadmin	2025-04-22 02:27:40.824
+128	895c21cc-f64e-40ce-9dcc-5a53bd3b559b	ADMIN-001	Isadmin	2025-04-22 13:34:21.374
+129	d2a70436-8fdc-4d6c-8c86-e42632687caa	ADMIN-001	Isadmin	2025-04-23 08:30:58.23
+130	dc776e2e-26b0-42a2-8fe6-cc08936a038b	ADMIN-001	Isadmin	2025-04-24 02:05:09.351
 \.
 
 
 --
--- TOC entry 5044 (class 0 OID 90254)
+-- TOC entry 5046 (class 0 OID 90254)
 -- Dependencies: 234
 -- Data for Name: topics; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -796,11 +850,13 @@ COPY public.topics (id, topic_name) FROM stdin;
 33	Science
 40	Alice
 68	MATH
+69	Arts
+70	artificial dicks
 \.
 
 
 --
--- TOC entry 5046 (class 0 OID 90258)
+-- TOC entry 5048 (class 0 OID 90258)
 -- Dependencies: 236
 -- Data for Name: user_permissions; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -810,7 +866,7 @@ COPY public.user_permissions (id, role_id, document_id, can_read, can_write, can
 
 
 --
--- TOC entry 5048 (class 0 OID 90266)
+-- TOC entry 5050 (class 0 OID 90266)
 -- Dependencies: 238
 -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -823,7 +879,7 @@ COPY public.users (id, school_id, department_id, saved_documents, history, first
 
 
 --
--- TOC entry 5066 (class 0 OID 0)
+-- TOC entry 5068 (class 0 OID 0)
 -- Dependencies: 218
 -- Name: admins_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -832,7 +888,7 @@ SELECT pg_catalog.setval('public.admins_id_seq', 1, true);
 
 
 --
--- TOC entry 5067 (class 0 OID 0)
+-- TOC entry 5069 (class 0 OID 0)
 -- Dependencies: 221
 -- Name: categories_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -841,7 +897,7 @@ SELECT pg_catalog.setval('public.categories_id_seq', 1, false);
 
 
 --
--- TOC entry 5068 (class 0 OID 0)
+-- TOC entry 5070 (class 0 OID 0)
 -- Dependencies: 224
 -- Name: departments_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -850,16 +906,16 @@ SELECT pg_catalog.setval('public.departments_id_seq', 1, false);
 
 
 --
--- TOC entry 5069 (class 0 OID 0)
+-- TOC entry 5071 (class 0 OID 0)
 -- Dependencies: 227
 -- Name: documents_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.documents_id_seq', 72, true);
+SELECT pg_catalog.setval('public.documents_id_seq', 92, true);
 
 
 --
--- TOC entry 5070 (class 0 OID 0)
+-- TOC entry 5072 (class 0 OID 0)
 -- Dependencies: 229
 -- Name: roles_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -868,7 +924,7 @@ SELECT pg_catalog.setval('public.roles_id_seq', 1, false);
 
 
 --
--- TOC entry 5071 (class 0 OID 0)
+-- TOC entry 5073 (class 0 OID 0)
 -- Dependencies: 231
 -- Name: saved_documents_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -877,25 +933,25 @@ SELECT pg_catalog.setval('public.saved_documents_id_seq', 1, false);
 
 
 --
--- TOC entry 5072 (class 0 OID 0)
+-- TOC entry 5074 (class 0 OID 0)
 -- Dependencies: 233
 -- Name: tokens_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.tokens_id_seq', 92, true);
+SELECT pg_catalog.setval('public.tokens_id_seq', 130, true);
 
 
 --
--- TOC entry 5073 (class 0 OID 0)
+-- TOC entry 5075 (class 0 OID 0)
 -- Dependencies: 235
 -- Name: topics_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.topics_id_seq', 68, true);
+SELECT pg_catalog.setval('public.topics_id_seq', 70, true);
 
 
 --
--- TOC entry 5074 (class 0 OID 0)
+-- TOC entry 5076 (class 0 OID 0)
 -- Dependencies: 237
 -- Name: user_permissions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -904,7 +960,7 @@ SELECT pg_catalog.setval('public.user_permissions_id_seq', 1, false);
 
 
 --
--- TOC entry 5075 (class 0 OID 0)
+-- TOC entry 5077 (class 0 OID 0)
 -- Dependencies: 239
 -- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -913,7 +969,7 @@ SELECT pg_catalog.setval('public.users_id_seq', 3, true);
 
 
 --
--- TOC entry 4832 (class 2606 OID 90283)
+-- TOC entry 4834 (class 2606 OID 90283)
 -- Name: admins admins_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -922,7 +978,7 @@ ALTER TABLE ONLY public.admins
 
 
 --
--- TOC entry 4834 (class 2606 OID 90285)
+-- TOC entry 4836 (class 2606 OID 90285)
 -- Name: admins admins_school_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -931,7 +987,7 @@ ALTER TABLE ONLY public.admins
 
 
 --
--- TOC entry 4836 (class 2606 OID 90287)
+-- TOC entry 4838 (class 2606 OID 90287)
 -- Name: authors authors_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -940,7 +996,7 @@ ALTER TABLE ONLY public.authors
 
 
 --
--- TOC entry 4838 (class 2606 OID 90289)
+-- TOC entry 4840 (class 2606 OID 90289)
 -- Name: categories categories_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -949,7 +1005,7 @@ ALTER TABLE ONLY public.categories
 
 
 --
--- TOC entry 4840 (class 2606 OID 90291)
+-- TOC entry 4842 (class 2606 OID 90291)
 -- Name: credentials credentials_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -958,7 +1014,7 @@ ALTER TABLE ONLY public.credentials
 
 
 --
--- TOC entry 4842 (class 2606 OID 90293)
+-- TOC entry 4844 (class 2606 OID 90293)
 -- Name: department departments_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -967,7 +1023,7 @@ ALTER TABLE ONLY public.department
 
 
 --
--- TOC entry 4866 (class 2606 OID 114756)
+-- TOC entry 4868 (class 2606 OID 114756)
 -- Name: document_authors document_authors_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -976,7 +1032,7 @@ ALTER TABLE ONLY public.document_authors
 
 
 --
--- TOC entry 4844 (class 2606 OID 90295)
+-- TOC entry 4846 (class 2606 OID 90295)
 -- Name: document_topics document_topics_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -985,7 +1041,7 @@ ALTER TABLE ONLY public.document_topics
 
 
 --
--- TOC entry 4846 (class 2606 OID 90297)
+-- TOC entry 4848 (class 2606 OID 90297)
 -- Name: documents documents_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -994,7 +1050,7 @@ ALTER TABLE ONLY public.documents
 
 
 --
--- TOC entry 4848 (class 2606 OID 90299)
+-- TOC entry 4850 (class 2606 OID 90299)
 -- Name: roles roles_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1003,7 +1059,7 @@ ALTER TABLE ONLY public.roles
 
 
 --
--- TOC entry 4850 (class 2606 OID 90301)
+-- TOC entry 4852 (class 2606 OID 90301)
 -- Name: roles roles_role_name_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1012,7 +1068,7 @@ ALTER TABLE ONLY public.roles
 
 
 --
--- TOC entry 4852 (class 2606 OID 90303)
+-- TOC entry 4854 (class 2606 OID 90303)
 -- Name: saved_documents saved_documents_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1021,7 +1077,7 @@ ALTER TABLE ONLY public.saved_documents
 
 
 --
--- TOC entry 4854 (class 2606 OID 90305)
+-- TOC entry 4856 (class 2606 OID 90305)
 -- Name: tokens tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1030,7 +1086,7 @@ ALTER TABLE ONLY public.tokens
 
 
 --
--- TOC entry 4856 (class 2606 OID 90307)
+-- TOC entry 4858 (class 2606 OID 90307)
 -- Name: topics topics_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1039,7 +1095,7 @@ ALTER TABLE ONLY public.topics
 
 
 --
--- TOC entry 4858 (class 2606 OID 90309)
+-- TOC entry 4860 (class 2606 OID 90309)
 -- Name: topics unique_topic_name; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1048,7 +1104,7 @@ ALTER TABLE ONLY public.topics
 
 
 --
--- TOC entry 4860 (class 2606 OID 90311)
+-- TOC entry 4862 (class 2606 OID 90311)
 -- Name: user_permissions user_permissions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1057,7 +1113,7 @@ ALTER TABLE ONLY public.user_permissions
 
 
 --
--- TOC entry 4862 (class 2606 OID 90313)
+-- TOC entry 4864 (class 2606 OID 90313)
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1066,7 +1122,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- TOC entry 4864 (class 2606 OID 90315)
+-- TOC entry 4866 (class 2606 OID 90315)
 -- Name: users users_school_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1075,7 +1131,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- TOC entry 4881 (class 2620 OID 90316)
+-- TOC entry 4883 (class 2620 OID 90316)
 -- Name: authors set_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -1083,7 +1139,7 @@ CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.authors FOR EACH ROW EXECU
 
 
 --
--- TOC entry 4867 (class 2606 OID 90317)
+-- TOC entry 4869 (class 2606 OID 90317)
 -- Name: admins admins_department_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1092,7 +1148,7 @@ ALTER TABLE ONLY public.admins
 
 
 --
--- TOC entry 4868 (class 2606 OID 90322)
+-- TOC entry 4870 (class 2606 OID 90322)
 -- Name: admins admins_school_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1101,7 +1157,7 @@ ALTER TABLE ONLY public.admins
 
 
 --
--- TOC entry 4869 (class 2606 OID 90327)
+-- TOC entry 4871 (class 2606 OID 90327)
 -- Name: credentials credentials_role_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1110,7 +1166,7 @@ ALTER TABLE ONLY public.credentials
 
 
 --
--- TOC entry 4879 (class 2606 OID 114762)
+-- TOC entry 4881 (class 2606 OID 114762)
 -- Name: document_authors document_authors_authors_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1119,7 +1175,7 @@ ALTER TABLE ONLY public.document_authors
 
 
 --
--- TOC entry 4880 (class 2606 OID 114757)
+-- TOC entry 4882 (class 2606 OID 114757)
 -- Name: document_authors document_authors_documents_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1128,7 +1184,7 @@ ALTER TABLE ONLY public.document_authors
 
 
 --
--- TOC entry 4870 (class 2606 OID 90332)
+-- TOC entry 4872 (class 2606 OID 90332)
 -- Name: document_topics document_topics_document_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1137,7 +1193,7 @@ ALTER TABLE ONLY public.document_topics
 
 
 --
--- TOC entry 4871 (class 2606 OID 90337)
+-- TOC entry 4873 (class 2606 OID 90337)
 -- Name: document_topics document_topics_topic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1146,7 +1202,7 @@ ALTER TABLE ONLY public.document_topics
 
 
 --
--- TOC entry 4872 (class 2606 OID 90342)
+-- TOC entry 4874 (class 2606 OID 90342)
 -- Name: documents documents_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1155,7 +1211,7 @@ ALTER TABLE ONLY public.documents
 
 
 --
--- TOC entry 4873 (class 2606 OID 90347)
+-- TOC entry 4875 (class 2606 OID 90347)
 -- Name: saved_documents saved_documents_document_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1164,7 +1220,7 @@ ALTER TABLE ONLY public.saved_documents
 
 
 --
--- TOC entry 4874 (class 2606 OID 90352)
+-- TOC entry 4876 (class 2606 OID 90352)
 -- Name: saved_documents saved_documents_school_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1173,7 +1229,7 @@ ALTER TABLE ONLY public.saved_documents
 
 
 --
--- TOC entry 4875 (class 2606 OID 90357)
+-- TOC entry 4877 (class 2606 OID 90357)
 -- Name: tokens tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1182,7 +1238,7 @@ ALTER TABLE ONLY public.tokens
 
 
 --
--- TOC entry 4876 (class 2606 OID 90362)
+-- TOC entry 4878 (class 2606 OID 90362)
 -- Name: user_permissions user_permissions_document_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1191,7 +1247,7 @@ ALTER TABLE ONLY public.user_permissions
 
 
 --
--- TOC entry 4877 (class 2606 OID 90367)
+-- TOC entry 4879 (class 2606 OID 90367)
 -- Name: user_permissions user_permissions_role_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1200,7 +1256,7 @@ ALTER TABLE ONLY public.user_permissions
 
 
 --
--- TOC entry 4878 (class 2606 OID 90372)
+-- TOC entry 4880 (class 2606 OID 90372)
 -- Name: users users_department_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1208,7 +1264,7 @@ ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_department_id_fkey FOREIGN KEY (department_id) REFERENCES public.department(id) ON DELETE SET NULL;
 
 
--- Completed on 2025-04-11 00:22:30
+-- Completed on 2025-04-24 13:21:30
 
 --
 -- PostgreSQL database dump complete

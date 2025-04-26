@@ -1,5 +1,8 @@
 // API functions for communicating with the Deno backend
 
+// Base API path that works in both development and production
+const API_BASE = '';
+
 /**
  * Fetch all authors from the backend
  * @returns {Promise<Array>} Array of author objects
@@ -7,7 +10,7 @@
 export const fetchAuthors = async () => {
   try {
     console.log('Fetching authors from API...');
-    const response = await fetch('/api/authors?includeDeleted=true');
+    const response = await fetch(`${API_BASE}/api/authors?includeDeleted=true`);
     
     if (!response.ok) {
       console.log('Server response:', response);
@@ -20,10 +23,10 @@ export const fetchAuthors = async () => {
     // Map the response to match the frontend's expected format
     const mappedAuthors = data.map(author => {
       console.log('Mapping author:', author);
-      // Ensure we have a unique ID
-      const authorId = author.author_id || author.id || `temp-${Math.random().toString(36).substr(2, 9)}`;
+      // Ensure we have both IDs
       return {
-        id: authorId,
+        author_id: author.author_id, // UUID for database operations
+        id: author.id || author.author_id, // SPUD ID for display, fallback to UUID if needed
         name: author.full_name || author.name || 'Unknown Author',
         department: author.department || '',
         email: author.email || '',
@@ -54,7 +57,7 @@ export const fetchAuthors = async () => {
  */
 export const fetchAuthorById = async (id) => {
   try {
-    const response = await fetch(`/api/authors/${id}`);
+    const response = await fetch(`${API_BASE}/api/authors/${id}`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -86,7 +89,7 @@ export const fetchAuthorById = async (id) => {
  */
 export const fetchDocumentsByAuthor = async (authorId) => {
   try {
-    const response = await fetch(`/api/authors/${authorId}/documents`);
+    const response = await fetch(`${API_BASE}/api/authors/${authorId}/documents`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -113,7 +116,7 @@ export const updateAuthor = async (id, authorData) => {
       ? parseInt(authorData.yearOfGraduation, 10) || null 
       : null;
     
-    const response = await fetch(`/api/authors/${id}`, {
+    const response = await fetch(`${API_BASE}/api/authors/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -150,6 +153,67 @@ export const updateAuthor = async (id, authorData) => {
     return data;
   } catch (error) {
     console.error('Error updating author:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete an author (move to trash)
+ * @param {string} id - The author's ID
+ * @returns {Promise<Object>} Response object
+ */
+export const deleteAuthor = async (id) => {
+  try {
+    console.log('Deleting author:', id);
+    const response = await fetch(`${API_BASE}/api/authors/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to delete author: ${response.status}`);
+    }
+
+    // Handle both 204 (success) and 200 (already deleted) responses
+    if (response.status === 204) {
+      return { success: true };
+    } else {
+      return await response.json();
+    }
+  } catch (error) {
+    console.error('Error deleting author:', error);
+    throw error;
+  }
+};
+
+/**
+ * Restore a deleted author from trash
+ * @param {string} id - The author's ID
+ * @returns {Promise<Object>} Restored author object
+ */
+export const restoreAuthor = async (id) => {
+  try {
+    console.log('Restoring author:', id);
+    const response = await fetch(`${API_BASE}/api/authors/${id}/restore`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to restore author: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Author restored successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('Error restoring author:', error);
     throw error;
   }
 }; 

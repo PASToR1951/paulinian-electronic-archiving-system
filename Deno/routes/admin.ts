@@ -1,4 +1,4 @@
-import { Router, send } from "https://deno.land/x/oak@v17.1.4/mod.ts";
+import { Router, send } from "https://deno.land/x/oak@v12.6.1/mod.ts";
 
 const adminRouter = new Router();
 

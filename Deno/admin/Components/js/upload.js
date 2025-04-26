@@ -4,7 +4,6 @@ let extractedAbstract = "";
 document.addEventListener("DOMContentLoaded", () => {
     const titleInput = document.getElementById("title");
     const authorInput = document.getElementById("authorInput");
-    const publicationDateInput = document.getElementById("publication_date");
     const selectedAuthorsContainer = document.getElementById("selectedAuthors");
     const selectedTopicsContainer = document.getElementById("selectedTopics");
     const categorySelect = document.getElementById("category");
@@ -212,12 +211,34 @@ document.addEventListener("DOMContentLoaded", () => {
         previewTitle.textContent = titleInput.value || "Title of Document";
     });
 
-    // Update preview publication date
-    publicationDateInput.addEventListener("change", () => {
-        const date = new Date(publicationDateInput.value);
-        const formattedDate = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-        previewYear.textContent = `Publishing Date: ${formattedDate}`;
-    });
+    // Ensure we initialize the year fields
+    const startYearInput = document.getElementById("start_year");
+    const endYearInput = document.getElementById("end_year");
+    
+    // Add event listeners for start and end year
+    const updatePreviewYear = () => {
+        if (startYearInput && endYearInput && startYearInput.value && endYearInput.value) {
+            if (previewYear) {
+                previewYear.textContent = `Publication Year: ${startYearInput.value}-${endYearInput.value}`;
+            }
+        } else if (startYearInput && startYearInput.value) {
+            if (previewYear) {
+                previewYear.textContent = `Publication Year: ${startYearInput.value}`;
+            }
+        } else {
+            if (previewYear) {
+                previewYear.textContent = "Publication Year";
+            }
+        }
+    };
+    
+    if (startYearInput) {
+        startYearInput.addEventListener("input", updatePreviewYear);
+    }
+    
+    if (endYearInput) {
+        endYearInput.addEventListener("input", updatePreviewYear);
+    }
 
     // Update preview authors
     const updateAuthorsPreview = () => {
@@ -272,11 +293,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const formattedAddedDate = today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     previewAddedDate.textContent = `Added Date: ${formattedAddedDate}`;
 
-    // Add event listener for form submission
-    const form = document.getElementById("upload-form");
-    if (form) {
-        form.addEventListener("submit", handleUpload);
-    }
+    // Form submission is handled by handlers in upload_doc.html
 
     // Add event listener for read document button
     const readButton = document.getElementById("read-document");
@@ -301,106 +318,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 });
-
-async function handleUpload(event) {
-    event.preventDefault();
-    console.log("Upload started");
-
-    const form = event.target;
-    const formData = new FormData(form);
-    const submitButton = form.querySelector('button[type="submit"]');
-    const originalButtonText = submitButton.innerHTML;
-
-    try {
-        // Disable submit button and show loading state
-        submitButton.disabled = true;
-        submitButton.innerHTML = `
-            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-            Uploading...
-        `;
-
-        // Get selected topics and authors
-        const selectedTopics = Array.from(document.querySelectorAll('.selected-topic'))
-            .map(el => el.textContent.replace('×', '').trim());
-        const selectedAuthors = Array.from(document.querySelectorAll('.selected-author'))
-            .map(el => el.textContent.replace('×', '').trim());
-
-        // Log form data for debugging
-        console.log('Form data before processing:');
-        for (let [key, value] of formData.entries()) {
-            console.log(`${key}: ${value}`);
-        }
-
-        // Ensure all required fields are present
-        const title = formData.get('title');
-        const publicationDate = formData.get('publication_date');
-        const category = formData.get('category');
-        const file = formData.get('file');
-        const volumeNo = formData.get('volume-no');
-
-        if (!title || !publicationDate || !category || !file) {
-            throw new Error('Please fill in all required fields: Title, Publication Date, Category, and File');
-        }
-
-        if (selectedAuthors.length === 0) {
-            throw new Error('Please add at least one author');
-        }
-
-        // Create document data object
-        const documentData = {
-            title: title,
-            authors: selectedAuthors,
-            category: category,
-            topics: selectedTopics,
-            volume: volumeNo,
-            publicationDate: publicationDate,
-            abstract: extractedAbstract || ''
-        };
-
-        // Add selected topics and authors to formData
-        formData.append('topics', JSON.stringify(selectedTopics));
-        formData.append('author', JSON.stringify(selectedAuthors));
-        formData.append('abstract', extractedAbstract || '');
-        formData.append('department', 'Computer Science'); // Default department
-
-        // Log final form data for debugging
-        console.log('Final form data:');
-        for (let [key, value] of formData.entries()) {
-            console.log(`${key}: ${value}`);
-        }
-
-        const response = await fetch('/api/submit-document', {
-            method: 'POST',
-            body: formData
-        });
-
-        const result = await response.json();
-        console.log('Upload response:', result);
-
-        if (!response.ok) {
-            throw new Error(result.message || 'Upload failed');
-        }
-
-        // Show success popup first
-        const successModal = document.getElementById('success-modal');
-        if (successModal) {
-            successModal.style.display = 'flex';
-        }
-
-        // Use the document data we created instead of the response
-        setTimeout(() => {
-            updateReceiptModal(documentData);
-        }, 2000);
-
-    } catch (error) {
-        console.error('Error uploading document:', error);
-        alert('Error uploading document: ' + error.message);
-    } finally {
-        // Reset submit button
-        submitButton.disabled = false;
-        submitButton.innerHTML = originalButtonText;
-    }
-}
 
 // Update receipt modal with document details
 function updateReceiptModal(documentData) {

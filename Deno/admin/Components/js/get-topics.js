@@ -13,58 +13,87 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    topicInput.addEventListener("input", () => {
-        clearTimeout(searchTimeout);
+    // Debounce function for search
+    const debounce = (func, delay) => {
+        return function() {
+            const context = this;
+            const args = arguments;
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                func.apply(context, args);
+            }, delay);
+        };
+    };
 
-        const query = topicInput.value.trim();
+    // Actual search function
+    const performSearch = async (query) => {
         if (query.length === 0) {
             topicList.innerHTML = "";
+            topicList.style.display = "none";
             return;
         }
 
         topicList.innerHTML = "<div class='dropdown-item'>Searching...</div>";
+        topicList.style.display = "block";
 
-        searchTimeout = setTimeout(async () => {
-            try {
-                const response = await fetch(`/api/topics?q=${encodeURIComponent(query)}`, {
-                    credentials: 'include'
-                });
-                const data = await response.json();
+        try {
+            const response = await fetch(`/api/topics?q=${encodeURIComponent(query)}`, {
+                credentials: 'include'
+            });
+            const data = await response.json();
 
-                topicList.innerHTML = ""; // Clear previous list
+            topicList.innerHTML = ""; // Clear previous list
 
-                if (!Array.isArray(data)) {
-                    console.error("Unexpected API response:", data);
-                    topicList.innerHTML = "<div class='dropdown-item text-danger'>Unexpected response</div>";
-                    return;
-                }
-
-                if (data.length === 0) {
-                    // If no topics found, show option to create new topic
-                    topicList.innerHTML = `
-                        <div class='dropdown-item create-topic' onclick="createNewTopic('${query}')">
-                            <span class="create-topic-text">Create new topic: "${query}"</span>
-                        </div>`;
-                } else {
-                    data.forEach(topic => {
-                        const topicItem = document.createElement("div");
-                        topicItem.textContent = topic.topic_name;
-                        topicItem.classList.add("dropdown-item");
-                        topicItem.addEventListener("click", () => selectTopic(topic.topic_name));
-                        topicList.appendChild(topicItem);
-                    });
-                }
-            } catch (error) {
-                console.error("Error fetching topics:", error);
-                topicList.innerHTML = "<div class='dropdown-item text-danger'>Error fetching topics</div>";
+            if (!Array.isArray(data)) {
+                console.error("Unexpected API response:", data);
+                topicList.innerHTML = "<div class='dropdown-item text-danger'>Unexpected response</div>";
+                return;
             }
-        }, 300);
+
+            if (data.length === 0) {
+                // If no topics found, show option to create new topic
+                const addItem = document.createElement("div");
+                addItem.classList.add("dropdown-item", "create-topic");
+                addItem.innerHTML = `<span class="create-topic-text">Add: "${query}"</span>`;
+                addItem.addEventListener("click", () => createNewTopic(query));
+                topicList.appendChild(addItem);
+            } else {
+                // Display found topics
+                data.forEach(topic => {
+                    const topicItem = document.createElement("div");
+                    topicItem.textContent = topic.topic_name;
+                    topicItem.classList.add("dropdown-item");
+                    topicItem.addEventListener("click", () => selectTopic(topic.topic_name));
+                    topicList.appendChild(topicItem);
+                });
+                
+                // Always add option to create new topic as the last item
+                const createNewTopicItem = document.createElement("div");
+                createNewTopicItem.classList.add("dropdown-item", "create-topic");
+                createNewTopicItem.innerHTML = `<span class="create-topic-text">Add: "${query}"</span>`;
+                createNewTopicItem.addEventListener("click", () => createNewTopic(query));
+                topicList.appendChild(createNewTopicItem);
+            }
+        } catch (error) {
+            console.error("Error fetching topics:", error);
+            topicList.innerHTML = "<div class='dropdown-item text-danger'>Error fetching topics</div>";
+        }
+    };
+
+    // Create debounced search function (400ms delay)
+    const debouncedSearch = debounce(performSearch, 400);
+
+    // Add input event listener with debounced search
+    topicInput.addEventListener("input", function() {
+        const query = this.value.trim();
+        debouncedSearch(query);
     });
 
     // Close topic list when clicking outside
     document.addEventListener('click', function(e) {
         if (!topicInput.contains(e.target) && !topicList.contains(e.target)) {
             topicList.innerHTML = "";
+            topicList.style.display = "none";
         }
     });
 
@@ -82,6 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         topicInput.value = ""; // Clear input after selection
         topicList.innerHTML = ""; // Hide dropdown list
+        topicList.style.display = "none";
     };
 
     window.createNewTopic = function(topicName) {
@@ -93,6 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         topicInput.value = ""; // Clear input after selection
         topicList.innerHTML = ""; // Hide dropdown list
+        topicList.style.display = "none";
     };
 
     function updateSelectedTopics() {
@@ -120,7 +151,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
             topicDiv.appendChild(removeBtn);
             selectedTopicsContainer.appendChild(topicDiv);
+            
+            // Add hidden input for form submission
+            const hiddenInput = document.createElement("input");
+            hiddenInput.type = "hidden";
+            hiddenInput.name = "topics[]";
+            hiddenInput.value = name;
+            selectedTopicsContainer.appendChild(hiddenInput);
         });
+        
+        // Also add a single JSON input for compatibility with backend
+        const jsonInput = document.createElement("input");
+        jsonInput.type = "hidden";
+        jsonInput.name = "topics";
+        jsonInput.value = JSON.stringify(Array.from(selectedTopics));
+        selectedTopicsContainer.appendChild(jsonInput);
     }
 
     // Function to generate random pastel colors

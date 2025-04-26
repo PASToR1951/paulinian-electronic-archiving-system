@@ -4,30 +4,136 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Author List</title>
-
-  <!-- 1) Page‑scoped CSS first -->
+  <link rel="stylesheet" href="/admin/Components/css/side_bar.css">
+  <link rel="stylesheet" href="/admin/Components/css/navbar_header.css">
+  <link rel="stylesheet" href="/admin/Components/css/documents_page.css">
   
-
-  <!-- 2) Component CSS -->
-  <link rel="stylesheet" href="css/side_bar.css" />
-  <link rel="stylesheet" href="css/navbar_header.css" />
-  <link rel="stylesheet" href="css/author-list.css" />
-</head>
-<body>
-  <div id="side-bar"></div>
-  <div id="navbar-header"></div>
-  <div id="root"></div>
-
+  <!-- React and ReactDOM scripts from CDN -->
+  <script crossorigin src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
+  
+  <!-- Debug script -->
   <script>
+    console.log("Page loaded, waiting for scripts to initialize...");
     
-
-    // Load navbar
-    fetch('./navbar_header.html')
-      .then(r => r.text())
-      .then(html => document.getElementById('navbar-header').innerHTML = html)
-      .catch(e => console.error('Error loading navbar:', e));
+    // Check if React loaded
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log("DOM Content Loaded");
+      if (window.React) {
+        console.log("React is loaded successfully");
+      } else {
+        console.error("React failed to load!");
+      }
+      
+      if (window.ReactDOM) {
+        console.log("ReactDOM is loaded successfully");
+      } else {
+        console.error("ReactDOM failed to load!");
+      }
+    });
   </script>
-  <script src="http://localhost:3003/bundle.js"></script>
-  <script src="js/side_bar.js"></script>
+  </head>
+<body>
+  <div class="container">
+    <!-- Header and navigation will be loaded by JavaScript -->
+    <div id="header-container"></div>
+    <div id="sidebar-container"></div>
+    
+    <!-- Mount point for the React component -->
+    <div id="react-author-list" class="main-content">
+      <!-- Fallback content if React doesn't load -->
+      <div class="react-loading">Loading Author List Component...</div>
+    </div>
+  </div>
+
+  <!-- Load header and sidebar -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Load header and sidebar
+      fetch('/admin/Components/navbar_header.html')
+        .then(response => response.text())
+        .then(data => {
+          document.getElementById('header-container').innerHTML = data;
+          // Execute any scripts in the header
+          const scripts = document.getElementById('header-container').querySelectorAll('script');
+          scripts.forEach(script => {
+            const newScript = document.createElement('script');
+            if (script.src) newScript.src = script.src;
+            else newScript.textContent = script.textContent;
+            document.head.appendChild(newScript);
+          });
+        })
+        .catch(error => {
+          console.error("Error loading navbar:", error);
+          document.getElementById('header-container').innerHTML = '<div class="error">Error loading header</div>';
+        });
+
+      fetch('/admin/Components/side_bar.html')
+        .then(response => response.text())
+        .then(data => {
+          document.getElementById('sidebar-container').innerHTML = data;
+          // Execute any scripts in the sidebar
+          const scripts = document.getElementById('sidebar-container').querySelectorAll('script');
+          scripts.forEach(script => {
+            const newScript = document.createElement('script');
+            if (script.src) newScript.src = script.src;
+            else newScript.textContent = script.textContent;
+            document.head.appendChild(newScript);
+          });
+        })
+        .catch(error => {
+          console.error("Error loading sidebar:", error);
+          document.getElementById('sidebar-container').innerHTML = '<div class="error">Error loading sidebar</div>';
+        });
+    });
+  </script>
+  
+  <!-- Use a different approach - include the actual compiled JS file in a simpler way -->
+  <script src="/admin/Components/js/author-list.js" onerror="console.error('Failed to load admin author-list.js')"></script>
+  
+  <!-- Fallback script in case the main script fails -->
+  <script>
+    // Wait a bit to check if the component mounted
+    setTimeout(() => {
+      const mountPoint = document.getElementById('react-author-list');
+      // If the component hasn't removed our loading message, it failed to mount
+      if (mountPoint && mountPoint.querySelector('.react-loading')) {
+        console.error("React component failed to mount after timeout");
+        mountPoint.innerHTML = `
+          <div class="error-container">
+            <h2>Author List Component</h2>
+            <p>This is the author list page that shows all authors in the system.</p>
+            <div id="author-list-container">
+              <p>Loading authors...</p>
+            </div>
+          </div>
+        `;
+        
+        // Load authors directly from API
+        fetch('/api/authors')
+          .then(response => response.json())
+          .then(data => {
+            const container = document.getElementById('author-list-container');
+            if (container && data && data.authors) {
+              let html = '<ul class="author-list">';
+              data.authors.forEach(author => {
+                html += `<li>${author.name || 'Unknown'}</li>`;
+              });
+              html += '</ul>';
+              container.innerHTML = html;
+            } else {
+              container.innerHTML = '<p>No authors found</p>';
+            }
+          })
+          .catch(error => {
+            console.error("Error loading authors:", error);
+            const container = document.getElementById('author-list-container');
+            if (container) {
+              container.innerHTML = '<p>Error loading authors</p>';
+            }
+          });
+      }
+    }, 3000); // 3 second timeout
+  </script>
 </body>
 </html>

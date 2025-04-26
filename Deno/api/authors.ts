@@ -1,10 +1,15 @@
-import { Router } from "https://deno.land/x/oak/mod.ts";
-import { searchAuthors } from "../controllers/author-Controller.ts";
-import { handleDeleteAuthor, handleRestoreAuthor } from "../routes/authors.ts";
+import { Router } from "https://deno.land/x/oak@v12.6.1/mod.ts";
+import { 
+  searchAuthors, 
+  handleDeleteAuthor, 
+  handleRestoreAuthor 
+} from "../controllers/author-Controller.ts";
 
 const router = new Router();
 router.get("/api/authors", async (ctx) => {
-    const response = await searchAuthors(ctx.request);
+    const url = new URL(ctx.request.url);
+    const request = new Request(url.toString());
+    const response = await searchAuthors(request);
     ctx.response.status = response.status;
     ctx.response.body = response.body;
     ctx.response.headers = response.headers;

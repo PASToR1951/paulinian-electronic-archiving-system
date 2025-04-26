@@ -1,0 +1,163 @@
+/* Compiled Document Modal Styles */
+/* Publication year fields styling */
+.publication-years .year-fields {
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.publication-years input[type="number"] {
+    width: 50%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.year-separator {
+    font-weight: bold;
+    color: #555;
+    padding: 0 4px;
+    flex-shrink: 0;
+}
+
+/* Contents section styles */
+.contents-section {
+    margin-top: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    background-color: #fafafa;
+}
+
+.contents-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 16px;
+    color: #333;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 8px;
+}
+
+.document-entries {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Document entry styles */
+.document-entry {
+    margin-bottom: 16px;
+    padding: 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: #fff;
+    position: relative;
+}
+
+.entry-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.entry-number {
+    font-weight: bold;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.title-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-grow: 1;
+}
+
+.entry-title {
+    font-weight: 500;
+    font-size: 16px;
+    flex-grow: 1;
+}
+
+.entry-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.edit-btn, .remove-btn {
+    background-color: transparent;
+    border: 1px solid #ccc;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.edit-btn:hover {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+}
+
+.remove-btn:hover {
+    background-color: #ffebee;
+    border-color: #f44336;
+}
+
+.edit-btn span, .remove-btn span {
+    margin-right: 4px;
+}
+
+.entry-info {
+    padding-left: 44px; /* Align with the title after the entry number */
+}
+
+.author-info, .publication-date, .category-info {
+    margin-bottom: 4px;
+    font-size: 14px;
+    color: #666;
+}
+
+/* Preview styles */
+.compilation-preview {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    background-color: #fff;
+    padding: 10px;
+}
+
+.preview-study-item {
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px dashed #e0e0e0;
+}
+
+.preview-study-item:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.preview-study-title {
+    font-weight: 500;
+    margin-bottom: 4px;
+    color: #333;
+}
+
+.preview-study-author {
+    font-size: 13px;
+    color: #666;
+    font-style: italic;
+}
