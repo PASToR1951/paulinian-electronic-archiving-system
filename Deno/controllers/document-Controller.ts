@@ -57,7 +57,7 @@ export const fetchCategories = async () => {
         console.log("fetchCategories result:", result);
         
         // Convert any BigInt values to Number to avoid serialization errors
-        const safeRows = result.rows.map(row => {
+        const safeRows = (result.rows as Record<string, unknown>[]).map((row) => {
             const safeRow: Record<string, unknown> = {};
             for (const [key, value] of Object.entries(row)) {
                 if (typeof value === 'bigint') {
@@ -75,15 +75,25 @@ export const fetchCategories = async () => {
         });
     } catch (error) {
         console.error("🔥 ERROR in fetchCategories:", error);
-        console.error("Error stack:", error.stack);
-        return new Response(JSON.stringify({ 
-            error: "Failed to fetch categories",
-            details: error.message,
-            stack: error.stack
-        }), {
-            status: 500,
-            headers: { "Content-Type": "application/json" },
-        });
+        if (error && typeof error === "object" && "stack" in error && "message" in error) {
+            return new Response(JSON.stringify({ 
+                error: "Failed to fetch categories",
+                details: (error as { message: string }).message,
+                stack: (error as { stack: string }).stack
+            }), {
+                status: 500,
+                headers: { "Content-Type": "application/json" },
+            });
+        } else {
+            return new Response(JSON.stringify({ 
+                error: "Failed to fetch categories",
+                details: String(error),
+                stack: ""
+            }), {
+                status: 500,
+                headers: { "Content-Type": "application/json" },
+            });
+        }
     }
 };
 
@@ -101,11 +111,38 @@ export const fetchDocuments = async (req: Request): Promise<Response> => {
         const category = params.get('category');
         const volume = params.get('volume');
         const page = parseInt(params.get("page") || "1");
-        const size = parseInt(params.get("size") || "5");
-        const offset = (page - 1) * size;
+        const requestedSize = parseInt(params.get("size") || "5");
+        const offset = (page - 1) * requestedSize;
         
-        console.log("Request parameters:", { category, volume, page, size, offset });
+        console.log(`Request params: page=${page}, size=${requestedSize}, category=${category || 'All'}, volume=${volume || 'Any'}`);
         
+        // First, get a count of all documents (including compiled ones) to determine total pagination
+        let countQuery = `
+            SELECT 
+                COUNT(DISTINCT CASE 
+                    WHEN d.compiled_document_id IS NOT NULL THEN d.compiled_document_id 
+                    ELSE d.id 
+                END) as doc_count
+            FROM documents d
+            LEFT JOIN categories c ON d.category_id = c.id
+        `;
+        const countParams: any[] = [];
+        const countWhereConditions: string[] = [];
+        if (category && category !== 'All') {
+            countWhereConditions.push("LOWER(c.category_name) = LOWER($" + (countParams.length + 1) + ")");
+            countParams.push(category);
+        }
+        if (volume) {
+            countWhereConditions.push("d.volume = $" + (countParams.length + 1));
+            countParams.push(volume);
+        }
+        if (countWhereConditions.length > 0) {
+            countQuery += " WHERE " + countWhereConditions.join(" AND ");
+        }
+        const countResult = await client.queryObject<{ doc_count: number }>(countQuery, countParams);
+        const totalCount = countResult.rows.length > 0 ? Number(countResult.rows[0].doc_count) : 0;
+        
+        // Now execute the main query to get all matching documents (no LIMIT/OFFSET)
         let query = `
             SELECT 
                 d.id,
@@ -134,8 +171,7 @@ export const fetchDocuments = async (req: Request): Promise<Response> => {
                         )
                     ) FILTER (WHERE t.topic_name IS NOT NULL),
                     '[]'::json
-                ) as topics,
-                COUNT(*) OVER() as total_count
+                ) as topics
             FROM documents d
             LEFT JOIN categories c ON d.category_id = c.id
             LEFT JOIN compiled_documents cd ON d.compiled_document_id = cd.id
@@ -144,69 +180,43 @@ export const fetchDocuments = async (req: Request): Promise<Response> => {
             LEFT JOIN document_topics dt ON d.id = dt.document_id
             LEFT JOIN topics t ON dt.topic_id = t.id
         `;
-
-        // Handle query conditions using an array
         const queryParams: any[] = [];
         const whereConditions: string[] = [];
-        
         if (category && category !== 'All') {
             whereConditions.push("LOWER(c.category_name) = LOWER($" + (queryParams.length + 1) + ")");
             queryParams.push(category);
         }
-
-        // Add volume filter if provided
         if (volume) {
             whereConditions.push("d.volume = $" + (queryParams.length + 1));
             queryParams.push(volume);
         }
-
-        // Combine where conditions if any
         let whereClauseFinal = "";
         if (whereConditions.length > 0) {
             whereClauseFinal = "WHERE " + whereConditions.join(" AND ");
         }
-
-        // Sort by date (latest first by default)
         const sort = params.get('sort') || 'latest';
         let orderByClause = "ORDER BY d.publication_date DESC";
-        
         if (sort === 'earliest') {
             orderByClause = "ORDER BY d.publication_date ASC";
         } else if (sort === 'title') {
             orderByClause = "ORDER BY d.title ASC";
         }
-
-        // Add LIMIT and OFFSET clauses for pagination
-        const limitClause = `LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
-        queryParams.push(size);
-        queryParams.push(offset);
-
-        // Add GROUP BY clause to include all non-aggregated columns
         const groupByClause = `GROUP BY d.id, d.title, d.publication_date, d.file, d.volume, d.issued_no, d.abstract, c.category_name, d.compiled_document_id, cd.start_year, cd.end_year, cd.volume, cd.issued_no`;
-        
-        query += ` ${whereClauseFinal} ${groupByClause} ${orderByClause} ${limitClause}`;
-
-        console.log("Executing query:", query);
-        console.log("Query parameters:", queryParams);
-
-        const result = await client.queryObject<DocumentRow & { total_count: number }>(query, queryParams);
-        
+        query += ` ${whereClauseFinal} ${groupByClause} ${orderByClause}`;
+        const result = await client.queryObject<DocumentRow>(query, queryParams);
         // Convert any BigInt values to regular numbers to prevent JSON serialization errors
-        const safeRows = result.rows.map(row => {
-            // Create a copy of the row with BigInt values converted to numbers
-            const safeRow = { ...row };
+        const safeRows = result.rows.map((row: any) => {
+            const safeRow: Record<string, any> = { ...row };
             for (const key in safeRow) {
-                if (typeof safeRow[key as keyof typeof safeRow] === 'bigint') {
-                    safeRow[key as keyof typeof safeRow] = Number(safeRow[key as keyof typeof safeRow]);
+                if (typeof safeRow[key] === 'bigint') {
+                    safeRow[key] = Number(safeRow[key]);
                 }
             }
             return safeRow;
         });
-        
         // Group compiled documents and format the results
         const documentsMap = new Map();
         const compiledDocumentsMap = new Map();
-        
         // First pass - identify compiled documents and create parent entries
         safeRows.forEach(doc => {
             if (doc.compiled_document_id && !compiledDocumentsMap.has(doc.compiled_document_id)) {
@@ -228,7 +238,6 @@ export const fetchDocuments = async (req: Request): Promise<Response> => {
                 });
             }
         });
-        
         // Second pass - process all documents
         safeRows.forEach(doc => {
             const formattedDoc = {
@@ -245,16 +254,10 @@ export const fetchDocuments = async (req: Request): Promise<Response> => {
                 author_names: Array.isArray(doc.author_names) ? doc.author_names : [],
                 topics: Array.isArray(doc.topics) ? doc.topics : []
             };
-            
-            // Add individual document to map
             documentsMap.set(doc.id, formattedDoc);
-            
-            // If it's part of a compilation, add to the parent's child documents
             if (doc.compiled_document_id && compiledDocumentsMap.has(doc.compiled_document_id)) {
                 const parent = compiledDocumentsMap.get(doc.compiled_document_id);
                 parent.child_documents.push(formattedDoc);
-                
-                // Add unique authors to compiled document
                 if (Array.isArray(formattedDoc.author_names)) {
                     formattedDoc.author_names.forEach(author => {
                         if (author && !parent.author_names.includes(author)) {
@@ -264,33 +267,73 @@ export const fetchDocuments = async (req: Request): Promise<Response> => {
                 }
             }
         });
-        
         // Combine both regular documents and compiled document parents
-        const documents = [];
-        
+        let topLevelEntries: any[] = [];
         // Add regular (non-compiled) documents
         documentsMap.forEach(doc => {
             if (!doc.compiled_document_id) {
-                documents.push(doc);
+                topLevelEntries.push(doc);
+            }
+        });
+        // Add compiled document parent entries
+        compiledDocumentsMap.forEach(compiledDoc => {
+            topLevelEntries.push(compiledDoc);
+        });
+        // Sort top-level entries as needed (by publication_date DESC by default)
+        topLevelEntries.sort((a, b) => {
+            if (sort === 'earliest') {
+                return new Date(a.publication_date).getTime() - new Date(b.publication_date).getTime();
+            } else if (sort === 'title') {
+                return (a.title || '').localeCompare(b.title || '');
+            } else {
+                return new Date(b.publication_date).getTime() - new Date(a.publication_date).getTime();
             }
         });
         
-        // Add compiled document parent entries
-        compiledDocumentsMap.forEach(compiledDoc => {
-            documents.push(compiledDoc);
-        });
+        // Use the actual number of top-level entries for pagination calculations
+        // This is more accurate than the SQL count when dealing with compiled documents
+        const actualTotalCount = topLevelEntries.length;
+        const totalPages = Math.ceil(Number(actualTotalCount) / Number(requestedSize));
         
-        // Calculate the correct count for pagination (one entry per parent document)
-        // Count each regular document and each compiled parent as one entry
-        const parentDocumentCount = documents.length;
+        console.log(`Pagination calculation: actualTotalCount=${actualTotalCount}, topLevelEntries.length=${topLevelEntries.length}, requestedSize=${requestedSize}, totalPages=${totalPages}`);
         
-        console.log(`Returning ${documents.length} documents (actual visible count: ${parentDocumentCount})`);
+        // Paginate after grouping
+        const pagedEntries = topLevelEntries.slice(offset, offset + requestedSize);
         
-        // Return the documents with calculated pagination info
+        console.log(`Page ${page}: returning ${pagedEntries.length} documents, offset=${offset}, limit=${requestedSize}, from total ${topLevelEntries.length} entries`);
+        
+        // For debugging: if no documents were found for this page but we have entries in total, log extra info
+        if (pagedEntries.length === 0 && topLevelEntries.length > 0) {
+            console.log(`WARNING: No documents found for page ${page} despite having ${topLevelEntries.length} total documents`);
+            console.log(`Page calculation: offset=${offset}, limit=${requestedSize}, start index=${offset}, end index=${offset + requestedSize}`);
+            
+            // Debug info about available document IDs
+            const availableIds = topLevelEntries.map(doc => doc.id);
+            console.log(`Available document IDs: ${availableIds.join(', ')}`);
+            
+            // If we have documents but they're not in the requested page range, return the first page instead
+            if (page > 1 && topLevelEntries.length > 0) {
+                console.log(`Returning first page documents instead of empty page ${page}`);
+                return new Response(JSON.stringify({
+                    documents: topLevelEntries.slice(0, requestedSize),
+                    totalCount: actualTotalCount,
+                    totalPages,
+                    currentPage: 1,
+                    pageRedirected: true // Signal the client we've redirected
+                }), {
+                    status: 200,
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Access-Control-Allow-Origin": "*"
+                    }
+                });
+            }
+        }
+        
         return new Response(JSON.stringify({
-            documents,
-            totalCount: parentDocumentCount,
-            totalPages: Math.ceil(parentDocumentCount / size),
+            documents: pagedEntries,
+            totalCount: actualTotalCount,
+            totalPages,
             currentPage: page
         }), {
             status: 200,
@@ -299,13 +342,20 @@ export const fetchDocuments = async (req: Request): Promise<Response> => {
                 "Access-Control-Allow-Origin": "*"
             }
         });
-
-    } catch (error) {
-        console.error("Error in fetchDocuments:", error instanceof Error ? error.message : String(error));
+    } catch (error: unknown) {
+        let errMsg = "";
+        if (error instanceof Error) {
+            errMsg = error.message;
+        } else if (typeof error === "string") {
+            errMsg = error;
+        } else {
+            errMsg = JSON.stringify(error);
+        }
+        console.error("Error in fetchDocuments:", errMsg);
         return new Response(
             JSON.stringify({ 
                 message: "Error fetching documents", 
-                error: error instanceof Error ? error.message : "An unknown error occurred" 
+                error: errMsg
             }),
             {
                 status: 500,
@@ -344,7 +394,7 @@ export const fetchVolumesByCategory = async (req: Request): Promise<Response> =>
         const result = await client.queryObject(query, [category]);
         
         // Extract volumes from result
-        const volumes = result.rows.map((row: { volume: string }) => row.volume);
+        const volumes = result.rows.map(row => (row as { volume: string }).volume);
         
         return new Response(JSON.stringify(volumes), {
             headers: { "Content-Type": "application/json" },

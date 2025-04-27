@@ -9,6 +9,8 @@ let currentSortOrder = 'latest'; // Track current sort order
 let visibleEntriesCount = 0;
 // Keep track of expanded compiled documents
 let expandedDocuments = new Set();
+// Global set to track all document IDs we've already displayed across pages
+let globalDisplayedDocIds = new Set();
 
 // Remove custom CSS for document container as it's now handled in CSS files
 // const docContainerStyle = document.createElement('style');
@@ -94,11 +96,13 @@ async function loadCategories() {
     }
 }
 
-// Volume dropdown functionality removed as it's now handled by compiled documents
+// Reset the global document tracking when changing filters or sorting
+function resetDocumentTracking() {
+    globalDisplayedDocIds.clear();
+    currentPage = 1;
+}
 
-// Volume filtering functionality removed as it's now handled by compiled documents
-
-// Category filtering function
+// Add window level function to reset tracking when category filter changes
 window.filterByCategory = function(categoryName) {
     console.log(`Filtering by category: ${categoryName}`);
     
@@ -125,37 +129,52 @@ window.filterByCategory = function(categoryName) {
         });
     }
     
-    // Reset to first page and reload documents with filter
-    currentPage = 1;
+    // Reset to first page and clear tracking when filter changes
+    resetDocumentTracking();
     loadDocuments(currentPage);
 
     // Update the filter indicator
     updateFilterIndicator();
 }
 
+// Update the sort order handler to reset document tracking when sort changes
+document.addEventListener('DOMContentLoaded', function() {
+    const sortOrderSelect = document.getElementById('sort-order');
+    if (sortOrderSelect) {
+        sortOrderSelect.addEventListener('change', function() {
+            currentSortOrder = this.value;
+            console.log(`Sort order changed to: ${currentSortOrder}`);
+            resetDocumentTracking();
+            loadDocuments(1); // Reset to page 1 when sort order changes
+        });
+    }
+});
+
 // Update the loadDocuments function to handle grouped documents
 async function loadDocuments(page = 1) {
     try {
+        // Reset document tracking on ANY page change
+        // This fixes the pagination issue where page 2 shows no documents
+        globalDisplayedDocIds.clear();
+
         // Remember which documents were expanded before we refresh
         const expandedDocIds = [];
         document.querySelectorAll('.document-card.compilation[data-is-expanded="true"]').forEach(card => {
             expandedDocIds.push(card.getAttribute('data-id'));
         });
         
-        // Calculate an adjusted page size to account for compiled documents
-        // Request more documents than needed to ensure we have enough visible ones
-        const adjustedPageSize = pageSize + 5; // Request extra documents to account for hidden compiled children
+        // Use the exact page size we want to display per page
+        // This ensures consistent pagination with the server
+        const exactPageSize = pageSize;
         
         // Add cache-busting parameter to prevent caching
         const cacheBuster = new Date().getTime();
-        let url = `/api/documents?page=${page}&size=${adjustedPageSize}&_=${cacheBuster}`;
+        let url = `/api/documents?page=${page}&size=${exactPageSize}&_=${cacheBuster}`;
         
         // Apply category filter if set
         if (currentCategoryFilter && currentCategoryFilter !== 'All') {
             url += `&category=${encodeURIComponent(currentCategoryFilter)}`;
         }
-        
-        // Volume filter has been removed - now handled by compiled documents
         
         // Apply sort order
         url += `&sort=${encodeURIComponent(currentSortOrder)}`;
@@ -177,15 +196,40 @@ async function loadDocuments(page = 1) {
         const responseData = await response.json();
         console.log('API Response:', responseData);
         
-        const { documents, totalCount, totalPages } = responseData;
+        const { documents, totalCount, totalPages, pageRedirected } = responseData;
         console.log('Documents received:', documents);
-        console.log('First document from API:', documents.length > 0 ? JSON.stringify(documents[0], null, 2) : 'No documents');
+        console.log('Pagination info - totalCount:', totalCount, 'totalPages:', totalPages, 'currentPage:', page, 'pageSize:', pageSize);
+        
+        // If server redirected us to a different page, update our UI accordingly
+        if (pageRedirected) {
+            console.log('Server redirected to page 1 - updating UI');
+            currentPage = 1;
+            
+            // Update URL if needed to reflect the page change
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.set('page', '1');
+            window.history.replaceState({}, '', newUrl.toString());
+        } else {
+            // Update current page normally
+            currentPage = page;
+        }
         
         // Update total entries - we'll use the totalCount from the server
         totalEntries = totalCount;
         
-        // Update current page
-        currentPage = page;
+        // Calculate expected number of pages based on pageSize and totalCount
+        const expectedTotalPages = Math.ceil(totalCount / pageSize);
+        console.log('Expected total pages:', expectedTotalPages, 'Server reported total pages:', totalPages);
+        
+        // If server's totalPages doesn't match what we expect, use our calculated value
+        const finalTotalPages = expectedTotalPages > 0 ? expectedTotalPages : totalPages;
+        console.log('FINAL total pages to use:', finalTotalPages);
+        
+        // Debugging pagination
+        console.log(`Pagination debug: With ${totalCount} total documents and pageSize=${pageSize}, we should have ${Math.ceil(totalCount/pageSize)} pages`);
+        if (totalCount > pageSize && finalTotalPages === 1) {
+            console.warn('WARNING: We have more items than page size but only 1 total page calculated!');
+        }
         
         const documentContainer = document.querySelector("#documents-container");
         if (!documentContainer) {
@@ -195,11 +239,11 @@ async function loadDocuments(page = 1) {
         
         // Clear existing contents
         documentContainer.innerHTML = "";
-
+        
         // Ensure the container can expand when needed
         documentContainer.style.overflow = 'visible';
         documentContainer.style.position = 'relative';
-
+        
         if (!documents || documents.length === 0) {
             let filterMessage = '';
             if (currentCategoryFilter && currentCategoryFilter !== "All") {
@@ -212,10 +256,9 @@ async function loadDocuments(page = 1) {
             `;
             return;
         }
-
+        
         // Track how many visible documents we've displayed
         let visibleDocCount = 0;
-        const maxVisibleDocs = pageSize; // Display at most 5 documents
         
         // Reset visible entries count for this page
         visibleEntriesCount = 0;
@@ -224,8 +267,34 @@ async function loadDocuments(page = 1) {
         const regularDocs = [];
         const compiledDocs = [];
         
+        // Track document IDs to avoid duplicates within this response
+        const processedDocIds = new Set();
+        
+        // Skip the global tracking - we're not using it anymore
+        // console.log('Global displayed doc IDs before processing:', Array.from(globalDisplayedDocIds));
+        
         // Separate documents into regular and compiled categories
         documents.forEach(doc => {
+            // Skip documents we've already processed in this response
+            if (doc.id && processedDocIds.has(doc.id)) {
+                console.log(`Skipping duplicate document ID within response: ${doc.id}`);
+                return;
+            }
+            
+            // We no longer need to check globalDisplayedDocIds since we're clearing it each time
+            
+            // Handle compiled document ID format which might be prefixed
+            let docId = doc.id;
+            if (doc.is_compiled_parent && docId && docId.startsWith('compiled-')) {
+                // Extract just the numeric ID for comparison
+                docId = docId.replace('compiled-', '');
+            }
+            
+            // Add this document to our processed list for this response
+            if (doc.id) {
+                processedDocIds.add(doc.id);
+            }
+            
             if (doc.is_compiled_parent) {
                 compiledDocs.push(doc);
             } else if (!doc.compiled_document_id) {
@@ -234,21 +303,42 @@ async function loadDocuments(page = 1) {
             // Skip individual compiled documents as they'll be displayed under their parent
         });
         
+        console.log(`After deduplication: ${regularDocs.length} regular docs, ${compiledDocs.length} compiled docs`);
+        
         // Combine the documents in the order from the server
         const displayDocuments = [];
-        let regularIndex = 0;
-        let compiledIndex = 0;
         
-        documents.forEach(doc => {
-            if (doc.is_compiled_parent && compiledIndex < compiledDocs.length) {
-                displayDocuments.push(compiledDocs[compiledIndex++]);
-            } else if (!doc.compiled_document_id && regularIndex < regularDocs.length) {
-                displayDocuments.push(regularDocs[regularIndex++]);
+        // For pagination, we need to handle regular and compiled documents properly
+        // Start with regular documents first to maintain consistent ordering
+        displayDocuments.push(...regularDocs);
+        
+        // Then add compiled documents (their children will be handled separately)
+        displayDocuments.push(...compiledDocs);
+        
+        // Sort the display documents based on the current sort order
+        displayDocuments.sort((a, b) => {
+            // Sort by publication date or fallback to title if dates aren't available
+            if (a.publication_date && b.publication_date) {
+                // Sort based on the selected sort order
+                if (currentSortOrder === 'earliest') {
+                    // Earliest to Latest (ascending order)
+                    return new Date(a.publication_date).getTime() - new Date(b.publication_date).getTime();
+                } else {
+                    // Latest to Earliest (descending order - default)
+                    return new Date(b.publication_date).getTime() - new Date(a.publication_date).getTime();
+                }
+            } else if (a.title && b.title) {
+                // If no dates, fall back to title sorting
+                return a.title.localeCompare(b.title);
             }
+            return 0;
         });
         
-        // Ensure we only show the maximum number of visible documents
-        const docsToDisplay = displayDocuments.slice(0, maxVisibleDocs);
+        // Get the slice for the current page - no more recombining based on original order
+        // This ensures consistent pagination
+        const docsToDisplay = displayDocuments.slice(0, exactPageSize);
+        
+        console.log(`Displaying ${docsToDisplay.length} documents on page ${page}`);
         
         // Render each document
         docsToDisplay.forEach((doc, index) => {
@@ -257,7 +347,7 @@ async function loadDocuments(page = 1) {
                 const wrapper = createCompiledDocumentRow(doc, documentContainer);
                 
                 // Special handling for compiled documents in the last row
-                if (index === maxVisibleDocs - 1) {
+                if (index === exactPageSize - 1) {
                     // This is the last document in the page and it's a compiled document
                     wrapper.classList.add('last-in-page');
                 }
@@ -286,21 +376,41 @@ async function loadDocuments(page = 1) {
                     }, 100);
                 }
                 
+                // Add to global tracking to prevent display on future pages
+                if (doc.id) {
+                    globalDisplayedDocIds.add(doc.id);
+                    console.log(`Added compiled doc ID to global tracking: ${doc.id}`);
+                }
+                
+                // Also track the numeric ID to handle both formats
+                if (doc.compiled_document_id) {
+                    globalDisplayedDocIds.add(`compiled-${doc.compiled_document_id}`);
+                    console.log(`Added compiled numeric ID to global tracking: compiled-${doc.compiled_document_id}`);
+                }
+                
                 visibleDocCount++;
                 visibleEntriesCount++; // Count compiled document as one entry
             } else if (!doc.compiled_document_id) {
                 // This is a regular document (not part of a compilation)
                 const card = createDocumentRow(doc);
                 documentContainer.appendChild(card);
+                
+                // Add to global tracking to prevent display on future pages
+                if (doc.id) {
+                    globalDisplayedDocIds.add(doc.id);
+                    console.log(`Added regular doc ID to global tracking: ${doc.id}`);
+                }
+                
                 visibleDocCount++;
                 visibleEntriesCount++; // Count regular document as one entry
             }
         });
 
         console.log(`Displayed ${visibleEntriesCount} visible entries (${visibleDocCount} visible documents)`);
+        console.log('Global displayed doc IDs after processing:', Array.from(globalDisplayedDocIds));
         
         // Update pagination
-        updatePagination(totalPages);
+        updatePagination(finalTotalPages);
     } catch (error) {
         console.error("Error loading documents:", error);
         // Display error message to user
@@ -366,21 +476,25 @@ function updatePagination(totalPages) {
     // Clear existing pagination
     pageLinks.innerHTML = "";
 
-    // If there are no entries, don't show pagination
-    if (totalEntries === 0 || totalPages === 0) {
+    // If there are no entries or only one page, don't show pagination
+    if (totalEntries === 0 || totalPages <= 1) {
         return;
     }
 
+    console.log(`Updating pagination: currentPage=${currentPage}, totalPages=${totalPages}, totalEntries=${totalEntries}`);
+
+    // Create pagination container with Bootstrap-like styling
+    const paginationContainer = document.createElement("div");
+    paginationContainer.className = "pagination-container";
+    paginationContainer.style.zIndex = "100"; // Ensure buttons are clickable
+    
     // Previous button
     const prevButton = document.createElement("button");
-    prevButton.textContent = "< prev";
+    prevButton.textContent = "Previous";
     prevButton.className = "pagination-btn prev-button" + (currentPage === 1 ? " disabled" : "");
     prevButton.disabled = currentPage === 1;
     prevButton.addEventListener("click", () => {
         if (currentPage > 1) {
-            // Remember scroll position
-            const scrollPosition = window.scrollY;
-            
             // Close any expanded documents before changing page
             document.querySelectorAll('.document-card.compilation[data-is-expanded="true"]').forEach(card => {
                 const childrenContainer = card.nextElementSibling;
@@ -389,63 +503,45 @@ function updatePagination(totalPages) {
                 childrenContainer.style.display = 'none';
             });
             
-            loadDocuments(currentPage - 1).then(() => {
-                // Restore scroll position
-                window.scrollTo(0, scrollPosition);
-            });
+            loadDocuments(currentPage - 1);
         }
     });
-    pageLinks.appendChild(prevButton);
+    paginationContainer.appendChild(prevButton);
 
-    // Page numbers
-    let startPage = Math.max(1, currentPage - 2);
-    let endPage = Math.min(totalPages, startPage + 4);
-
-    // Adjust start page if we're near the end
-    if (endPage - startPage < 4) {
-        startPage = Math.max(1, endPage - 4);
-    }
-
-    // First page and ellipsis
-    if (startPage > 1) {
-        const firstButton = createPageButton(1, totalPages);
-        pageLinks.appendChild(firstButton);
-        if (startPage > 2) {
-            const ellipsis = document.createElement("span");
-            ellipsis.textContent = "...";
-            ellipsis.className = "pagination-ellipsis";
-            pageLinks.appendChild(ellipsis);
-        }
-    }
-
-    // Page numbers
-    for (let i = startPage; i <= endPage; i++) {
-        const pageButton = createPageButton(i, totalPages);
-        pageLinks.appendChild(pageButton);
-    }
-
-    // Last page and ellipsis
-    if (endPage < totalPages) {
-        if (endPage < totalPages - 1) {
-            const ellipsis = document.createElement("span");
-            ellipsis.textContent = "...";
-            ellipsis.className = "pagination-ellipsis";
-            pageLinks.appendChild(ellipsis);
-        }
-        const lastButton = createPageButton(totalPages, totalPages);
-        pageLinks.appendChild(lastButton);
+    // Only show the actual number of pages that exist
+    // For totalEntries=7 and pageSize=5, we should only have 2 pages
+    for (let i = 1; i <= totalPages; i++) {
+        const pageButton = document.createElement("button");
+        pageButton.textContent = i;
+        pageButton.className = "pagination-btn page-number" + (i === currentPage ? " active" : "");
+        pageButton.addEventListener("click", () => {
+            if (i !== currentPage) {
+                // Close any expanded documents before changing page
+                document.querySelectorAll('.document-card.compilation[data-is-expanded="true"]').forEach(card => {
+                    const childrenContainer = card.nextElementSibling;
+                    card.setAttribute('data-is-expanded', 'false');
+                    card.querySelector('.expand-icon').textContent = '▶';
+                    childrenContainer.style.display = 'none';
+                });
+                
+                loadDocuments(i);
+            }
+        });
+        paginationContainer.appendChild(pageButton);
     }
 
     // Next button
     const nextButton = document.createElement("button");
-    nextButton.textContent = "next >";
-    nextButton.className = "pagination-btn next-button" + (currentPage === totalPages ? " disabled" : "");
-    nextButton.disabled = currentPage === totalPages;
+    nextButton.textContent = "Next";
+    // Fix: Make sure we're correctly checking if we're on the last page
+    const isLastPage = currentPage >= totalPages;
+    console.log(`Next button state: isLastPage=${isLastPage}, currentPage=${currentPage}, totalPages=${totalPages}`);
+    nextButton.className = "pagination-btn next-button" + (isLastPage ? " disabled" : "");
+    nextButton.disabled = isLastPage;
+    nextButton.style.display = "inline-block"; // Ensure button is visible
     nextButton.addEventListener("click", () => {
         if (currentPage < totalPages) {
-            // Remember scroll position
-            const scrollPosition = window.scrollY;
-            
+            console.log(`Navigating to next page: ${currentPage + 1}`);
             // Close any expanded documents before changing page
             document.querySelectorAll('.document-card.compilation[data-is-expanded="true"]').forEach(card => {
                 const childrenContainer = card.nextElementSibling;
@@ -454,88 +550,68 @@ function updatePagination(totalPages) {
                 childrenContainer.style.display = 'none';
             });
             
-            loadDocuments(currentPage + 1).then(() => {
-                // Restore scroll position
-                window.scrollTo(0, scrollPosition);
-            });
+            loadDocuments(currentPage + 1);
         }
     });
-    pageLinks.appendChild(nextButton);
-}
-
-// Updated createPageButton to handle compiled documents better
-function createPageButton(pageNum, totalPages) {
-    const button = document.createElement("button");
-    button.textContent = pageNum;
-    button.className = "pagination-btn page-number" + (pageNum === currentPage ? " active" : "");
-    button.addEventListener("click", () => {
-        if (pageNum !== currentPage) {
-            // Remember scroll position
-            const scrollPosition = window.scrollY;
-            
-            // Close any expanded documents before changing page
-            document.querySelectorAll('.document-card.compilation[data-is-expanded="true"]').forEach(card => {
-                const childrenContainer = card.nextElementSibling;
-                card.setAttribute('data-is-expanded', 'false');
-                card.querySelector('.expand-icon').textContent = '▶';
-                childrenContainer.style.display = 'none';
-            });
-            
-            loadDocuments(pageNum).then(() => {
-                // Restore scroll position
-                window.scrollTo(0, scrollPosition);
-            });
-        }
-    });
-    return button;
+    paginationContainer.appendChild(nextButton);
+    
+    // Add pagination container to page links
+    pageLinks.appendChild(paginationContainer);
 }
 
 // Add pagination styles
 const paginationStyle = document.createElement('style');
 paginationStyle.textContent = `
-    #page-links {
+    .pagination-container {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 5px;
         margin-top: 20px;
         justify-content: center;
     }
 
     .pagination-btn {
-        padding: 8px 12px;
-        border: 1px solid #e0e0e0;
-        background-color: white;
-        color: #333;
+        padding: 8px 16px;
+        border: 1px solid #dee2e6;
+        background-color: #fff;
+        color: #0d6efd;
         cursor: pointer;
         border-radius: 4px;
         transition: all 0.2s ease;
+        font-size: 14px;
     }
 
     .pagination-btn:hover:not(.disabled):not(.active) {
-        background-color: #f5f5f5;
-        border-color: #1976d2;
+        background-color: #f8f9fa;
+        border-color: #dee2e6;
+        color: #0a58ca;
+        z-index: 2;
     }
 
     .pagination-btn.active {
-        background-color: #1976d2;
+        background-color: #0d6efd;
         color: white;
-        border-color: #1976d2;
+        border-color: #0d6efd;
+        z-index: 3;
     }
 
     .pagination-btn.disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
+        color: #6c757d;
+        pointer-events: none;
+        background-color: #fff;
+        border-color: #dee2e6;
     }
 
-    .pagination-ellipsis {
-        color: #666;
-        padding: 0 4px;
+    .pagination-btn.page-number {
+        min-width: 40px;
+        text-align: center;
     }
 
     #entries-info {
         text-align: center;
-        color: #666;
-        margin-bottom: 10px;
+        color: #6c757d;
+        margin-bottom: 15px;
+        font-size: 14px;
     }
 `;
 document.head.appendChild(paginationStyle);
@@ -2293,58 +2369,10 @@ function setupPagination() {
         return;
     }
     
-    // Add pagination styles
-    const style = document.createElement('style');
-    style.textContent = `
-        #page-links {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
-            margin-top: 20px;
-        }
-        
-        .pagination-btn {
-            padding: 8px 12px;
-            border: 1px solid #e0e0e0;
-            background-color: white;
-            color: #333;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: all 0.2s ease;
-        }
-        
-        .pagination-btn:hover:not(.disabled):not(.active) {
-            background-color: #f5f5f5;
-            border-color: #1976d2;
-        }
-        
-        .pagination-btn.active {
-            background-color: #1976d2;
-            color: white;
-            border-color: #1976d2;
-        }
-        
-        .pagination-btn.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        .pagination-ellipsis {
-            color: #666;
-            padding: 0 4px;
-        }
-        
-        #entries-info {
-            text-align: center;
-            color: #666;
-            margin-bottom: 10px;
-        }
-    `;
-    document.head.appendChild(style);
+    // Remove duplicate style definition - we already have styles in updatePagination
+    console.log("Pagination elements found and setup complete");
     
-    // Initial pagination update
-    updatePagination();
+    // Initial pagination update will happen when documents are loaded
 }
 
 function openPdfModal(doc) {
