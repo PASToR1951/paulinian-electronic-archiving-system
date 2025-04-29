@@ -31,23 +31,34 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
+            const loginData = { ID, Password };
+            console.log("Preparing to send login data:", loginData);
+
             try {
                 console.log("Sending login request...");
                 const response = await fetch("/login", { 
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ ID, Password }),
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    },
+                    body: JSON.stringify(loginData),
                     credentials: "include" // Important for cookies
                 });
 
                 console.log("Waiting for server response...");
+                console.log("Response status:", response.status);
+                console.log("Response headers:", Object.fromEntries([...response.headers]));
 
                 let data;
+                const responseText = await response.text();
+                console.log("Raw response:", responseText);
+                
                 try {
-                    data = await response.json();
-                } catch {
-                    console.error("Server returned a non-JSON response.");
-                    alert("An unexpected error occurred. Please try again.");
+                    data = JSON.parse(responseText);
+                } catch (parseError) {
+                    console.error("Failed to parse JSON:", parseError);
+                    alert("Server returned an invalid response format. Please try again.");
                     isSubmitting = false;
                     return;
                 }
@@ -57,9 +68,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (response.ok) {
                     // Store the session token
                     if (data.token) {
-                        // Don't set HttpOnly from client side as it won't work
+                        // Store token in both cookie and localStorage for redundancy
                         document.cookie = `session_token=${data.token}; path=/`;
-                        console.log("Session token set in cookie");
+                        localStorage.setItem('session_token', data.token);
+                        console.log("Session token set in cookie and localStorage");
                     }
                     
                     // Redirect based on role

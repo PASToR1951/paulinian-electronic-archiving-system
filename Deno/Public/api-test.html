@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        h2 {
+            margin-top: 0;
+        }
+        button {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        input {
+            padding: 8px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-width: 250px;
+        }
+        .error {
+            color: red;
+        }
+        .success {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <h1>API Test Page</h1>
+    
+    <div class="test-section">
+        <h2>Author API Test</h2>
+        <button id="testAuthorApi">Test Author API</button>
+        <pre id="testAuthorApiResult">Click the button to test the API...</pre>
+    </div>
+    
+    <div class="test-section">
+        <h2>Author Search Test</h2>
+        <div>
+            <input type="text" id="authorSearchQuery" placeholder="Enter search query">
+            <button id="testAuthorSearch">Search</button>
+        </div>
+        <pre id="testAuthorSearchResult">Enter a search query and click Search...</pre>
+    </div>
+    
+    <div class="test-section">
+        <h2>Direct Route Test</h2>
+        <div>
+            <input type="text" id="directRouteInput" value="/authors/search?q=jo" placeholder="Enter route path">
+            <button id="testDirectRoute">Test Route</button>
+        </div>
+        <pre id="testDirectRouteResult">Enter a route and click Test Route...</pre>
+    </div>
+    
+    <div class="test-section">
+        <h2>Create Author Test</h2>
+        <div>
+            <input type="text" id="authorName" placeholder="Author Full Name">
+            <input type="text" id="authorAffiliation" placeholder="Affiliation (optional)">
+            <button id="createAuthor">Create Author</button>
+        </div>
+        <pre id="createAuthorResult">Fill in the form and click Create Author...</pre>
+    </div>
+    
+    <script>
+        // Test the Author API endpoint
+        document.getElementById('testAuthorApi').addEventListener('click', async () => {
+            const resultElement = document.getElementById('testAuthorApiResult');
+            resultElement.textContent = 'Testing...';
+            
+            try {
+                const response = await fetch('/api/authors/test');
+                const status = response.status;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultElement.innerHTML = `<span class="success">Success! Status: ${status}</span>\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultElement.innerHTML = `<span class="error">Error! Status: ${status}</span>`;
+                }
+            } catch (error) {
+                resultElement.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+        });
+        
+        // Test the Author Search endpoint
+        document.getElementById('testAuthorSearch').addEventListener('click', async () => {
+            const queryElement = document.getElementById('authorSearchQuery');
+            const resultElement = document.getElementById('testAuthorSearchResult');
+            
+            const query = queryElement.value.trim();
+            if (!query) {
+                resultElement.innerHTML = '<span class="error">Please enter a search query</span>';
+                return;
+            }
+            
+            resultElement.textContent = 'Searching...';
+            
+            try {
+                const response = await fetch(`/authors/search?q=${encodeURIComponent(query)}`);
+                const status = response.status;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultElement.innerHTML = `<span class="success">Success! Status: ${status}</span>\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultElement.innerHTML = `<span class="error">Error! Status: ${status}</span>`;
+                    
+                    // Try to get error message
+                    try {
+                        const errorData = await response.text();
+                        resultElement.innerHTML += `\n${errorData}`;
+                    } catch {}
+                }
+            } catch (error) {
+                resultElement.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+        });
+        
+        // Test a direct route
+        document.getElementById('testDirectRoute').addEventListener('click', async () => {
+            const routeElement = document.getElementById('directRouteInput');
+            const resultElement = document.getElementById('testDirectRouteResult');
+            
+            const route = routeElement.value.trim();
+            if (!route) {
+                resultElement.innerHTML = '<span class="error">Please enter a route</span>';
+                return;
+            }
+            
+            resultElement.textContent = 'Testing route...';
+            
+            try {
+                const response = await fetch(route);
+                const status = response.status;
+                
+                if (response.ok) {
+                    try {
+                        const data = await response.json();
+                        resultElement.innerHTML = `<span class="success">Success! Status: ${status}</span>\n${JSON.stringify(data, null, 2)}`;
+                    } catch {
+                        const text = await response.text();
+                        resultElement.innerHTML = `<span class="success">Success! Status: ${status}</span>\n${text}`;
+                    }
+                } else {
+                    resultElement.innerHTML = `<span class="error">Error! Status: ${status}</span>`;
+                    
+                    // Try to get error message
+                    try {
+                        const errorData = await response.text();
+                        resultElement.innerHTML += `\n${errorData}`;
+                    } catch {}
+                }
+            } catch (error) {
+                resultElement.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+        });
+        
+        // Test the Create Author endpoint
+        document.getElementById('createAuthor').addEventListener('click', async () => {
+            const nameElement = document.getElementById('authorName');
+            const affiliationElement = document.getElementById('authorAffiliation');
+            const resultElement = document.getElementById('createAuthorResult');
+            
+            const name = nameElement.value.trim();
+            const affiliation = affiliationElement.value.trim();
+            
+            if (!name) {
+                resultElement.innerHTML = '<span class="error">Please enter an author name</span>';
+                return;
+            }
+            
+            resultElement.textContent = 'Creating author...';
+            
+            try {
+                const response = await fetch('/authors', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        full_name: name,
+                        affiliation: affiliation || null
+                    })
+                });
+                
+                const status = response.status;
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultElement.innerHTML = `<span class="success">Success! Status: ${status}</span>\n${JSON.stringify(data, null, 2)}`;
+                    
+                    // Clear input fields
+                    nameElement.value = '';
+                    affiliationElement.value = '';
+                } else {
+                    resultElement.innerHTML = `<span class="error">Error! Status: ${status}</span>\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultElement.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+        });
+    </script>
+</body>
+</html> 

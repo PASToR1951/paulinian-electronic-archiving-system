@@ -1,0 +1,113 @@
+<!DOCTYPE html> 
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Logs</title>
+    <link rel="stylesheet" href="css/admin_logs.css">
+    <link rel="stylesheet" href="css/side_bar.css">
+    <link rel="stylesheet" href="css/navbar_header.css">
+    <link rel="stylesheet" href="css/logs_layout.css">
+  </head>
+<body>
+    <div id="side-bar"> 
+  
+    </div>
+  
+    <div id="navbar-header"> 
+    
+    </div>
+    
+    <div class="logs-container">
+        
+        <!-- User Logins Section -->
+        <div class="logs-section user-logins">
+            <h2>User Logins</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Timestamp</th>
+                        <th>User</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>2024-12-20 10:00:00</td>
+                        <td>JohnDoe</td>
+                        <td style="color: green;">Success</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Downloads Section -->
+        <div class="logs-section">
+            <h2>Downloads</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Timestamp</th>
+                        <th>User</th>
+                        <th>File</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>2024-12-20 10:05:00</td>
+                        <td>JaneDoe</td>
+                        <td>thesis.pdf</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Saved Documents Section -->
+        <div class="logs-section">
+            <h2>Saved Documents</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Timestamp</th>
+                        <th>User</th>
+                        <th>Document</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>2024-12-20 10:10:00</td>
+                        <td>JohnDoe</td>
+                        <td>research_paper.pdf</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    
+
+    <script>
+        fetch('./side_bar.html')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById('side-bar').innerHTML = data;
+          })
+          .catch(error => console.error('Error loading sidebar:', error));
+    </script>
+    
+    <script>
+        fetch('./navbar_header.html')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById('navbar-header').innerHTML = data;
+          })
+          .catch(error => console.error('Error loading navbar:', error));
+    </script>
+</body>
+</html>

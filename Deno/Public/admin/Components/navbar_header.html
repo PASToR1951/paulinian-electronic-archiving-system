@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabler Header</title>
+    <link rel="stylesheet" href="css/navbar_header.css">
+  
+</head>
+<body>
+  
+    <div class="header">
+        <div class="logo">
+          <div class="logo-spud" style="background-image: url('/admin/Components/img/logo1.png');"></div>
+          
+          <div class="content">
+            <span class="spud-text">St Paul University Dumaguete
+          </span>
+                <p>CARITAS VERITAS SCIENTIA</p> 
+         </div>
+    </div>
+         
+
+      </div>
+    
+      <script>document.addEventListener('DOMContentLoaded', function() {
+        const userDropdown = document.querySelector('.user-dropdown');
+        if (!userDropdown) {
+            console.error("User dropdown element not found.");
+            return; 
+        }
+        const dropdownContent = userDropdown.querySelector('.dropdown-content');
+      
+        if (!dropdownContent) {
+          console.error("Dropdown content element not found.");
+          return;
+        }
+      
+        userDropdown.addEventListener('click', (event) => {
+            event.stopPropagation();
+            dropdownContent.style.display = dropdownContent.style.display === 'block' ? 'none' : 'block';
+        });
+      
+        window.addEventListener('click', (event) => {
+            if (!userDropdown.contains(event.target)) {
+                dropdownContent.style.display = 'none';
+            }
+        });
+      
+      });</script>
+</body>
+</html>

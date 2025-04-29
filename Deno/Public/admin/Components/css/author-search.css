@@ -1,0 +1,148 @@
+/**
+ * Author Search CSS
+ * Styling for author search component
+ */
+
+/* Author input field styling */
+.authors-input {
+  position: relative;
+}
+
+/* Suggestions container */
+.author-suggestions {
+  position: absolute;
+  z-index: 1000;
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  width: 100%;
+  max-height: 250px;
+  overflow-y: auto;
+  margin-top: 2px;
+}
+
+/* Individual suggestion item */
+.author-suggestion-item {
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.author-suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.author-suggestion-item:hover {
+  background-color: #f7fafc;
+}
+
+.author-suggestion-item.active {
+  background-color: #edf2f7;
+}
+
+/* Loading state */
+.author-suggestion-item.loading {
+  display: flex;
+  align-items: center;
+  color: #718096;
+  font-style: italic;
+}
+
+/* Error state */
+.author-suggestion-item.error {
+  color: #e53e3e;
+}
+
+/* No results state */
+.author-suggestion-item.no-results {
+  color: #718096;
+  font-style: italic;
+}
+
+/* Loading spinner */
+.spinner {
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #10B981;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spin 1s linear infinite;
+  margin-right: 10px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Author name and details */
+.author-suggestion-item .name {
+  font-weight: 500;
+}
+
+.author-suggestion-item .affiliation {
+  font-size: 0.85em;
+  color: #718096;
+  margin-top: 2px;
+}
+
+/* Selection checkmark */
+.author-highlight {
+  position: relative;
+}
+
+.author-highlight::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 24px;
+  height: 24px;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%2310B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>');
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.author-suggestion-item:hover .author-highlight::after {
+  opacity: 1;
+}
+
+.author-search-container {
+    position: relative;
+    width: 100%;
+}
+
+.author-suggestion-item.no-results {
+    color: #666;
+    font-style: italic;
+}
+
+.author-suggestion-item.loading,
+.author-suggestion-item.error {
+    padding: 12px;
+    text-align: center;
+}
+
+.author-suggestion-item.error {
+    color: #EF4444;
+}
+
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-top-color: #10B981;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+} 

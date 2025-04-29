@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Upload - PEAS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide-static@latest/dist/lucide.min.js"></script>
+    
+    <!-- PDF.js Library for PDF text extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script>
+        // Initialize PDF.js worker
+        if (window.pdfjsLib) {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        }
+    </script>
+    
+    <script>
+        // Tailwind configuration
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            light: '#ECFDF5', // emerald-50
+                            DEFAULT: '#10B981', // emerald-500
+                            dark: '#047857', // emerald-700
+                        },
+                        secondary: '#6B7280', // gray-500
+                        gray: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e5e7eb',
+                            300: '#d1d5db',
+                            400: '#9ca3af',
+                            500: '#6b7280',
+                            600: '#4b5563',
+                            700: '#374151',
+                            800: '#1f2937',
+                            900: '#111827',
+                        },
+                        red: {
+                           500: '#ef4444'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Load CSS from sidebar and navbar -->
+    <link rel="stylesheet" href="css/side_bar.css">
+    <link rel="stylesheet" href="css/navbar_header.css">
+    <link rel="stylesheet" href="css/upload_document.css">
+    <link rel="stylesheet" href="css/author-search.css">
+    <link rel="stylesheet" href="css/research-agenda-search.css">
+    
+    <style>
+        /* Research Agenda Dropdown Styles */
+        .topic-suggestions {
+            position: absolute;
+            z-index: 1000;
+            background-color: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            width: 100%;
+            max-height: 250px;
+            overflow-y: auto;
+            margin-top: 2px;
+        }
+        .topic-suggestion-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .topic-suggestion-item:last-child {
+            border-bottom: none;
+        }
+        .topic-suggestion-item:hover {
+            background-color: #f7fafc;
+        }
+        .selected-topic {
+            display: inline-block;
+            padding: 4px 10px;
+            margin: 4px;
+            border-radius: 16px;
+            font-size: 0.875rem;
+            position: relative;
+        }
+        .remove-topic {
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .pending-topic {
+            opacity: 0.7;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Include sidebar navigation -->
+    <!-- Sidebar container -->
+  <div id="side-bar"></div>
+  
+  <!-- Navbar container -->
+  <div id="navbar-header"></div>
+  
+    <!-- SweetAlert2 for better notifications -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Document upload functionality -->
+    <script src="js/upload_document.js"></script>
+    
+    <!-- Author search functionality -->
+    <script src="js/author-search.js"></script>
+    
+    <!-- Research Agenda search functionality -->
+    <script src="js/get-research-agenda.js"></script>
+    
+    <!-- Load Navigation Components -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load the sidebar content
+            fetch('./side_bar.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('side-bar').innerHTML = data;
+                    if (window.lucide) {
+                        lucide.createIcons();
+                    }
+                })
+                .catch(error => console.error('Error loading sidebar:', error));
+            
+            // Load the navbar header content
+            fetch('./navbar_header.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('navbar-header').innerHTML = data;
+                    if (window.lucide) {
+                        lucide.createIcons();
+                    }
+                })
+                .catch(error => console.error('Error loading navbar:', error));
+        });
+    </script>
+    
+    <!-- Main content -->
+    <div class="container mx-auto px-4 py-8" style="margin-left: 240px; max-width: calc(100% - 240px);">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="md:col-span-2 bg-white rounded-lg shadow-md p-6 md:p-8">
+                <h1 class="text-2xl font-semibold text-gray-800 mb-6">Add New Document</h1>
+                
+                <!-- Upload Mode Tabs -->
+                <div class="mb-6">
+                    <div class="flex space-x-2">
+                        <button id="singleDocTab" type="button" class="px-4 py-2 rounded-md text-sm font-medium tab-active focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">Single Document</button>
+                        <button id="compiledDocTab" type="button" class="px-4 py-2 rounded-md text-sm font-medium tab-inactive focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">Compiled Document</button>
+                    </div>
+                </div>
+                
+                <!-- Single Document Form -->
+                <div id="singleDocForm" class="form-section active">
+                    <form id="uploadSingleForm" class="space-y-6">
+                        <div>
+                            <label for="single-title" class="block text-sm font-medium text-gray-700">Title <span class="text-red-500">*</span></label>
+                            <input type="text" id="single-title" name="title" required placeholder="Enter document title" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm">
+                        </div>
+
+                        <div>
+                            <label for="single-author" class="block text-sm font-medium text-gray-700">Author(s) <span class="text-red-500">*</span></label>
+                            <input type="text" id="single-author" name="author" required placeholder="E.g., John Doe, CPA; Jane Smith, PhD" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">Enter multiple authors separated by semicolons. Include titles with the name (e.g., "John Doe, CPA; Jane Smith, PhD").</p>
+                            <div id="single-authorList" class="mt-2 text-sm text-gray-600"></div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Publishing Date</label>
+                            <div class="grid grid-cols-2 gap-4 mt-1">
+                                <div>
+                                    <label for="single-pubMonth" class="sr-only">Publication Month</label>
+                                    <select id="single-pubMonth" name="pubMonth" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md">
+                                        <option value="">Select Month</option>
+                                        <option value="01">January</option>
+                                        <option value="02">February</option>
+                                        <option value="03">March</option>
+                                        <option value="04">April</option>
+                                        <option value="05">May</option>
+                                        <option value="06">June</option>
+                                        <option value="07">July</option>
+                                        <option value="08">August</option>
+                                        <option value="09">September</option>
+                                        <option value="10">October</option>
+                                        <option value="11">November</option>
+                                        <option value="12">December</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="single-pubYear" class="sr-only">Publication Year</label>
+                                    <input type="number" id="single-pubYear" name="pubYear" placeholder="YYYY" min="1000" max="9999" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="relative">
+                                <label for="topicInput" class="block text-sm font-medium text-gray-700">Research Agenda</label>
+                                <input type="text" id="topicInput" name="topicInput" placeholder="Search for research agenda items" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm">
+                                <div id="topicList" class="topic-suggestions" style="display: none;"></div>
+                                <div id="selectedTopics" class="mt-2 flex flex-wrap"></div>
+                                <p class="mt-1 text-xs text-gray-500">Search for research agenda items or add new ones.</p>
+                            </div>
+                            <div>
+                                <label for="single-category" class="block text-sm font-medium text-gray-700">Category</label>
+                                <select id="single-category" name="category" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md">
+                                    <option value="">Choose a category</option>
+                                    <option value="Thesis">Thesis</option>
+                                    <option value="Dissertation">Dissertation</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Attach File <span class="text-red-500">*</span></label>
+                            <div id="single-dropZone" class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-primary transition-colors duration-200 ease-in-out">
+                                <div class="space-y-1 text-center">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                    <div class="flex text-sm text-gray-600 justify-center">
+                                        <label for="single-file-upload" class="relative cursor-pointer bg-white rounded-md font-medium text-primary hover:text-primary-dark">
+                                            <span>Upload a file</span>
+                                            <input id="single-file-upload" name="file-upload" type="file" class="hidden-file-input" required accept=".pdf">
+                                        </label>
+                                        <p class="pl-1">or drag and drop</p>
+                                    </div>
+                                    <p class="text-xs text-gray-500">PDF up to 10MB</p>
+                                    <p id="single-fileNameDisplay" class="text-sm text-gray-900 font-medium pt-2"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 flex justify-end">
+                            <button type="submit" class="inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                                Submit Document
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Compiled Document Form -->
+                <div id="compiledDocForm" class="form-section">
+                    <form id="uploadCompiledForm">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 mb-6">
+                            <div>
+                                <label for="compiled-pub-year-start" class="block text-sm font-medium text-gray-700">Publication Year</label>
+                                <div class="flex items-center space-x-2 mt-1">
+                                    <input type="text" id="compiled-pub-year-start" name="pub-year-start" placeholder="Start Year" class="form-input flex-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm">
+                                    <span class="text-gray-500">to</span>
+                                    <input type="text" id="compiled-pub-year-end" name="pub-year-end" placeholder="End Year" class="form-input flex-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm">
+                                </div>
+                            </div>
+                            <div>
+                                <label for="compiled-volume" class="block text-sm font-medium text-gray-700">Volume</label>
+                                <input type="text" id="compiled-volume" name="volume" placeholder="Enter volume number" class="form-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="compiled-issued-no" id="compiled-issued-no-label" class="block text-sm font-medium text-gray-700">Issued No.</label>
+                                <input type="text" id="compiled-issued-no" name="issued-no" placeholder="Enter value" class="form-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="compiled-category" class="block text-sm font-medium text-gray-700">Category</label>
+                                <select id="compiled-category" name="category" class="form-input mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm">
+                                    <option value="">Choose a category</option>
+                                    <option value="Confluence">Confluence</option>
+                                    <option value="Synergy">Synergy</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-200 pt-6">
+                            <h2 class="text-lg font-medium text-gray-900 mb-4">Contents Section</h2>
+
+                            <div id="research-sections-container" class="space-y-4">
+                                <div class="research-section bg-primary-light border border-emerald-200 rounded-lg p-4 relative" data-section-id="1">
+                                    <button type="button" class="remove-section-btn absolute top-2 right-2 text-gray-400 hover:text-red-600" title="Remove Section">
+                                        <i data-lucide="x-circle" class="w-5 h-5"></i>
+                                    </button>
+                                    <div class="research-header flex items-center justify-between cursor-pointer" onclick="toggleResearchSection(this)">
+                                        <h3 class="text-md font-semibold text-primary-dark flex items-center">
+                                            <i data-lucide="file-text" class="w-5 h-5 mr-2"></i> Research 1
+                                            <i data-lucide="chevron-down" class="toggle-icon w-5 h-5 ml-2 text-gray-500"></i>
+                                        </h3>
+                                        <div class="flex items-center">
+                                            <button type="button" class="view-file-btn hidden p-2.5 bg-white border border-gray-200 shadow rounded-full" title="Preview PDF" onclick="event.stopPropagation(); viewResearchFile(this)">
+                                                <i data-lucide="eye" class="w-6 h-6 text-gray-400"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="research-content space-y-4 mt-3">
+                                        <div>
+                                            <label for="study-title-1" class="block text-sm font-medium text-gray-700">Study Title</label>
+                                            <input type="text" id="study-title-1" name="research[1][study_title]" placeholder="Enter study title" class="form-input study-title-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm">
+                                        </div>
+                                        <div>
+                                            <label for="authors-1" class="block text-sm font-medium text-gray-700">Authors</label>
+                                            <input type="text" id="authors-1" name="research[1][authors]" placeholder="E.g., John Doe, CPA; Jane Smith, PhD" class="form-input authors-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm author-search-input">
+                                            <p class="mt-1 text-xs text-gray-500">Enter multiple authors separated by semicolons. Include titles with the name (e.g., "John Doe, CPA; Jane Smith, PhD").</p>
+                                            <div class="author-suggestions" style="display: none;"></div>
+                                            <div class="selected-authors mt-2 flex flex-wrap"></div>
+                                        </div>
+                                        <div>
+                                            <label for="research-agenda-1" class="block text-sm font-medium text-gray-700">Research Agenda</label>
+                                            <div class="relative">
+                                                <input type="text" id="research-agenda-1" name="research[1][research_agenda]" placeholder="Search for research agenda items" class="form-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm research-agenda-input">
+                                                <div class="topic-suggestions" style="display: none;"></div>
+                                                <div class="selected-topics mt-2 flex flex-wrap"></div>
+                                            </div>
+                                            <p class="mt-1 text-xs text-gray-500">Search for research agenda items or add new ones.</p>
+                                        </div>
+                                        <div>
+                                            <label for="attach-file-1" class="block text-sm font-medium text-gray-700 mb-1">Attach File</label>
+                                            <div id="file-upload-container-1" class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-primary transition-colors duration-200 ease-in-out">
+                                                <div class="space-y-1 text-center">
+                                                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                                    </svg>
+                                                    <div class="flex text-sm text-gray-600 justify-center">
+                                                        <label for="file-upload-1" class="relative cursor-pointer bg-white rounded-md font-medium text-primary hover:text-primary-dark">
+                                                            <span>Upload a file</span>
+                                                            <input id="file-upload-1" name="research[1][file]" type="file" class="hidden-file-input" required accept=".pdf">
+                                                        </label>
+                                                        <p class="pl-1">or drag and drop</p>
+                                                    </div>
+                                                    <p class="text-xs text-gray-500">PDF up to 10MB</p>
+                                                    <p class="file-name-display text-sm text-gray-900 font-medium pt-2"></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="abstract-preview-section mt-2 hidden">
+                                            <h4 class="text-sm font-medium text-gray-700 mb-1">Abstract Preview</h4>
+                                            <div class="p-3 bg-gray-50 border border-gray-200 rounded-md min-h-[80px]">
+                                                <p class="text-sm text-gray-600 italic abstract-content">
+                                                    Abstract will be extracted from the PDF file.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="button" id="add-research-section-btn" class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                                <i data-lucide="plus" class="-ml-1 mr-2 h-5 w-5"></i>
+                                Add Study/Research
+                            </button>
+                        </div>
+
+                        <div class="mt-8 pt-5 border-t border-gray-200 flex justify-end space-x-3">
+                            <button type="button" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                                Cancel
+                            </button>
+                            <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                                Save Document
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Preview Section -->
+            <div class="md:col-span-1">
+                <!-- Single Document Preview -->
+                <div id="singleDocPreview" class="preview-section active">
+                    <div class="bg-white p-6 md:p-8 rounded-lg shadow-md sticky top-8">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-4">Preview</h2>
+                        <div class="space-y-4">
+                            <div class="w-24 h-24 bg-[#fffff5] rounded-lg flex items-center justify-center mb-4 shadow preview-icon">
+                                <img src="icons/category-icons/default_category_icon.png" class="w-16 h-16 object-contain" id="preview-category-icon" alt="Document icon">
+                            </div>
+
+                            <div>
+                                <h3 id="previewTitle" class="text-lg font-semibold text-gray-900 break-words">Title of Document</h3>
+                                <p id="previewAuthor" class="text-sm text-gray-500 mt-1">by Author Name</p>
+                            </div>
+
+                            <dl class="mt-3 space-y-2 text-sm text-gray-700">
+                                <div class="flex justify-between">
+                                    <dt class="font-medium text-gray-500">Publishing Date:</dt>
+                                    <dd id="previewPubDate" class="text-gray-900">N/A</dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt class="font-medium text-gray-500">Category:</dt>
+                                    <dd id="previewCategory" class="text-gray-900">N/A</dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt class="font-medium text-gray-500">Added Date:</dt>
+                                    <dd id="previewAddedDate" class="text-gray-900">N/A</dd>
+                                </div>
+                            </dl>
+
+                            <div class="pt-4">
+                                <button type="button" id="read-document-btn" class="w-full inline-flex justify-center py-2 px-4 border border-primary shadow-sm text-sm font-medium rounded-md text-primary-dark bg-white hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                                    <i data-lucide="book-open" class="w-4 h-4 mr-2"></i> Read Document
+                                </button>
+                            </div>
+
+                            <div class="pt-4">
+                                <h4 class="text-base font-medium text-gray-800 mb-2">Abstract</h4>
+                                <div class="p-3 bg-gray-50 border border-gray-200 rounded-md min-h-[100px]">
+                                    <p id="previewAbstract" class="text-sm text-gray-600 italic">
+                                        Abstract will be extracted from the PDF file.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Compiled Document Preview -->
+                <div id="compiledDocPreview" class="preview-section">
+                    <div class="sticky top-8 bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-semibold mb-4 text-gray-800">Preview</h2>
+                        
+                        <div class="w-24 h-24 bg-[#fffff5] rounded-lg flex items-center justify-center mb-4 shadow compiled-preview-icon">
+                            <img src="icons/category-icons/default_category_icon.png" class="w-16 h-16 object-contain" id="compiled-preview-category-icon" alt="Document icon">
+                        </div>
+
+                        <div class="mb-6 border-b pb-4">
+                            <h3 class="text-lg font-medium text-gray-900 mb-2" id="preview-main-title">Compiled Document</h3>
+                            <div class="space-y-1 text-sm text-gray-600">
+                                <p><strong>Publication Year:</strong> <span id="preview-pub-year">N/A</span></p>
+                                <p><strong>Volume:</strong> <span id="preview-volume">N/A</span></p>
+                                <p><strong id="preview-issued-no-label">Issued No:</strong> <span id="preview-issued-no">N/A</span></p>
+                                <p><strong>Category:</strong> <span id="preview-category">N/A</span></p>
+                                <p><strong>Added Date:</strong> <span id="preview-added-date">N/A</span></p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 class="text-md font-medium text-gray-800 mb-3">Included Studies:</h4>
+                            <div id="preview-studies-list" class="space-y-2 text-sm text-gray-700 max-h-96 overflow-y-auto">
+                                <p id="preview-no-studies-msg" class="text-gray-500 italic">No studies added yet.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript for tab switching -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get tab elements
+            const singleDocTab = document.getElementById('singleDocTab');
+            const compiledDocTab = document.getElementById('compiledDocTab');
+            
+            // Get form sections
+            const singleDocForm = document.getElementById('singleDocForm');
+            const compiledDocForm = document.getElementById('compiledDocForm');
+            
+            // Get preview sections
+            const singleDocPreview = document.getElementById('singleDocPreview');
+            const compiledDocPreview = document.getElementById('compiledDocPreview');
+            
+            // Function to switch tabs
+            function switchTab(activeTab, inactiveTab, activeForm, inactiveForm, activePreview, inactivePreview) {
+                // Update tab styling
+                activeTab.classList.remove('tab-inactive');
+                activeTab.classList.add('tab-active');
+                inactiveTab.classList.remove('tab-active');
+                inactiveTab.classList.add('tab-inactive');
+                
+                // Update form visibility
+                activeForm.classList.add('active');
+                inactiveForm.classList.remove('active');
+                
+                // Update preview visibility
+                activePreview.classList.add('active');
+                inactivePreview.classList.remove('active');
+            }
+            
+            // Single document tab click handler
+            singleDocTab.addEventListener('click', function() {
+                switchTab(singleDocTab, compiledDocTab, singleDocForm, compiledDocForm, singleDocPreview, compiledDocPreview);
+            });
+            
+            // Compiled document tab click handler
+            compiledDocTab.addEventListener('click', function() {
+                switchTab(compiledDocTab, singleDocTab, compiledDocForm, singleDocForm, compiledDocPreview, singleDocPreview);
+                
+                // Force immediate update of the compiled document preview when switching to compiled tab
+                console.log("Switched to compiled document tab");
+                if (typeof updateCompiledDocumentPreview === 'function') {
+                    // Call immediately without delay to ensure it runs
+                    updateCompiledDocumentPreview();
+                }
+            });
+            
+            // File upload handling for single document
+            const singleFileInput = document.getElementById('single-file-upload');
+            const singleFileNameDisplay = document.getElementById('single-fileNameDisplay');
+            const singleDropZone = document.getElementById('single-dropZone');
+            
+            singleFileInput.addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    singleFileNameDisplay.textContent = e.target.files[0].name;
+                }
+            });
+            
+            // Add research section button handler
+            const addSectionBtn = document.getElementById('add-research-section-btn');
+            const sectionsContainer = document.getElementById('research-sections-container');
+            let sectionCounter = 1;
+            
+            // Function to check section limit and update UI accordingly
+            function checkSectionLimit() {
+                const sectionCount = document.querySelectorAll('.research-section').length;
+                const maxSections = 5;
+                
+                // Disable/enable add button based on section count
+                if (sectionCount >= maxSections) {
+                    addSectionBtn.disabled = true;
+                    addSectionBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    
+                    // Show limit message if not already shown
+                    if (!document.getElementById('section-limit-message')) {
+                        const limitMessage = document.createElement('p');
+                        limitMessage.id = 'section-limit-message';
+                        limitMessage.className = 'text-sm text-orange-500 mt-2';
+                        limitMessage.innerHTML = '<i data-lucide="alert-circle" class="inline w-4 h-4 mr-1"></i> Maximum of 5 studies allowed per document.';
+                        addSectionBtn.insertAdjacentElement('afterend', limitMessage);
+                        
+                        // Initialize the icon in the message
+                        if (window.lucide) {
+                            lucide.createIcons();
+                        }
+                    }
+                } else {
+                    addSectionBtn.disabled = false;
+                    addSectionBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    
+                    // Remove limit message if exists
+                    const limitMessage = document.getElementById('section-limit-message');
+                    if (limitMessage) {
+                        limitMessage.remove();
+                    }
+                }
+            }
+            
+            // Run initial check for section limit
+            checkSectionLimit();
+            
+            addSectionBtn.addEventListener('click', function() {
+                // Check if maximum sections reached
+                const sectionCount = document.querySelectorAll('.research-section').length;
+                const maxSections = 5;
+                
+                if (sectionCount >= maxSections) {
+                    // Show alert if trying to add more than the maximum
+                    alert('Maximum of 5 studies allowed per document.');
+                    return;
+                }
+                
+                sectionCounter++;
+                
+                const newSection = document.createElement('div');
+                newSection.className = 'research-section bg-primary-light border border-emerald-200 rounded-lg p-4 relative';
+                newSection.dataset.sectionId = sectionCounter;
+                
+                newSection.innerHTML = `
+                    <button type="button" class="remove-section-btn absolute top-2 right-2 text-gray-400 hover:text-red-600" title="Remove Section">
+                        <i data-lucide="x-circle" class="w-5 h-5"></i>
+                    </button>
+                    <div class="research-header flex items-center justify-between cursor-pointer" onclick="toggleResearchSection(this)">
+                        <h3 class="text-md font-semibold text-primary-dark flex items-center">
+                            <i data-lucide="file-text" class="w-5 h-5 mr-2"></i> Research ${sectionCounter}
+                            <i data-lucide="chevron-down" class="toggle-icon w-5 h-5 ml-2 text-gray-500"></i>
+                        </h3>
+                        <div class="flex items-center">
+                            <button type="button" class="view-file-btn hidden p-2.5 bg-white border border-gray-200 shadow rounded-full" title="Preview PDF" onclick="event.stopPropagation(); viewResearchFile(this)">
+                                <i data-lucide="eye" class="w-6 h-6 text-gray-400"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="research-content space-y-4 mt-3">
+                        <div>
+                            <label for="study-title-${sectionCounter}" class="block text-sm font-medium text-gray-700">Study Title</label>
+                            <input type="text" id="study-title-${sectionCounter}" name="research[${sectionCounter}][study_title]" placeholder="Enter study title" class="form-input study-title-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="authors-${sectionCounter}" class="block text-sm font-medium text-gray-700">Authors</label>
+                            <input type="text" id="authors-${sectionCounter}" name="research[${sectionCounter}][authors]" placeholder="E.g., Jane Doe, CPA; Jane Smith, PhD" class="form-input authors-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm author-search-input">
+                            <p class="mt-1 text-xs text-gray-500">Enter multiple authors separated by semicolons. Include titles with the name (e.g., "John Doe, CPA; Jane Smith, PhD").</p>
+                            <div class="author-suggestions" style="display: none;"></div>
+                            <div class="selected-authors mt-2 flex flex-wrap"></div>
+                        </div>
+                        <div>
+                            <label for="research-agenda-${sectionCounter}" class="block text-sm font-medium text-gray-700">Research Agenda</label>
+                            <div class="relative">
+                                <input type="text" id="research-agenda-${sectionCounter}" name="research[${sectionCounter}][research_agenda]" placeholder="Search for research agenda items" class="form-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm research-agenda-input">
+                                <div class="topic-suggestions" style="display: none;"></div>
+                                <div class="selected-topics mt-2 flex flex-wrap"></div>
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500">Search for research agenda items or add new ones.</p>
+                        </div>
+                        <div>
+                            <label for="attach-file-${sectionCounter}" class="block text-sm font-medium text-gray-700 mb-1">Attach File</label>
+                            <div id="file-upload-container-${sectionCounter}" class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-primary transition-colors duration-200 ease-in-out">
+                                <div class="space-y-1 text-center">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                    <div class="flex text-sm text-gray-600 justify-center">
+                                        <label for="file-upload-${sectionCounter}" class="relative cursor-pointer bg-white rounded-md font-medium text-primary hover:text-primary-dark">
+                                            <span>Upload a file</span>
+                                            <input id="file-upload-${sectionCounter}" name="research[${sectionCounter}][file]" type="file" class="hidden-file-input" required accept=".pdf">
+                                        </label>
+                                        <p class="pl-1">or drag and drop</p>
+                                    </div>
+                                    <p class="text-xs text-gray-500">PDF up to 10MB</p>
+                                    <p class="file-name-display text-sm text-gray-900 font-medium pt-2"></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="abstract-preview-section mt-2 hidden">
+                            <h4 class="text-sm font-medium text-gray-700 mb-1">Abstract Preview</h4>
+                            <div class="p-3 bg-gray-50 border border-gray-200 rounded-md min-h-[80px]">
+                                <p class="text-sm text-gray-600 italic abstract-content">
+                                    Abstract will be extracted from the PDF file.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                sectionsContainer.appendChild(newSection);
+                
+                // Initialize Lucide icons in the new section
+                if (window.lucide) {
+                    lucide.createIcons();
+                }
+                
+                // Add event listener to the remove button
+                const removeBtn = newSection.querySelector('.remove-section-btn');
+                removeBtn.addEventListener('click', function() {
+                    newSection.remove();
+                    updateStudiesList();
+                    // Check section limit after removal
+                    checkSectionLimit();
+                });
+                
+                // Initialize author search for new section
+                initializeAuthorSearch(newSection.querySelector('.author-search-input'));
+                
+                // Initialize file upload for new section
+                const fileInput = newSection.querySelector('input[type="file"]');
+                const fileNameDisplay = newSection.querySelector('.file-name-display');
+
+                // Collapse the new section by default
+                const content = newSection.querySelector('.research-content');
+                const toggleIcon = newSection.querySelector('.toggle-icon');
+                if (content && toggleIcon) {
+                    content.style.display = 'none';
+                    toggleIcon.setAttribute('data-lucide', 'chevron-right');
+                }
+
+                fileInput.addEventListener('change', function(e) {
+                    if (e.target.files.length > 0) {
+                        fileNameDisplay.textContent = e.target.files[0].name;
+                        
+                        // Extract abstract from PDF
+                        const file = e.target.files[0];
+                        const abstractContent = newSection.querySelector('.abstract-content');
+                        const abstractPreviewSection = newSection.querySelector('.abstract-preview-section');
+                        
+                        if (file.type === 'application/pdf' && abstractContent && abstractPreviewSection) {
+                            abstractContent.textContent = 'Extracting abstract...';
+                            abstractPreviewSection.classList.remove('hidden');
+                            
+                            // Load PDF.js if not already loaded
+                            if (!window.pdfjsLib) {
+                                const script = document.createElement('script');
+                                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
+                                script.onload = function() {
+                                    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+                                    extractPDFAbstractForCompiledDoc(file, abstractContent);
+                                };
+                                document.head.appendChild(script);
+                            } else {
+                                extractPDFAbstractForCompiledDoc(file, abstractContent);
+                            }
+                        }
+                        
+                        // Update eye icon visibility
+                        updateEyeIcon(e.target);
+                    } else {
+                        fileNameDisplay.textContent = '';
+                        
+                        // Hide abstract section
+                        const abstractPreviewSection = newSection.querySelector('.abstract-preview-section');
+                        if (abstractPreviewSection) {
+                            abstractPreviewSection.classList.add('hidden');
+                        }
+                        
+                        // Update eye icon visibility
+                        updateEyeIcon(e.target);
+                    }
+                    
+                    // Update studies list in the preview
+                    updateStudiesList();
+                });
+                
+                // Check section limit after addition
+                checkSectionLimit();
+            });
+            
+            // Initialize Lucide icons
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+            
+            // Initialize all author search inputs on load
+            document.querySelectorAll('.author-search-input').forEach(input => {
+                initializeAuthorSearch(input);
+            });
+            
+            // Add abstract extraction to initial research section file input
+            const initialFileInput = document.querySelector('#file-upload-1');
+            if (initialFileInput) {
+                const section = initialFileInput.closest('.research-section');
+                initialFileInput.addEventListener('change', function(e) {
+                    const fileNameDisplay = section.querySelector('.file-name-display');
+                    
+                    if (e.target.files.length > 0) {
+                        fileNameDisplay.textContent = e.target.files[0].name;
+                        
+                        // Extract abstract from PDF
+                        const file = e.target.files[0];
+                        const abstractContent = section.querySelector('.abstract-content');
+                        const abstractPreviewSection = section.querySelector('.abstract-preview-section');
+                        
+                        if (file.type === 'application/pdf' && abstractContent && abstractPreviewSection) {
+                            abstractContent.textContent = 'Extracting abstract...';
+                            abstractPreviewSection.classList.remove('hidden');
+                            
+                            // Load PDF.js if not already loaded
+                            if (!window.pdfjsLib) {
+                                const script = document.createElement('script');
+                                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
+                                script.onload = function() {
+                                    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+                                    extractPDFAbstractForCompiledDoc(file, abstractContent);
+                                };
+                                document.head.appendChild(script);
+                            } else {
+                                extractPDFAbstractForCompiledDoc(file, abstractContent);
+                            }
+                        }
+                        
+                        // Update eye icon visibility
+                        updateEyeIcon(e.target);
+                    } else {
+                        fileNameDisplay.textContent = '';
+                        
+                        // Hide abstract section
+                        const abstractPreviewSection = section.querySelector('.abstract-preview-section');
+                        if (abstractPreviewSection) {
+                            abstractPreviewSection.classList.add('hidden');
+                        }
+                        
+                        // Update eye icon visibility
+                        updateEyeIcon(e.target);
+                    }
+                    
+                    // Update studies list in the preview
+                    updateStudiesList();
+                });
+            }
+            
+            // Initialize all file inputs for compiled document
+            document.querySelectorAll('.research-section input[type="file"]').forEach(input => {
+                const fileNameDisplay = input.closest('.research-section').querySelector('.file-name-display');
+                input.addEventListener('change', function(e) {
+                    if (e.target.files.length > 0) {
+                        fileNameDisplay.textContent = e.target.files[0].name;
+                    } else {
+                        fileNameDisplay.textContent = '';
+                    }
+                });
+            });
+            
+            // Function to initialize author search
+            function initializeAuthorSearch(input) {
+                if (!input) return;
+                
+                // This function will be implemented by author-search.js
+                // We're just making sure it's called for all author input fields
+                if (window.initAuthorSearchInput) {
+                    window.initAuthorSearchInput(input);
+                }
+            }
+            
+            // Handle form submissions (placeholder)
+            document.getElementById('uploadSingleForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                // Add actual form submission logic here
+                alert('Single document form submitted!');
+            });
+            
+            document.getElementById('uploadCompiledForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                // Add actual form submission logic here
+                alert('Compiled document form submitted!');
+            });
+        });
+    </script>
+    
+    <!-- Additional JavaScript for previews -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- Single Document Preview --- 
+            
+            // Form Inputs for Preview
+            const titleInput = document.getElementById('single-title');
+            const authorInput = document.getElementById('single-author');
+            const pubMonthInput = document.getElementById('single-pubMonth');
+            const pubYearInput = document.getElementById('single-pubYear');
+            const volumeInput = document.getElementById('single-volume');
+            const issueInput = document.getElementById('single-issue');
+            const categoryInput = document.getElementById('single-category');
+            const fileInput = document.getElementById('single-file-upload');
+            
+            // Preview Elements
+            const previewTitle = document.getElementById('previewTitle');
+            const previewAuthor = document.getElementById('previewAuthor');
+            const previewPubDate = document.getElementById('previewPubDate');
+            const previewVolume = document.getElementById('previewVolume');
+            const previewIssue = document.getElementById('previewIssue');
+            const previewCategory = document.getElementById('previewCategory');
+            const previewAddedDate = document.getElementById('previewAddedDate');
+            const readDocBtn = document.getElementById('read-document-btn');
+            
+            // Add functionality to the Read Document button
+            if (readDocBtn) {
+                readDocBtn.addEventListener('click', function() {
+                    // Only open document if a file is selected
+                    if (fileInput && fileInput.files && fileInput.files[0]) {
+                        const url = URL.createObjectURL(fileInput.files[0]);
+                        window.open(url, '_blank');
+                    } else {
+                        alert('Please upload a document first');
+                    }
+                });
+            }
+            
+            // Update single document preview when form inputs change
+            function updateSingleDocumentPreview() {
+                // Update title
+                previewTitle.textContent = titleInput.value || 'Title of Document';
+                
+                // Update author
+                previewAuthor.textContent = authorInput.value ? `by ${authorInput.value}` : 'by Author Name';
+                
+                // Update publishing date
+                const pubDate = pubMonthInput.value ? `${pubMonthInput.value}/${pubYearInput.value}` : 'N/A';
+                previewPubDate.textContent = pubDate;
+                
+                // Update volume
+                previewVolume.textContent = volumeInput.value || 'N/A';
+                
+                // Update issue
+                previewIssue.textContent = issueInput.value || 'N/A';
+                
+                // Update category
+                previewCategory.textContent = categoryInput.value || 'N/A';
+                
+                // Update added date
+                previewAddedDate.textContent = new Date().toLocaleDateString();
+            }
+            
+            // Add event listener to form inputs
+            titleInput.addEventListener('input', updateSingleDocumentPreview);
+            authorInput.addEventListener('input', updateSingleDocumentPreview);
+            pubMonthInput.addEventListener('change', updateSingleDocumentPreview);
+            pubYearInput.addEventListener('change', updateSingleDocumentPreview);
+            volumeInput.addEventListener('change', updateSingleDocumentPreview);
+            issueInput.addEventListener('change', updateSingleDocumentPreview);
+            categoryInput.addEventListener('change', updateSingleDocumentPreview);
+            
+            // --- Compiled Document Preview ---
+            
+            // Form Inputs for Compiled Document Preview
+            const compiledPubYearStartInput = document.getElementById('compiled-pub-year-start');
+            const compiledPubYearEndInput = document.getElementById('compiled-pub-year-end');
+            const compiledVolumeInput = document.getElementById('compiled-volume');
+            const compiledIssuedNoInput = document.getElementById('compiled-issued-no');
+            const compiledCategoryInput = document.getElementById('compiled-category');
+            
+            // Preview Elements for Compiled Document
+            const previewMainTitle = document.getElementById('preview-main-title');
+            const previewPubYear = document.getElementById('preview-pub-year');
+            const previewCompiledVolume = document.getElementById('preview-volume');
+            const previewIssuedNo = document.getElementById('preview-issued-no');
+            const previewCompiledCategory = document.getElementById('preview-category');
+            const previewAddedDateCompiled = document.getElementById('preview-added-date');
+            const previewStudiesList = document.getElementById('preview-studies-list');
+            const previewNoStudiesMsg = document.getElementById('preview-no-studies-msg');
+            const compiledPreviewIcon = document.getElementById('compiled-preview-category-icon');
+            
+            // Update compiled document preview
+            function updateCompiledDocumentPreview() {
+                console.log("Updating compiled document preview");
+                console.log("Category selected:", compiledCategoryInput.value);
+                
+                // Update category icon
+                if (compiledCategoryInput.value) {
+                    compiledPreviewIcon.src = `icons/category-icons/${compiledCategoryInput.value.toLowerCase()}.png`;
+                    console.log("Updated icon src to:", compiledPreviewIcon.src);
+                } else {
+                    compiledPreviewIcon.src = 'icons/category-icons/default_category_icon.png';
+                }
+                
+                // Update title based on category and volume
+                let title = 'Compiled Document';
+                if (compiledCategoryInput.value) {
+                    title = compiledCategoryInput.value;
+                    if (compiledVolumeInput.value) {
+                        title += ` Volume ${compiledVolumeInput.value}`;
+                    }
+                    if (compiledIssuedNoInput.value) {
+                        title += ` Issue ${compiledIssuedNoInput.value}`;
+                    }
+                }
+                previewMainTitle.textContent = title;
+                console.log("Updated title to:", title);
+                
+                // Update publication year
+                let pubYearText = 'N/A';
+                if (compiledPubYearStartInput.value && compiledPubYearEndInput.value) {
+                    pubYearText = `${compiledPubYearStartInput.value} - ${compiledPubYearEndInput.value}`;
+                } else if (compiledPubYearStartInput.value) {
+                    pubYearText = compiledPubYearStartInput.value;
+                } else if (compiledPubYearEndInput.value) {
+                    pubYearText = compiledPubYearEndInput.value;
+                }
+                previewPubYear.textContent = pubYearText;
+                console.log("Updated publication year to:", pubYearText);
+                
+                // Update volume
+                previewCompiledVolume.textContent = compiledVolumeInput.value || 'N/A';
+                
+                // Update issued no
+                previewIssuedNo.textContent = compiledIssuedNoInput.value || 'N/A';
+                
+                // Update category
+                previewCompiledCategory.textContent = compiledCategoryInput.value || 'N/A';
+                
+                // Update added date
+                const today = new Date().toLocaleDateString();
+                previewAddedDateCompiled.textContent = today;
+                console.log("Updated added date to:", today);
+                
+                // Update studies list
+                updateStudiesList();
+            }
+            
+            // Update studies list in the preview
+            function updateStudiesList() {
+                const sections = document.querySelectorAll('.research-section');
+                
+                // Clear previous list
+                previewStudiesList.innerHTML = '';
+                
+                // Show "no studies" message if no research sections
+                if (sections.length === 0) {
+                    previewNoStudiesMsg.style.display = 'block';
+                    return;
+                }
+                
+                // Hide "no studies" message
+                previewNoStudiesMsg.style.display = 'none';
+                
+                // Add each study to the preview
+                sections.forEach((section, index) => {
+                    const sectionId = section.dataset.sectionId;
+                    const titleInput = section.querySelector(`#study-title-${sectionId}`);
+                    const authorsInput = section.querySelector(`#authors-${sectionId}`);
+                    const fileInput = section.querySelector('input[type="file"]');
+                    const abstractPreviewSection = section.querySelector('.abstract-preview-section');
+                    const abstractContent = section.querySelector('.abstract-content');
+                    
+                    const studyItem = document.createElement('div');
+                    studyItem.className = 'mb-3 p-2 border-l-4 border-primary-light';
+                    
+                    // Study number and title - make it bold
+                    const titleElement = document.createElement('div');
+                    titleElement.className = 'font-semibold text-gray-800'; // Changed to semibold for better emphasis
+                    titleElement.textContent = `${index + 1}. ${titleInput.value || 'Untitled Study'}`;
+                    studyItem.appendChild(titleElement);
+                    
+                    // Authors - make it italicized
+                    if (authorsInput && authorsInput.value) {
+                        const authorsElement = document.createElement('div');
+                        authorsElement.className = 'text-sm text-gray-600 mt-1 italic'; // Added italic
+                        authorsElement.textContent = `by ${authorsInput.value}`;
+                        studyItem.appendChild(authorsElement);
+                    }
+                    
+                    // Abstract preview (if file attached)
+                    if (fileInput && fileInput.files && fileInput.files.length > 0 && abstractContent && abstractContent.textContent.trim() !== 'Abstract will be extracted from the PDF file.') {
+                        const abstractPreview = document.createElement('div');
+                        abstractPreview.className = 'mt-2 mb-2';
+                        
+                        const abstractHeading = document.createElement('h5');
+                        abstractHeading.className = 'text-xs font-medium text-gray-700';
+                        abstractHeading.textContent = 'Abstract';
+                        abstractPreview.appendChild(abstractHeading);
+                        
+                        const abstractText = document.createElement('p');
+                        abstractText.className = 'text-xs text-gray-600 mt-1 p-2 bg-gray-50 border border-gray-200 rounded-md';
+                        abstractText.textContent = abstractContent.textContent;
+                        abstractPreview.appendChild(abstractText);
+                        
+                        studyItem.appendChild(abstractPreview);
+                    }
+                    
+                    // File status and Read Document button
+                    const fileStatusContainer = document.createElement('div');
+                    fileStatusContainer.className = 'flex items-center justify-between mt-2';
+                    
+                    const fileStatus = document.createElement('div');
+                    fileStatus.className = 'text-xs';
+                    
+                    // Read Document button
+                    const readButton = document.createElement('button');
+                    readButton.type = 'button';
+                    readButton.className = 'text-xs px-2 py-1 rounded border focus:outline-none focus:ring-1 focus:ring-primary';
+                    readButton.textContent = 'Read Document';
+                    
+                    if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                        // File is attached
+                        fileStatus.className += ' text-green-600';
+                        fileStatus.textContent = `File attached: ${fileInput.files[0].name}`;
+                        
+                        // Enable button with proper styling
+                        readButton.classList.add('text-white', 'bg-primary', 'hover:bg-primary-dark', 'border-transparent');
+                        readButton.classList.remove('text-primary-dark', 'bg-white', 'border-primary', 'opacity-50', 'cursor-not-allowed');
+                        readButton.disabled = false;
+                        
+                        // Set click handler to open file in new tab
+                        readButton.onclick = function() {
+                            const fileUrl = URL.createObjectURL(fileInput.files[0]);
+                            window.open(fileUrl, '_blank');
+                        };
+                        
+                        // Show abstract preview section if it exists
+                        if (abstractPreviewSection) {
+                            abstractPreviewSection.classList.remove('hidden');
+                        }
+                    } else {
+                        // No file attached
+                        fileStatus.className += ' text-red-500';
+                        fileStatus.textContent = 'No file attached';
+                        
+                        // Disable button with muted styling
+                        readButton.classList.remove('text-white', 'bg-primary', 'hover:bg-primary-dark', 'border-transparent');
+                        readButton.classList.add('text-primary-dark', 'bg-white', 'border-primary', 'opacity-50', 'cursor-not-allowed');
+                        readButton.disabled = true;
+                        
+                        // Hide abstract preview section if it exists
+                        if (abstractPreviewSection) {
+                            abstractPreviewSection.classList.add('hidden');
+                        }
+                    }
+                    
+                    fileStatusContainer.appendChild(fileStatus);
+                    fileStatusContainer.appendChild(readButton);
+                    studyItem.appendChild(fileStatusContainer);
+                    
+                    // Add to preview
+                    previewStudiesList.appendChild(studyItem);
+                });
+            }
+            
+            // Add event listeners for compiled document form
+            if (compiledPubYearStartInput) {
+                compiledPubYearStartInput.addEventListener('input', function() {
+                    console.log("Publication start year changed:", this.value);
+                    updateCompiledDocumentPreview();
+                });
+            }
+            
+            if (compiledPubYearEndInput) {
+                compiledPubYearEndInput.addEventListener('input', function() {
+                    console.log("Publication end year changed:", this.value);
+                    updateCompiledDocumentPreview();
+                });
+            }
+            
+            if (compiledVolumeInput) {
+                compiledVolumeInput.addEventListener('input', function() {
+                    console.log("Volume changed:", this.value);
+                    updateCompiledDocumentPreview();
+                });
+            }
+            
+            if (compiledIssuedNoInput) {
+                compiledIssuedNoInput.addEventListener('input', function() {
+                    console.log("Issue number changed:", this.value);
+                    updateCompiledDocumentPreview();
+                });
+            }
+            
+            if (compiledCategoryInput) {
+                compiledCategoryInput.addEventListener('change', function() {
+                    console.log("Category changed:", this.value);
+                    
+                    // Update the issued no label based on the selected category
+                    const issuedNoLabel = document.getElementById('compiled-issued-no-label');
+                    const previewIssuedNoLabel = document.getElementById('preview-issued-no-label');
+                    
+                    if (this.value === 'Synergy') {
+                        // If Synergy is selected, change the label to "Departmental"
+                        if (issuedNoLabel) issuedNoLabel.textContent = 'Departmental';
+                        if (previewIssuedNoLabel) previewIssuedNoLabel.textContent = 'Departmental:';
+                    } else {
+                        // For any other category, use "Issued No."
+                        if (issuedNoLabel) issuedNoLabel.textContent = 'Issued No.';
+                        if (previewIssuedNoLabel) previewIssuedNoLabel.textContent = 'Issued No:';
+                    }
+                    
+                    updateCompiledDocumentPreview();
+                });
+            }
+            
+            // Listen for changes to research sections
+            const researchSectionsContainer = document.getElementById('research-sections-container');
+            if (researchSectionsContainer) {
+                // Use MutationObserver to detect when research sections are added or removed
+                const observer = new MutationObserver(function() {
+                    updateStudiesList();
+                });
+                
+                observer.observe(researchSectionsContainer, { childList: true, subtree: true });
+                
+                // Also listen for input events on research section fields
+                researchSectionsContainer.addEventListener('input', function(e) {
+                    const target = e.target;
+                    if (target.classList.contains('study-title-input') || 
+                        target.classList.contains('authors-input')) {
+                        updateStudiesList();
+                    }
+                });
+                
+                // Listen for file selection in research sections
+                researchSectionsContainer.addEventListener('change', function(e) {
+                    if (e.target.type === 'file') {
+                        updateStudiesList();
+                    }
+                });
+            }
+            
+            // Add event listener to the add research section button
+            const addSectionBtn = document.getElementById('add-research-section-btn');
+            if (addSectionBtn) {
+                addSectionBtn.addEventListener('click', function() {
+                    // The section will be added by the existing code
+                    // MutationObserver will detect the change and update the preview
+                    setTimeout(updateStudiesList, 100); // Small delay to ensure DOM is updated
+                });
+            }
+            
+            // Initialize previews
+            updateSingleDocumentPreview();
+            
+            // Log all compiled document preview elements
+            console.log("Compiled preview elements:", {
+                previewMainTitle,
+                previewPubYear,
+                previewCompiledVolume,
+                previewIssuedNo,
+                previewCompiledCategory,
+                previewAddedDateCompiled,
+                previewStudiesList,
+                previewNoStudiesMsg,
+                compiledPreviewIcon
+            });
+            
+            // Initialize compiled document preview immediately and with a more reliable delay
+            console.log("Initializing compiled document preview...");
+            // Try immediate initialization
+            if (typeof updateCompiledDocumentPreview === 'function') {
+                updateCompiledDocumentPreview();
+            }
+            
+            // Initialize the Issued No/Departmental label based on initial category selection
+            if (compiledCategoryInput) {
+                const issuedNoLabel = document.getElementById('compiled-issued-no-label');
+                const previewIssuedNoLabel = document.getElementById('preview-issued-no-label');
+                
+                if (compiledCategoryInput.value === 'Synergy') {
+                    // If Synergy is initially selected
+                    if (issuedNoLabel) issuedNoLabel.textContent = 'Departmental';
+                    if (previewIssuedNoLabel) previewIssuedNoLabel.textContent = 'Departmental:';
+                } else {
+                    // For any other initial category
+                    if (issuedNoLabel) issuedNoLabel.textContent = 'Issued No.';
+                    if (previewIssuedNoLabel) previewIssuedNoLabel.textContent = 'Issued No:';
+                }
+            }
+            
+            // Also use a delay as backup
+            setTimeout(function() {
+                console.log("Running delayed updateCompiledDocumentPreview");
+                if (typeof updateCompiledDocumentPreview === 'function') {
+                    updateCompiledDocumentPreview();
+                }
+            }, 500);
+            
+            // Expose update functions globally for use by other scripts
+            window.updateDocumentPreviews = {
+                single: updateSingleDocumentPreview,
+                compiled: updateCompiledDocumentPreview,
+                studies: updateStudiesList
+            };
+            
+            // Function to extract abstract from PDF for compiled document studies
+            function extractPDFAbstractForCompiledDoc(file, abstractElement) {
+                if (!file || !abstractElement || file.type !== 'application/pdf') {
+                    abstractElement.textContent = 'Abstract extraction is only available for PDF files.';
+                    return;
+                }
+                
+                abstractElement.textContent = 'Extracting abstract...';
+                
+                // Check file size, limit to 10MB to prevent browser hanging
+                if (file.size > 10 * 1024 * 1024) {
+                    abstractElement.textContent = 'File too large for preview. Abstract will be extracted during submission.';
+                    return;
+                }
+                
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        const typedArray = new Uint8Array(e.target.result);
+                        
+                        // Initialize PDF.js
+                        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+                        
+                        // Load the PDF document
+                        const loadingTask = window.pdfjsLib.getDocument({ data: typedArray });
+                        loadingTask.promise.then(async function(pdf) {
+                            try {
+                                // Search through the first few pages for abstract
+                                const maxPagesToSearch = Math.min(5, pdf.numPages);
+                                let abstractText = "";
+                                
+                                for (let pageNum = 1; pageNum <= maxPagesToSearch; pageNum++) {
+                                    const page = await pdf.getPage(pageNum);
+                                    const textContent = await page.getTextContent();
+                                    
+                                    // Convert text content to string
+                                    const pageText = textContent.items.map(item => item.str).join(' ');
+                                    
+                                    // Look for the abstract in this page
+                                    if (pageText.toLowerCase().includes('abstract')) {
+                                        abstractText = pageText;
+                                        break;
+                                    }
+                                    
+                                    // If we haven't found the abstract yet, keep collecting text
+                                    if (abstractText === "" && pageNum === 1) {
+                                        abstractText = pageText;
+                                    }
+                                }
+                                
+                                // Clean and extract the abstract
+                                const cleanedText = abstractText.replace(/(\r\n|\n|\r)/gm, " ").trim();
+                                const abstractStartText = findAbstractStart(cleanedText);
+                                
+                                if (abstractStartText) {
+                                    abstractElement.textContent = cleanAbstractText(abstractStartText).substring(0, 500) + '...';
+                                } else {
+                                    abstractElement.textContent = 'Abstract will be fully extracted during document submission.';
+                                }
+                            } catch (error) {
+                                console.error('Error extracting text from PDF:', error);
+                                abstractElement.textContent = 'Error extracting abstract. Abstract will be processed during submission.';
+                            }
+                        }).catch(function(error) {
+                            console.error('Error loading PDF:', error);
+                            abstractElement.textContent = 'Error loading PDF. Abstract will be extracted during submission.';
+                        });
+                    } catch (error) {
+                        console.error('Error processing file:', error);
+                        abstractElement.textContent = 'Error processing file. Abstract will be extracted during submission.';
+                    }
+                };
+                
+                reader.onerror = function() {
+                    console.error('Error reading file');
+                    abstractElement.textContent = 'Error reading file. Abstract will be extracted during submission.';
+                };
+                
+                // Read the file as an array buffer
+                reader.readAsArrayBuffer(file);
+            }
+            
+            // Function to find the start of an abstract in PDF text
+            function findAbstractStart(text) {
+                if (!text) return null;
+                
+                const abstractMarkers = [
+                    'Abstract:',
+                    'ABSTRACT:',
+                    'Abstract',
+                    'ABSTRACT',
+                    'Abstract.',
+                    'ABSTRACT.',
+                    'Abstract -',
+                    'ABSTRACT -'
+                ];
+                
+                const lowerText = text.toLowerCase();
+                
+                for (const marker of abstractMarkers) {
+                    const index = lowerText.indexOf(marker.toLowerCase());
+                    if (index !== -1) {
+                        // Get the text after the abstract marker
+                        const startIndex = index + marker.length;
+                        let abstractText = text.substring(startIndex).trim();
+                        
+                        // Remove any leading colons or spaces
+                        abstractText = abstractText.replace(/^[:.\s]+/, '').trim();
+                        
+                        // Limit text to 1000 characters for preview
+                        return abstractText.substring(0, 1000);
+                    }
+                }
+                return null;
+            }
+            
+            // Function to clean abstract text
+            function cleanAbstractText(text) {
+                if (!text) return '';
+                
+                return text
+                    .replace(/^ABSTRACT\s*[:.]?\s*/i, '') // Remove "ABSTRACT" header
+                    .replace(/\n{3,}/g, '\n\n') // Normalize multiple line breaks
+                    .replace(/\s+/g, ' ') // Normalize spaces
+                    .replace(/\n\s*\n/g, '\n') // Remove empty lines
+                    .replace(/acknowledgements?.*$/is, '') // Remove any acknowledgement section
+                    .replace(/keywords?:.*$/im, '') // Remove keywords section
+                    .replace(/\s+/g, ' ') // Normalize spaces again after cleanup
+                    .trim();
+            }
+        });
+    </script>
+    
+    <!-- Accordion functions for research sections -->
+    <script>
+        /**
+         * Toggle research section expansion/collapse
+         * @param {HTMLElement} headerElement - The header element that was clicked
+         */
+        function toggleResearchSection(headerElement) {
+            const section = headerElement.closest('.research-section');
+            const content = section.querySelector('.research-content');
+            const toggleIcon = section.querySelector('.toggle-icon');
+            
+            if (content.style.display === 'none') {
+                // Expand
+                content.style.display = 'block';
+                toggleIcon.setAttribute('data-lucide', 'chevron-down');
+            } else {
+                // Collapse
+                content.style.display = 'none';
+                toggleIcon.setAttribute('data-lucide', 'chevron-right');
+            }
+            
+            // Re-render Lucide icons
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        }
+        
+        /**
+         * Open file in a new tab when eye icon is clicked
+         * @param {HTMLElement} eyeButton - The eye button that was clicked
+         */
+        function viewResearchFile(eyeButton) {
+            const section = eyeButton.closest('.research-section');
+            const fileInput = section.querySelector('input[type="file"]');
+            
+            if (fileInput && fileInput.files && fileInput.files[0]) {
+                const url = URL.createObjectURL(fileInput.files[0]);
+                window.open(url, '_blank');
+            }
+        }
+        
+        /**
+         * Update eye icon visibility based on file attachment
+         * @param {HTMLElement} fileInput - The file input element that changed
+         */
+        function updateEyeIcon(fileInput) {
+            const section = fileInput.closest('.research-section');
+            const eyeButton = section.querySelector('.view-file-btn');
+            
+            if (fileInput.files && fileInput.files.length > 0) {
+                eyeButton.classList.remove('hidden');
+                eyeButton.classList.add('visible-eye-icon');
+            } else {
+                eyeButton.classList.add('hidden');
+                eyeButton.classList.remove('visible-eye-icon');
+            }
+        }
+        
+        // Initialize all research sections
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up file input change listeners to update eye icons
+            document.querySelectorAll('.research-section input[type="file"]').forEach(input => {
+                input.addEventListener('change', function() {
+                    updateEyeIcon(this);
+                });
+            });
+            
+            // Ensure eye icon state is correct on page load
+            document.querySelectorAll('.research-section').forEach(section => {
+                const fileInput = section.querySelector('input[type="file"]');
+                if (fileInput) {
+                    updateEyeIcon(fileInput);
+                }
+                
+                // Keep the first section expanded, collapse others
+                if (section !== document.querySelector('.research-section')) {
+                    const content = section.querySelector('.research-content');
+                    const toggleIcon = section.querySelector('.toggle-icon');
+                    if (content && toggleIcon) {
+                        content.style.display = 'none';
+                        toggleIcon.setAttribute('data-lucide', 'chevron-right');
+                    }
+                }
+            });
+            
+            // Re-render Lucide icons
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        });
+        
+        // Add event listener for section removal
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-section-btn')) {
+                const section = e.target.closest('.research-section');
+                if (section) {
+                    // Remove the section
+                    section.remove();
+                    // Update the studies list
+                    updateStudiesList();
+                    // Check section limit after removal
+                    checkSectionLimit();
+                }
+            }
+        });
+    </script>
+    
+    <!-- Additional styles for accordion -->
+    <style>
+        .research-section {
+            transition: all 0.3s ease;
+        }
+        
+        .research-header {
+            transition: background-color 0.2s ease;
+            padding: 0.5rem 0;
+            border-radius: 0.375rem;
+        }
+        
+        .research-header:hover {
+            background-color: rgba(16, 185, 129, 0.1);
+        }
+        
+        .toggle-icon {
+            transition: transform 0.2s ease;
+        }
+        
+        .research-content {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .view-file-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            margin-right: 0.75rem;
+            opacity: 0.9;
+        }
+        
+        .view-file-btn:hover {
+            background-color: #ffffff;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
+            opacity: 1;
+        }
+        
+        .view-file-btn:hover i {
+            color: #10B981;
+        }
+        
+        .visible-eye-icon {
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</body>
+</html>

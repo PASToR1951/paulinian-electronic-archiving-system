@@ -1,11 +1,43 @@
-import { Router, send } from "https://deno.land/x/oak@v12.6.1/mod.ts";
+import { Router } from "../deps.ts";
+import { userRoutes } from "./userRoutes.ts";
+import { permissionsRoutes } from "./permissionsRoutes.ts";
+import { documentRoutes } from "./documentRoutes.ts";
+import { authRoutes } from "./authRoutes.ts";
+import { researchAgendaRoutesArray } from "./researchAgendaRoutes.ts";
+// author routes are now handled directly in server.ts
 
-const router = new Router();
+// Define the route interface
+export interface Route {
+  method: string;
+  path: string;
+  handler: (context: any) => Promise<void> | void;
+}
 
-router.get("/", async (ctx) => {
-  await send(ctx, "index.html", {
-    root: `${Deno.cwd()}/public`,
-  });
-});
+// Root route handler
+const rootHandler = (ctx: any) => {
+  ctx.response.body = {
+    message: "Welcome to PEAS API",
+    version: "1.0.0",
+    endpoints: {
+      users: "/users",
+      auth: "/auth",
+      documents: "/documents",
+      permissions: "/permissions",
+      researchAgenda: "/document-research-agenda",
+      authors: "/authors"
+    }
+  };
+};
 
-export { router }; // Named export
+// Combine all routes into a single array
+export const routes: Route[] = [
+  // Root route
+  { method: "GET", path: "/", handler: rootHandler },
+  // Other routes
+  ...userRoutes,
+  ...permissionsRoutes,
+  ...documentRoutes,
+  ...authRoutes,
+  ...researchAgendaRoutesArray,
+  // authorRoutes are now handled differently
+];

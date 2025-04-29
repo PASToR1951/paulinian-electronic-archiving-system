@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Author Directory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/side_bar.css">
+    <link rel="stylesheet" href="css/navbar_header.css">
+    <style>
+        /* Apply Inter font globally */
+        body { font-family: 'Inter', sans-serif; }
+
+        /* Custom Styles for Author Directory (prefixed with 'ad-') */
+
+        /* Author Card Styling */
+        .ad-author-card {
+            transition: box-shadow 0.2s ease-in-out; /* Smooth shadow transition on hover */
+            overflow: hidden; /* Prevent content overflow */
+        }
+        .ad-author-card:hover {
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); /* Enhanced shadow on hover */
+        }
+
+        /* Works Section (Expand/Collapse) Styling */
+        .ad-works-section {
+            max-height: 0; /* Initially collapsed */
+            overflow: hidden; /* Hide content when collapsed */
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out; /* Smooth expand/collapse animation */
+            padding-top: 0;
+            padding-bottom: 0;
+            background-color: transparent; /* Keep background consistent */
+        }
+        .ad-works-section.expanded {
+            max-height: 31rem; /* Max height when expanded (adjust as needed) */
+            padding-top: 0.5rem; /* Add padding when expanded */
+            padding-bottom: 1rem;
+            overflow-y: auto; /* Allow scrolling if content exceeds max height */
+        }
+
+        /* Work Filters Styling (inside expanded works section) */
+        .ad-work-filters {
+            display: none; /* Hidden by default */
+            padding-bottom: 0.75rem;
+            margin-bottom: 0.75rem;
+            border-bottom: 1px solid #e5e7eb; /* Separator line */
+        }
+        .ad-works-section.expanded .ad-work-filters {
+            display: flex; /* Show filters when works section is expanded */
+            flex-wrap: wrap; /* Allow filters to wrap on smaller screens */
+            gap: 0.5rem; /* Spacing between filter elements */
+            align-items: center;
+        }
+        .ad-work-filter-select {
+            padding: 0.25rem 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem; /* Rounded corners */
+            font-size: 0.75rem; /* Smaller font size for filters */
+            flex-grow: 1; /* Allow selects to grow */
+            min-width: 100px; /* Minimum width */
+        }
+
+        /* Utility: Hide Scrollbar */
+        .no-scrollbar::-webkit-scrollbar { display: none; } /* For Chrome, Safari, Opera */
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; } /* For IE, Edge, Firefox */
+
+        /* Toggle Button Container/Button */
+        .ad-toggle-container { /* Container for centering the button */
+             padding-top: 0.5rem; /* Add some space above the button area */
+             padding-bottom: 0.5rem; /* Add some space below the button area */
+        }
+        .ad-toggle-button {
+             white-space: nowrap; /* Prevent text wrapping */
+             transition: background-color 0.2s ease-in-out; /* Add transition for hover effect */
+        }
+
+        /* Edit Icon Button Styling */
+        .ad-edit-icon-button {
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 9999px; /* Fully rounded */
+            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out; /* Smooth hover effect */
+        }
+        .ad-edit-icon-button:hover {
+            background-color: rgba(0, 0, 0, 0.05); /* Subtle background on hover */
+        }
+
+        /* Individual Work Card Styling */
+        .ad-work-card {
+            border: 1px solid #e5e7eb; /* Light border */
+            border-radius: 0.375rem; /* Rounded corners */
+            padding: 0.75rem;
+            background-color: #f9fafb; /* Slightly off-white background */
+            transition: background-color 0.2s ease-in-out; /* Smooth hover effect */
+        }
+        .ad-work-card:hover {
+            background-color: #f3f4f6; /* Slightly darker on hover */
+        }
+        .ad-work-title-link {
+            color: #059669; /* Emerald color for links */
+            font-weight: 500;
+            text-decoration: none;
+        }
+        .ad-work-title-link:hover {
+            text-decoration: underline;
+            color: #047857; /* Darker emerald on hover */
+        }
+
+        /* Modal Styles */
+        .ad-modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 50; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.5); /* Black w/ opacity */
+        }
+        .ad-modal-content {
+            background-color: #fefefe; /* White background */
+            margin: 5% auto; /* Centered vertically and horizontally */
+            padding: 2rem; /* Generous padding */
+            border: 1px solid #888; /* Optional border */
+            width: 90%; /* Responsive width */
+            max-width: 700px; /* Max width for larger screens */
+            border-radius: 0.5rem; /* Rounded corners */
+            position: relative; /* For positioning the close button */
+        }
+        .ad-modal-close {
+            color: #aaa;
+            position: absolute;
+            top: 1rem;
+            right: 1.5rem;
+            font-size: 1.75rem; /* Larger close icon */
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .ad-modal-close:hover,
+        .ad-modal-close:focus {
+            color: black;
+            text-decoration: none;
+        }
+
+        /* Form Input/Textarea Styles */
+        .ad-form-input,
+        .ad-form-file-input {
+            width: 100%;
+            padding: 0.5rem;
+            /* Removed margin-bottom here, will add per field */
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            box-sizing: border-box; /* Include padding and border in element's total width/height */
+        }
+        /* Specific style for file input padding adjustment */
+        .ad-form-file-input {
+            padding: 0.375rem 0.5rem; /* Slightly less vertical padding for file input */
+        }
+        .ad-form-textarea {
+            width: 100%;
+            padding: 0.5rem;
+            /* Removed margin-bottom here */
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            box-sizing: border-box;
+            min-height: 80px; /* Minimum height for textarea */
+        }
+        .ad-form-label {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+            font-size: 0.875rem; /* Slightly smaller label */
+            color: #374151; /* Dark gray text */
+        }
+        /* Style for read-only ID field (No longer used) */
+        /* .ad-form-id-display { ... } */
+
+        /* Style for ID validation error message */
+        .ad-id-error {
+            color: #dc2626; /* Red-600 */
+            font-size: 0.75rem; /* text-xs */
+            margin-top: 0.25rem; /* mt-1 */
+            height: 1rem; /* Ensure space is reserved even when empty */
+        }
+
+
+        /* Profile picture preview in modal */
+        .ad-profile-pic-preview {
+            width: 60px; /* Fixed size for preview */
+            height: 60px;
+            border-radius: 50%; /* Circular preview */
+            object-fit: cover; /* Ensure image covers the area */
+            border: 1px solid #d1d5db; /* Light border */
+            background-color: #f3f4f6; /* Placeholder background */
+        }
+    </style>
+</head>
+<body >
+    <div id="side-bar"> 
+  
+    </div>
+  
+    <div id="navbar-header"> 
+    
+    </div>
+
+    <div class="max-w-4xl mx-auto bg-white p-6 md:p-8 rounded-lg shadow-md">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6 text-center">Author Directory</h1>
+
+        <div class="flex flex-col md:flex-row gap-4 mb-6 items-center">
+            <div class="relative flex-grow w-full md:w-auto">
+                <input type="text" id="searchInput" placeholder="Search by author name..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"/>
+                <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                </svg>
+            </div>
+            <div class="w-full md:w-auto">
+                <label for="departmentFilter" class="sr-only">Filter by Department</label>
+                <select id="departmentFilter" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                    <option value="">All Departments</option>
+                    </select>
+            </div>
+            <div class="w-full md:w-auto">
+                <label for="affiliationFilter" class="sr-only">Filter by Affiliation</label>
+                <select id="affiliationFilter" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                    <option value="">All Affiliations</option>
+                    </select>
+            </div>
+        </div>
+
+        <div id="authorList" class="grid grid-cols-1 gap-4">
+            </div>
+
+        <div id="noResultsMessage" class="text-center text-gray-500 mt-6 hidden">
+            No authors found matching your criteria.
+        </div>
+    </div>
+
+    <div id="editAuthorModal" class="ad-modal">
+        <div class="ad-modal-content">
+            <span class="ad-modal-close" onclick="closeEditModal()">&times;</span>
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Edit Author Details</h2>
+            <form id="editAuthorForm">
+                <input type="hidden" id="editAuthorOriginalIdHidden">
+
+                <div class="mb-4">
+                     <label for="editAuthorIdInput" class="ad-form-label">Author ID</label>
+                     <input type="text" id="editAuthorIdInput" class="ad-form-input" required>
+                     <div id="editAuthorIdError" class="ad-id-error"></div> </div>
+
+                <div class="mb-4">
+                    <label for="editFirstName" class="ad-form-label">First Name</label>
+                    <input type="text" id="editFirstName" class="ad-form-input" required>
+                </div>
+                <div class="mb-4">
+                    <label for="editMiddleName" class="ad-form-label">Middle Name (Optional)</label>
+                    <input type="text" id="editMiddleName" class="ad-form-input">
+                </div>
+                <div class="mb-4">
+                    <label for="editLastName" class="ad-form-label">Last Name</label>
+                    <input type="text" id="editLastName" class="ad-form-input" required>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="editDepartment" class="ad-form-label">Department</label>
+                        <input type="text" id="editDepartment" class="ad-form-input">
+                    </div>
+                    <div>
+                        <label for="editAffiliation" class="ad-form-label">Affiliation</label>
+                        <input type="text" id="editAffiliation" class="ad-form-input">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="editEmail" class="ad-form-label">Email</label>
+                        <input type="email" id="editEmail" class="ad-form-input">
+                    </div>
+                    <div>
+                        <label for="editLinkedin" class="ad-form-label">LinkedIn Profile URL</label>
+                        <input type="url" id="editLinkedin" class="ad-form-input" placeholder="https://linkedin.com/in/...">
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="ad-form-label">Profile Picture</label>
+                    <div class="flex items-center gap-4">
+                        <img id="editProfilePicPreview" src="" alt="Current profile picture" class="ad-profile-pic-preview">
+                        <input type="file" id="editProfilePicFile" class="ad-form-file-input" accept="image/*">
+                        <input type="hidden" id="editProfilePicUrlHidden">
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Select a new image file to update. (Note: Actual file upload requires server-side code not included in this demo).</p>
+                </div>
+
+                <div class="mb-4">
+                    <label for="editBio" class="ad-form-label">Biography</label>
+                    <textarea id="editBio" class="ad-form-textarea"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="closeEditModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <script>
+        // --- Sample Author Data ---
+        const authors = [
+             {
+                id: 'A001', firstName: 'Evelyn', middleName: 'M.', lastName: 'Reed',
+                department: 'Physics', affiliation: 'University of Science',
+                email: 'e.reed@uos.edu', linkedin: 'https://linkedin.com/in/evelynreed',
+                bio: 'Dr. Reed specializes in theoretical physics and quantum mechanics.',
+                profilePicUrl: '', // Example of no profile pic URL
+                worksCount: 5,
+                works: [
+                    { title: 'Quantum Entanglement Dynamics', category: 'Synergy', researchAgenda: 'Quantum Computing', year: 2023, url: '#' },
+                    { title: 'Advanced Particle Accelerators', category: 'Synthesis', researchAgenda: 'High Energy Physics', year: 2021, url: '#' },
+                    { title: 'String Theory Models', category: 'Dissertation', researchAgenda: 'Theoretical Physics', year: 2019, url: '#' },
+                    { title: 'Cosmological Constant Problem', category: 'Synergy', researchAgenda: 'Cosmology', year: 2018, url: '#' },
+                    { title: 'Neutrino Oscillation Patterns', category: 'Synthesis', researchAgenda: 'Particle Physics', year: 2017, url: '#' }
+                ]
+            },
+            {
+                id: 'A002', firstName: 'Kenji', middleName: '', lastName: 'Tanaka',
+                department: 'Computer Science', affiliation: 'Tech Institute',
+                email: 'k.tanaka@tech.edu', linkedin: 'https://linkedin.com/in/kenjitanaka',
+                bio: 'Professor Tanaka focuses on machine learning and distributed systems.',
+                profilePicUrl: 'https://placehold.co/100x100/e2e8f0/333?text=KT', // Example with profile pic URL
+                worksCount: 7,
+                works: [
+                    { title: 'Machine Learning for NLP', category: 'Synergy', researchAgenda: 'Artificial Intelligence', year: 2024, url: '#' },
+                    { title: 'Distributed Systems Architecture', category: 'Synthesis', researchAgenda: 'Cloud Computing', year: 2022, url: '#' },
+                    { title: 'Cybersecurity Trends', category: 'Thesis', researchAgenda: 'Network Security', year: 2020, url: '#' },
+                    { title: 'Blockchain Scalability Solutions', category: 'Synergy', researchAgenda: 'Distributed Ledger Tech', year: 2019, url: '#' },
+                    { title: 'Algorithm Efficiency Analysis', category: 'Synthesis', researchAgenda: 'Theoretical CS', year: 2018, url: '#' },
+                    { title: 'Quantum Computing Algorithms', category: 'Dissertation', researchAgenda: 'Quantum Computing', year: 2017, url: '#' },
+                    { title: 'Edge Computing Paradigms', category: 'Synergy', researchAgenda: 'IoT & Edge', year: 2016, url: '#' }
+                ]
+            },
+             {
+                id: 'A003', firstName: 'Maria', middleName: 'Isabel', lastName: 'Garcia',
+                department: 'Biology', affiliation: 'Life Sciences Center',
+                email: 'm.garcia@lifesci.org', linkedin: '', // Example of empty LinkedIn
+                bio: 'Researching genomics and gene editing technologies.',
+                profilePicUrl: 'https://placehold.co/100x100/dbeafe/1e40af?text=MG',
+                worksCount: 2,
+                works: [
+                    { title: 'CRISPR Gene Editing Applications', category: 'Synergy', researchAgenda: 'Genomics', year: 2023, url: '#' },
+                    { title: 'Cellular Metabolism Pathways', category: 'Synthesis', researchAgenda: 'Molecular Biology', year: 2021, url: '#' }
+                ]
+            },
+            { // Added another author for testing filters
+                id: 'A012', firstName: 'Ahmed', middleName: '', lastName: 'Al-Farsi',
+                department: 'Computer Science', affiliation: 'Tech Institute',
+                email: 'a.alfarsi@tech.edu', linkedin: 'https://linkedin.com/in/ahmedalfarsi',
+                bio: 'Expert in database systems and cloud infrastructure.',
+                profilePicUrl: '',
+                worksCount: 0, // Example with zero works
+                works: []
+            },
+        ];
+
+        // --- DOM Element References ---
+        const searchInput = document.getElementById('searchInput');
+        const departmentFilter = document.getElementById('departmentFilter');
+        const affiliationFilter = document.getElementById('affiliationFilter');
+        const authorListContainer = document.getElementById('authorList');
+        const noResultsMessage = document.getElementById('noResultsMessage');
+        const editModal = document.getElementById('editAuthorModal');
+        const editForm = document.getElementById('editAuthorForm');
+        const profilePicPreview = document.getElementById('editProfilePicPreview'); // Modal image preview
+        const profilePicFileInput = document.getElementById('editProfilePicFile'); // Modal file input
+        const profilePicUrlHidden = document.getElementById('editProfilePicUrlHidden'); // Modal hidden field for original URL
+        // Modal ID fields
+        const editAuthorIdInput = document.getElementById('editAuthorIdInput'); // Editable ID input
+        const editAuthorOriginalIdHidden = document.getElementById('editAuthorOriginalIdHidden'); // Hidden input for original ID
+        const editAuthorIdError = document.getElementById('editAuthorIdError'); // Error display for ID validation
+
+
+        // --- Constants ---
+        const DEFAULT_PROFILE_PIC = 'https://static.vecteezy.com/system/resources/previews/023/021/708/original/author-sign-theatre-icon-illustration-vector.jpg'; // New default placeholder
+
+        // --- Populate Author Filter Dropdowns ---
+        function populateAuthorFilters() {
+            const departments = new Set();
+            const affiliations = new Set();
+
+            authors.forEach(author => {
+                if (author.department) departments.add(author.department);
+                if (author.affiliation) affiliations.add(author.affiliation);
+            });
+
+            // Populate Department Filter
+            departments.forEach(dept => {
+                const option = document.createElement('option');
+                option.value = dept;
+                option.textContent = dept;
+                departmentFilter.appendChild(option);
+            });
+
+            // Populate Affiliation Filter
+            affiliations.forEach(affil => {
+                const option = document.createElement('option');
+                option.value = affil;
+                option.textContent = affil;
+                affiliationFilter.appendChild(option);
+            });
+        }
+
+        // --- Populate Work Filters for a Specific Author ---
+        function populateWorkFilters(authorId, authorIndex) {
+            const author = authors.find(a => a.id === authorId);
+            if (!author || !author.works || author.works.length === 0) return;
+
+            const categoryFilter = document.getElementById(`workCategoryFilter-${authorId}-${authorIndex}`);
+            const agendaFilter = document.getElementById(`workAgendaFilter-${authorId}-${authorIndex}`);
+            const yearFilter = document.getElementById(`workYearFilter-${authorId}-${authorIndex}`);
+
+            // Clear existing options except the default "All"
+            categoryFilter.innerHTML = '<option value="">All Categories</option>';
+            agendaFilter.innerHTML = '<option value="">All Agendas</option>';
+            yearFilter.innerHTML = '<option value="">All Years</option>';
+
+            const categories = new Set();
+            const agendas = new Set();
+            const years = new Set();
+
+            author.works.forEach(work => {
+                if (work.category) categories.add(work.category);
+                if (work.researchAgenda) agendas.add(work.researchAgenda);
+                if (work.year) years.add(work.year);
+            });
+
+            // Populate Category Filter
+            categories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                categoryFilter.appendChild(option);
+            });
+
+            // Populate Agenda Filter
+            agendas.forEach(agenda => {
+                const option = document.createElement('option');
+                option.value = agenda;
+                option.textContent = agenda;
+                agendaFilter.appendChild(option);
+            });
+
+            // Populate Year Filter (sorted descending)
+            Array.from(years).sort((a, b) => b - a).forEach(year => {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                yearFilter.appendChild(option);
+            });
+        }
+
+        // --- Filter and Render Works for a Specific Author ---
+        function filterAndRenderWorks(authorId, authorIndex) {
+            const author = authors.find(a => a.id === authorId);
+            if (!author || !author.works) return;
+
+            const worksContainer = document.getElementById(`worksContainer-${authorId}-${authorIndex}`);
+            const categoryFilterValue = document.getElementById(`workCategoryFilter-${authorId}-${authorIndex}`).value;
+            const agendaFilterValue = document.getElementById(`workAgendaFilter-${authorId}-${authorIndex}`).value;
+            const yearFilterValue = document.getElementById(`workYearFilter-${authorId}-${authorIndex}`).value;
+
+            const filteredWorks = author.works.filter(work => {
+                const categoryMatch = !categoryFilterValue || work.category === categoryFilterValue;
+                const agendaMatch = !agendaFilterValue || work.researchAgenda === agendaFilterValue;
+                const yearMatch = !yearFilterValue || work.year.toString() === yearFilterValue;
+                return categoryMatch && agendaMatch && yearMatch;
+            });
+
+            worksContainer.innerHTML = ''; // Clear previous works
+            if (filteredWorks.length === 0) {
+                worksContainer.innerHTML = '<p class="text-sm text-gray-500 italic px-4">No works match the selected filters.</p>';
+            } else {
+                let worksHtml = '<div class="space-y-2">';
+                filteredWorks.forEach(work => {
+                    worksHtml += `
+                        <div class="ad-work-card">
+                            <div class="flex justify-between items-center text-xs text-gray-500 mb-1">
+                                <span>${work.category || 'N/A'}</span>
+                                <span>${work.year || 'N/A'}</span>
+                            </div>
+                            <a href="${work.url || '#'}" target="_blank" rel="noopener noreferrer" class="ad-work-title-link block text-sm mb-1">${work.title || 'Untitled'}</a>
+                            <p class="text-xs text-gray-600"><span class="font-medium">Agenda:</span> ${work.researchAgenda || 'N/A'}</p>
+                        </div>`;
+                });
+                worksHtml += '</div>';
+                worksContainer.innerHTML = worksHtml;
+            }
+        }
+
+
+        // --- Render Author List ---
+        function renderAuthors(filteredAuthors) {
+            authorListContainer.innerHTML = ''; // Clear existing list
+
+            if (filteredAuthors.length === 0) {
+                noResultsMessage.classList.remove('hidden'); // Show no results message
+                authorListContainer.classList.add('hidden'); // Hide the list container
+            } else {
+                noResultsMessage.classList.add('hidden'); // Hide no results message
+                authorListContainer.classList.remove('hidden'); // Show the list container
+
+                filteredAuthors.forEach((author, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'ad-author-card bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col';
+                    card.setAttribute('data-author-id', author.id); // Add author ID for reference
+
+                    // Unique IDs for elements within this author card
+                    const worksSectionId = `works-${author.id}-${index}`;
+                    const toggleButtonId = `toggle-${author.id}-${index}`;
+                    const workFiltersId = `workFilters-${author.id}-${index}`;
+                    const worksContainerId = `worksContainer-${author.id}-${index}`;
+
+                    // Generate initial HTML for the works list (shown when expanded)
+                    let initialWorksHtml = '<p class="text-sm text-gray-500 italic px-4">No works listed.</p>';
+                    if (author.works && author.works.length > 0) {
+                        initialWorksHtml = '<div class="space-y-2">'; // Container for work cards
+                        author.works.forEach(work => {
+                            // Create HTML for each work item
+                            initialWorksHtml += `
+                                <div class="ad-work-card">
+                                    <div class="flex justify-between items-center text-xs text-gray-500 mb-1">
+                                        <span>${work.category || 'N/A'}</span>
+                                        <span>${work.year || 'N/A'}</span>
+                                    </div>
+                                    <a href="${work.url || '#'}" target="_blank" rel="noopener noreferrer" class="ad-work-title-link block text-sm mb-1">${work.title || 'Untitled'}</a>
+                                    <p class="text-xs text-gray-600"><span class="font-medium">Agenda:</span> ${work.researchAgenda || 'N/A'}</p>
+                                </div>`;
+                        });
+                        initialWorksHtml += '</div>';
+                    }
+
+                    // Format author name (with middle initial if present)
+                    const middleInitial = author.middleName ? ` ${author.middleName.charAt(0)}. ` : ' ';
+                    const fullName = `${author.firstName}${middleInitial}${author.lastName}`;
+
+                    // Use author's profile picture URL or the new default placeholder
+                    const profilePic = author.profilePicUrl || DEFAULT_PROFILE_PIC;
+                    const profilePicPlaceholder = DEFAULT_PROFILE_PIC; // Use the constant for the fallback as well
+
+                    // Construct the inner HTML of the author card
+                    card.innerHTML = `
+                        <div class="p-4 flex-grow"> <div class="flex justify-between items-start mb-4"> <div class="flex items-start flex-grow pr-4"> <img src="${profilePic}" alt="Profile picture of ${fullName}" class="w-10 h-10 rounded-full mr-3 flex-shrink-0 object-cover border border-gray-300" onerror="this.src='${profilePicPlaceholder}'; this.onerror=null;">
+                                    <div class="flex-grow"> <div class="flex items-baseline mb-1">
+                                            <h3 class="text-lg font-semibold text-green-700 mr-2">${fullName}</h3>
+                                            <span class="text-xs text-gray-500">(${author.id})</span>
+                                        </div>
+                                        <div class="text-sm text-gray-600">
+                                            <span>${author.department || 'No Department'}</span>
+                                            <span class="mx-1 text-gray-400">|</span>
+                                            <span>${author.affiliation || 'No Affiliation'}</span>
+                                        </div>
+                                        </div>
+                                </div>
+                                <div class="flex-shrink-0"> <button class="ad-edit-icon-button text-gray-500 hover:text-green-600 focus:outline-none" onclick="openEditModal('${author.id}')" title="Edit Author">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <p class="text-sm text-gray-700 mb-4">${author.bio || ''}</p>
+
+                            <div id="${worksSectionId}" class="ad-works-section border-t border-gray-200 pt-2 no-scrollbar" data-button-id="${toggleButtonId}">
+                                <div id="${workFiltersId}" class="ad-work-filters px-4">
+                                     <select id="workCategoryFilter-${author.id}-${index}" class="ad-work-filter-select" onchange="filterAndRenderWorks('${author.id}', ${index})"><option value="">All Categories</option></select>
+                                     <select id="workAgendaFilter-${author.id}-${index}" class="ad-work-filter-select" onchange="filterAndRenderWorks('${author.id}', ${index})"><option value="">All Agendas</option></select>
+                                     <select id="workYearFilter-${author.id}-${index}" class="ad-work-filter-select" onchange="filterAndRenderWorks('${author.id}', ${index})"><option value="">All Years</option></select>
+                                </div>
+                                <div id="${worksContainerId}" class="px-4">${initialWorksHtml}</div>
+                            </div>
+                        </div>
+
+                        ${author.worksCount > 0 ? `
+                        <div class="ad-toggle-container flex justify-center bg-gray-50 border-t border-gray-200 rounded-b-lg"> <button id="${toggleButtonId}" class="ad-toggle-button inline-flex items-center py-1 px-3 rounded-md bg-green-100 hover:bg-green-200 text-xs text-green-800 font-medium focus:outline-none focus:ring-1 focus:ring-green-300" onclick="toggleWorks('${worksSectionId}', '${toggleButtonId}', '${workFiltersId}', '${author.id}', ${index})"> ${author.worksCount} Work${author.worksCount !== 1 ? 's' : ''} <span class="arrow ml-1">&#x25BC;</span> </button>
+                        </div>
+                        ` : `
+                        <div class="flex justify-center bg-gray-50 py-2 border-t border-gray-200 rounded-b-lg"> <span class="text-xs text-gray-500 italic">No works listed</span>
+                        </div>
+                        `}
+                    `;
+
+                    authorListContainer.appendChild(card);
+
+                    // Populate work filters if the author has works
+                    if (author.works && author.works.length > 0) {
+                        populateWorkFilters(author.id, index);
+                    }
+                });
+            }
+        }
+
+
+        // --- Filter Authors Logic ---
+        function filterAuthors() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const selectedDepartment = departmentFilter.value;
+            const selectedAffiliation = affiliationFilter.value;
+
+            const filtered = authors.filter(author => {
+                // Combine name parts for searching
+                const fullName = `${author.firstName} ${author.middleName || ''} ${author.lastName}`.toLowerCase();
+                const nameMatch = fullName.includes(searchTerm);
+
+                // Check department match (allow empty filter)
+                const departmentMatch = !selectedDepartment || author.department === selectedDepartment;
+
+                // Check affiliation match (allow empty filter)
+                const affiliationMatch = !selectedAffiliation || author.affiliation === selectedAffiliation;
+
+                // Author must match all active filters
+                return nameMatch && departmentMatch && affiliationMatch;
+            });
+
+            renderAuthors(filtered); // Re-render the list with filtered results
+        }
+
+        // --- Edit Modal Functions ---
+        function openEditModal(authorId) {
+            const author = authors.find(a => a.id === authorId);
+            if (!author) {
+                console.error("Author not found for editing:", authorId);
+                return; // Exit if author not found
+            }
+
+            // Populate the form fields with the author's data
+            editAuthorIdInput.value = author.id; // Set editable input value
+            editAuthorOriginalIdHidden.value = author.id; // Set hidden input with original ID
+            editAuthorIdError.textContent = ''; // Clear any previous ID error messages
+
+            document.getElementById('editFirstName').value = author.firstName || '';
+            document.getElementById('editMiddleName').value = author.middleName || '';
+            document.getElementById('editLastName').value = author.lastName || '';
+            document.getElementById('editDepartment').value = author.department || '';
+            document.getElementById('editAffiliation').value = author.affiliation || '';
+            document.getElementById('editEmail').value = author.email || '';
+            document.getElementById('editLinkedin').value = author.linkedin || '';
+            document.getElementById('editBio').value = author.bio || '';
+
+            // Handle profile picture preview and hidden URL field
+            profilePicFileInput.value = ''; // Clear any previously selected file in the input
+            profilePicUrlHidden.value = author.profilePicUrl || ''; // Store the current/original URL
+
+            // Set the preview image source using the new default placeholder
+            const currentPic = author.profilePicUrl || DEFAULT_PROFILE_PIC;
+            profilePicPreview.src = currentPic;
+            profilePicPreview.onerror = () => { // Add fallback for the preview image itself
+                profilePicPreview.src = DEFAULT_PROFILE_PIC; // Use the constant placeholder on error
+            };
+
+            // Display the modal
+            editModal.style.display = "block";
+        }
+
+        function closeEditModal() {
+            editModal.style.display = "none"; // Hide the modal
+            editAuthorIdError.textContent = ''; // Clear ID error message on close
+             // Optional: Reset form fields when closing to avoid showing old data briefly if reopened
+             // editForm.reset(); // Be careful, this resets hidden fields too
+             // profilePicPreview.src = ''; // Clear preview
+        }
+
+         // --- Simulate Saving Data to Database ---
+         async function saveAuthorToDatabase(authorData) {
+            // ** CJ Diri: Database Update Simulation **
+            // This function simulates sending the updated author data to a backend server,
+            // which would then interact with your PostgreSQL database.
+
+            console.log("Attempting to save data to backend for author ID:", authorData.id);
+            console.log("Data to send:", authorData);
+
+            // --- CJ Diri: Backend API Call (Simulated) ---
+            // In a real application, you would use the `fetch` API here to send a request
+            // (e.g., POST or PUT) to your backend endpoint (e.g., '/api/authors/:id').
+            // Example using fetch (replace with your actual endpoint and method):
+            /*
+            try {
+                const response = await fetch(`/api/authors/${authorData.id}`, { // Or a general '/api/authors' endpoint for updates
+                    method: 'PUT', // Or 'POST' depending on your API design
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // Include authentication headers if needed (e.g., JWT token)
+                        // 'Authorization': `Bearer ${your_auth_token}`
+                    },
+                    body: JSON.stringify(authorData) // Send the data as JSON
+                });
+
+                if (!response.ok) {
+                    // Handle HTTP errors (e.g., 404 Not Found, 400 Bad Request, 500 Internal Server Error)
+                    const errorData = await response.json().catch(() => ({ message: 'Failed to parse error response' }));
+                    console.error(`Error saving author: ${response.status} ${response.statusText}`, errorData);
+                    // Optionally, display an error message to the user
+                    alert(`Error saving data: ${errorData.message || response.statusText}`);
+                    return false; // Indicate failure
+                }
+
+                const result = await response.json(); // Or response.text() if no JSON body is returned
+                console.log("Backend save successful:", result);
+                // Optionally, show a success message to the user
+                // alert("Author data saved successfully!");
+                return true; // Indicate success
+
+            } catch (error) {
+                // Handle network errors or other exceptions during the fetch
+                console.error("Network or fetch error saving author:", error);
+                // Optionally, display an error message to the user
+                alert(`Failed to connect to the server. Please try again later. Error: ${error.message}`);
+                return false; // Indicate failure
+            }
+            */
+
+            // --- CJ Diri: Backend Requirements ---
+            // Your backend server (e.g., using Node.js, Python/Flask/Django, Java/Spring) needs:
+            // 1. An API endpoint (e.g., PUT /api/authors/:id or POST /api/authors/update) to receive this data.
+            // 2. Logic to connect to your PostgreSQL database.
+            // 3. An SQL query (e.g., UPDATE authors SET firstName = $1, lastName = $2, ... WHERE id = $N)
+            //    - Use parameterized queries to prevent SQL injection vulnerabilities!
+            // 4. Proper error handling for database operations (connection errors, constraint violations like duplicate IDs if the ID was changed).
+            // 5. Authentication and Authorization checks to ensure the user is allowed to modify data.
+            // 6. Validation on the backend as well (e.g., check data types, required fields, ID format/uniqueness against the actual database).
+
+            // Simulate a delay and success for the demo
+            await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network latency
+            console.log("Simulated backend save completed for author ID:", authorData.id);
+            return true; // Simulate success
+        }
+
+
+        // --- Handle Edit Form Submission ---
+        editForm.addEventListener('submit', async function(event) { // Make the handler async
+            event.preventDefault(); // Prevent default form submission (page reload)
+
+            // Get IDs and clear previous errors
+            const newId = editAuthorIdInput.value.trim();
+            const originalId = editAuthorOriginalIdHidden.value;
+            editAuthorIdError.textContent = ''; // Clear previous errors
+
+            // --- Frontend Validation for Author ID ---
+            let idIsValid = true;
+
+            // 1. Check if ID is empty
+            if (!newId) {
+                editAuthorIdError.textContent = 'Author ID cannot be empty.';
+                idIsValid = false;
+            }
+
+            // 2. Check for uniqueness (only if ID changed and is not empty)
+            // ** IMPORTANT: This only checks against the current frontend 'authors' array.
+            // ** Real uniqueness check MUST happen on the backend against the database.
+            if (idIsValid && newId !== originalId) {
+                const isDuplicate = authors.some(author => author.id === newId);
+                if (isDuplicate) {
+                    editAuthorIdError.textContent = 'This Author ID already exists (checked locally).';
+                    idIsValid = false;
+                }
+            }
+
+            // 3. (Optional) Add Pattern Check Here
+            // const idPattern = /^A\d+$/;
+            // if (idIsValid && !idPattern.test(newId)) {
+            //     editAuthorIdError.textContent = 'ID must start with "A" followed by numbers (e.g., A001).';
+            //     idIsValid = false;
+            // }
+
+            // If ID validation failed, stop the submission
+            if (!idIsValid) {
+                console.warn("Author ID validation failed.");
+                return;
+            }
+            // --- End Frontend Validation ---
+
+
+            // Find the index using the ORIGINAL ID (needed for updating the frontend array)
+            const authorIndex = authors.findIndex(a => a.id === originalId);
+
+            if (authorIndex === -1) {
+                console.error("Original author not found for saving:", originalId);
+                closeEditModal();
+                return;
+            }
+
+            const selectedFile = profilePicFileInput.files[0];
+            let profilePicValue = profilePicUrlHidden.value; // Start with the original URL
+
+            // --- Frontend Simulation of File Handling ---
+            // In a real app, you would upload the file *before* or *during* the database save.
+            // The backend would handle storing the file and returning its new URL.
+            if (selectedFile) {
+                console.log("New profile picture file selected:", selectedFile.name);
+                // ** CJ Diri: File Upload Logic Needed **
+                // Here you would typically call another function to upload `selectedFile`
+                // to your server/storage (e.g., S3, Google Cloud Storage).
+                // The server would return the new URL for the image.
+                // For demo: Use a placeholder or keep the old URL.
+                // Example: profilePicValue = await uploadProfilePicture(selectedFile);
+                // For now, we just update the preview:
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    profilePicPreview.src = e.target.result;
+                }
+                reader.readAsDataURL(selectedFile);
+                // profilePicValue = ''; // Or set to a placeholder indicating upload needed
+            }
+            // --- End Frontend Simulation ---
+
+
+            // Create an updated author object with values from the form
+            const updatedAuthorData = {
+                id: newId, // Use the validated new ID
+                firstName: document.getElementById('editFirstName').value.trim(),
+                middleName: document.getElementById('editMiddleName').value.trim(),
+                lastName: document.getElementById('editLastName').value.trim(),
+                department: document.getElementById('editDepartment').value.trim(),
+                affiliation: document.getElementById('editAffiliation').value.trim(),
+                email: document.getElementById('editEmail').value.trim(),
+                linkedin: document.getElementById('editLinkedin').value.trim(),
+                profilePicUrl: profilePicValue, // Use the determined profile picture URL
+                bio: document.getElementById('editBio').value.trim(),
+                // Keep non-editable data (works) from the original object
+                worksCount: authors[authorIndex].worksCount,
+                works: authors[authorIndex].works,
+            };
+
+            // --- Step 1: Update Frontend Immediately ---
+            // Update the author data in the main `authors` array for instant UI refresh
+            authors[authorIndex] = updatedAuthorData;
+            // Re-render the author list to reflect the changes visually right away
+            renderAuthors(authors); // Render all authors to ensure correct display if ID changed
+            console.log("Frontend UI updated immediately for author:", newId);
+            // --- End Frontend Update ---
+
+
+            // --- Step 2: Attempt to Save to Backend ---
+            // Call the asynchronous function to simulate saving to the database
+            const saveSuccess = await saveAuthorToDatabase(updatedAuthorData);
+            // --- End Backend Save Attempt ---
+
+
+            // Close the modal regardless of backend save success for this demo.
+            // In a real app, you might keep the modal open and show an error if saving failed.
+            if (saveSuccess) {
+                 console.log("Data for author", newId, "processed for backend save.");
+            } else {
+                 console.error("Backend save failed for author", newId, ". Frontend changes were still applied.");
+                 // Optionally revert frontend changes here if backend save fails critically
+                 // authors[authorIndex] = originalAuthorData; // Need to store original data first
+                 // renderAuthors(authors);
+                 // alert("Critical error: Could not save changes to the database. Please try again.");
+            }
+
+            closeEditModal(); // Close the modal
+        });
+
+        // --- Collapse/Toggle Functions for Works Section ---
+        function collapseWorkSectionById(worksSectionId, buttonId) {
+            const worksSection = document.getElementById(worksSectionId);
+            const toggleButton = document.getElementById(buttonId);
+            if (worksSection && worksSection.classList.contains('expanded')) {
+                worksSection.classList.remove('expanded');
+                if (toggleButton) {
+                    const arrow = toggleButton.querySelector('.arrow');
+                    if (arrow) arrow.innerHTML = '&#x25BC;'; // Down arrow
+                }
+            }
+        }
+
+        function toggleWorks(worksSectionId, buttonId, workFiltersId, authorId, authorIndex) {
+            const worksSection = document.getElementById(worksSectionId);
+            const toggleButton = document.getElementById(buttonId);
+            // const workFilters = document.getElementById(workFiltersId); // Filter container
+
+            if (!worksSection || !toggleButton) return;
+
+            const isExpanded = worksSection.classList.toggle('expanded');
+            const arrow = toggleButton.querySelector('.arrow');
+
+            if (isExpanded) {
+                if (arrow) arrow.innerHTML = '&#x25B2;'; // Up arrow
+            } else {
+                if (arrow) arrow.innerHTML = '&#x25BC;'; // Down arrow
+            }
+
+             // --- Auto-collapse other sections ---
+             const allWorkSections = document.querySelectorAll('.ad-works-section.expanded');
+             allWorkSections.forEach(section => {
+                 if (section.id !== worksSectionId) {
+                     const otherButtonId = section.getAttribute('data-button-id');
+                     collapseWorkSectionById(section.id, otherButtonId);
+                 }
+             });
+             // --- End Auto-collapse ---
+        }
+
+
+        // --- Global Event Listeners ---
+
+        // Add listeners to the main filter controls
+        searchInput.addEventListener('input', filterAuthors);
+        departmentFilter.addEventListener('change', filterAuthors);
+        affiliationFilter.addEventListener('change', filterAuthors);
+
+        // Close modal if clicked outside of it
+        window.addEventListener('click', function(event) {
+            if (event.target == editModal) { // Check if the click target is the modal backdrop itself
+                closeEditModal();
+            }
+        });
+
+        // Close modal on Escape key press
+        window.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && editModal.style.display === 'block') {
+                closeEditModal();
+            }
+        });
+
+
+        // --- Initial Setup ---
+        // Run when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            populateAuthorFilters(); // Populate the main filter dropdowns
+            renderAuthors(authors); // Render the initial list of all authors
+        });
+    </script>
+    <script>
+        fetch('side_bar.html')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById('side-bar').innerHTML = data;
+          })
+          .catch(error => console.error('Error loading header:', error));
+      </script>
+    
+    <script>
+        fetch('navbar_header.html')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById('navbar-header').innerHTML = data;
+          })
+          .catch(error => console.error('Error loading header:', error));
+      </script>
+
+</body>
+</html>
