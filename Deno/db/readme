@@ -1,0 +1,4 @@
+importing db schema using pgadmin 
+1. Create db name "peas_db"
+2. right click the database
+3.Select Restore and select the backupfile

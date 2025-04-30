@@ -1,0 +1,496 @@
+/* General Styling */
+body {
+    font-family: sans-serif;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #fffff5;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Centers vertically */
+    align-items: stretch; /* Uses full width */
+}
+
+/* Main Container */
+.container {
+    margin-top: 20px;
+    display: flex;
+    width: 1200px; /* Makes it take full width */
+    max-width: 100%; /* Ensures no unwanted restrictions */
+    
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    align-self: center; /* Ensures it's centered within the body */
+}
+
+/* Left Panel */
+.left-panel {
+    flex: 1;
+    padding: 20px;
+    border-right: 1px solid #ddd;
+}
+
+.left-panel h2 {
+    margin-bottom: 20px;
+}
+
+.left-panel label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+/* Input Fields */
+.left-panel input[type="text"],
+.left-panel input[type="number"],
+.left-panel select,
+.left-panel textarea {
+    width: calc(100% - 10px);
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.left-panel textarea {
+    resize: vertical;
+}
+
+#read-document {
+    padding: 10px;
+    width: 150px;
+    height: 40px;
+    border: none;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+  }
+  
+  /* Style for enabled button */
+  #read-document:not([disabled]) {
+    background-color: #12c539;  /* Background color added here */
+    color: #333;
+  }
+  
+  #read-document:not([disabled]):hover {
+    background-color: #12c539;  /* Background color added here */
+    transform: translateY(-2px);
+  }
+  
+  #read-document:not([disabled]):active {
+    background-color: #c0c0c0;
+    transform: translateY(1px);
+  }
+  
+  /* Style for disabled button */
+  #read-document[disabled] {
+    background-color: #4caf4f2d;
+    color: #000000; /* Lighter text for disabled */
+    cursor: not-allowed; /* Change cursor to indicate disabled */
+  }
+/* Submit Button */
+.submit-container {
+    display: flex;
+    justify-content: center; /* Centers the button horizontally */
+    margin-top: 20px; /* Adds spacing from above elements */
+}
+
+.submit-container button {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #4CAF50;
+    color: rgb(0, 0, 0);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.submit-container button:hover {
+    background-color: #45a049;
+}
+
+/* Right Panel */
+.right-panel {
+    flex: 1;
+    padding: 20px;
+}
+
+.preview-header {
+    text-align: center;
+    margin-bottom: 10px;
+    
+}
+.preview-header-content {
+    display: flex; /* This ensures the icon and title are aligned in a row */
+    height: 100px;
+    
+    
+    
+}
+label {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    display: inline-block;
+  }
+
+  /* Style for the input field */
+  input[type="date"] {
+    padding: 8px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 50%;
+    max-width: 300px;
+    margin-bottom: 15px;
+  }
+
+  /* Add some spacing between the label and input */
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+.preview-content {
+    border: 1px solid #ddd;
+    padding: 20px;
+    align-items: stretch;
+    border-radius: 4px;
+    min-height: 70%;
+    max-height: 85%;
+    
+}
+.preview-header-content {
+    display: flex;
+    align-items: flex-start; /* Align items to the top */
+    gap: 10px; /* Add some space between the icon and the text */
+}
+
+.title-author-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start; /* Align text to the top */
+}
+
+.category-icon {
+    width: 80px;
+    height: 80px;
+    padding: 10px;
+}
+
+#preview-title {
+    margin: 0; /* Remove default margin */
+    font-size: 18px; /* Adjust as needed */
+}
+
+#preview-author {
+    margin: 0; /* Remove default margin */
+    font-size: 14px; /* Adjust as needed */
+    color: #000000; /* Optional: Adjust color for author text */
+}
+
+/* File Upload Icons */
+.upload-icons-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.upload-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 150px;
+    height: 100px;
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    transition: all 0.3s ease-in-out;
+    cursor: pointer;
+}
+
+.upload-box svg {
+    width: 40px;
+    height: 40px;
+    stroke: #555; /* Default color */
+    transition: stroke 0.3s ease-in-out;
+}
+
+.upload-box p {
+    margin: 5px 0 0;
+    font-size: 14px;
+    color: #555;
+    transition: color 0.3s ease-in-out;
+}
+.upload-box:hover {
+    background-color: #f4f4f4;
+    border-color: #4CAF50;
+}
+
+.upload-box:hover svg {
+    stroke: #4CAF50;
+}
+
+.upload-box:hover p {
+    color: #4CAF50;
+}
+
+/* Dropdown Styling */
+.dropdown-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 10px;
+
+}
+
+/* Align Volume and Department in One Row */
+.dropdown-group {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
+.dropdown-group div {
+    flex: 1;
+}
+
+/* Category Full Width Below */
+.category {
+    width: 100%;
+}
+.category-icon{
+    width: 80px;
+    height: 80px;
+    padding:10px;
+}
+/* Fix for Author and Topic Inputs */
+.select-container {
+    width: 100%; /* Ensure full width */
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+   
+    
+}
+
+.dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.dropdown input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.selected-authors {
+    width: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    
+    
+}
+
+.selected-author {
+    display: inline-flex;
+    align-items: center;
+   
+    color: rgb(0, 0, 0);
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.remove-author {
+    cursor: pointer;
+    margin-left: 8px;
+    font-weight: bold;
+}
+.selected-topics {
+    width: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.selected-topics {
+    display: inline-flex;
+    align-items: center;
+    
+    color: rgb(0, 0, 0);
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.remove-topic {
+    cursor: pointer;
+    margin-left: 8px;
+    font-weight: bold;
+}
+
+/* Topic Styles (Matches Author Styling) */
+.topic {
+    background-color: #f0f0f0;
+    padding: 5px 10px;
+    margin: 2px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+
+
+/* Dropdown List */
+.dropdown-list {
+    position: absolute;
+    background: white;
+    
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    display: block; /* Ensure it's visible */
+}
+
+.dropdown-item {
+    padding: 8px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+}
+
+.dropdown-item:hover {
+    background: #f0f0f0;
+}
+
+/* Popup Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    animation: slideIn 0.3s ease-out;
+}
+
+/* Success Modal Specific Styles */
+#success-modal .modal-content {
+    padding: 3rem 2rem;
+}
+
+#success-modal svg {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 1.5rem;
+}
+
+#success-modal h2 {
+    color: #4caf50;
+    margin-bottom: 0.5rem;
+}
+
+/* Receipt Modal Specific Styles */
+.receipt-body {
+    text-align: left;
+    margin: 1.5rem 0;
+    padding: 1.5rem;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+}
+
+.receipt-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.receipt-details p {
+    margin: 0.75rem 0;
+    color: #333;
+    line-height: 1.4;
+}
+
+.receipt-details strong {
+    color: #000;
+    min-width: 120px;
+    display: inline-block;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.btn-primary, .btn-secondary {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.btn-primary {
+    background-color: #4caf50;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #45a049;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
