@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const compiledCategory = document.getElementById('compiled-category');
     if (compiledCategory) {
         compiledCategory.addEventListener('change', function() {
-            updateCompiledPreviewIcon(this.value);
+            updateCompiledPreview();
         });
     }
     
@@ -170,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updatePreviewIcon(singleCategoryInitial);
     
     const compiledCategoryInitial = compiledCategory ? compiledCategory.value : '';
-    updateCompiledPreviewIcon(compiledCategoryInitial);
+    updateCompiledPreview();
 });
 
 /**
@@ -347,33 +347,32 @@ async function handleSingleDocumentSubmit(e) {
         
         let documentType;
         let categoryId = null;
+        let storagePath = 'storage/single/';
         
         if (categoryValue === 'Thesis') {
             documentType = 'THESIS';
             categoryId = 1; // Set the appropriate category ID for Thesis
+            storagePath += 'thesis/';
         } else if (categoryValue === 'Dissertation') {
             documentType = 'DISSERTATION';
             categoryId = 2; // Set the appropriate category ID for Dissertation
+            storagePath += 'dissertation/';
         } else {
             throw new Error('Invalid document type');
         }
         
+        // Ensure the directory exists before uploading
+        await ensureDirectoriesExist(storagePath);
+        
         // First upload the file
         const file = fileInput.files[0];
         const fileData = new FormData();
-        fileData.append('file', file);
-        
-        // Set the storage path based on document type
-        let storagePath = 'storage/single/';
-        
-        if (categoryValue === 'Thesis') {
-            storagePath += 'thesis/';
-        } else if (categoryValue === 'Dissertation') {
-            storagePath += 'dissertation/';
-        }
+        fileData.append('file', file, file.name); // Add filename explicitly
         
         // Add storage path to the form data
         fileData.append('storagePath', storagePath);
+        
+        console.log('Uploading single document file:', file.name, 'Size:', file.size, 'bytes', 'Path:', storagePath);
         
         // Upload file first
         const fileUploadResponse = await fetch('/api/upload', {
@@ -382,12 +381,20 @@ async function handleSingleDocumentSubmit(e) {
         });
         
         if (!fileUploadResponse.ok) {
+            let errorMessage;
+            try {
             const errorData = await fileUploadResponse.json();
-            throw new Error(errorData.error || 'Failed to upload file');
+                errorMessage = errorData.error || errorData.details || 'Failed to upload file';
+            } catch (jsonError) {
+                errorMessage = `Failed to upload file: ${fileUploadResponse.status} ${fileUploadResponse.statusText}`;
+            }
+            throw new Error(errorMessage);
         }
         
         const fileResult = await fileUploadResponse.json();
         const filePath = fileResult.filePath;
+        
+        console.log('File upload successful:', fileResult);
         
         // Create publication date from month and year if both exist
         const pubMonth = formData.get('pubMonth');
@@ -418,7 +425,7 @@ async function handleSingleDocumentSubmit(e) {
             document_type: documentType,
             research_agenda: formData.get('researchAgenda') || null,
             category_id: categoryId,
-            page_count: pageCount
+            pages: pageCount
         };
         
         // Update the preview with the document data
@@ -434,11 +441,48 @@ async function handleSingleDocumentSubmit(e) {
         });
         
         if (!documentResponse.ok) {
+            let errorMessage;
+            try {
             const errorData = await documentResponse.json();
-            throw new Error(errorData.error || 'Failed to save document');
+                errorMessage = errorData.error || 'Failed to save document';
+            } catch (jsonError) {
+                errorMessage = `Failed to save document: ${documentResponse.status} ${documentResponse.statusText}`;
+            }
+            throw new Error(errorMessage);
         }
         
         const result = await documentResponse.json();
+        const documentId = result.id;
+        
+        // Now that we have the document ID, create the file record
+        const fileRecord = {
+            file_name: fileResult.originalName,
+            file_path: filePath,
+            file_size: fileResult.size,
+            file_type: fileResult.fileType || 'application/octet-stream',
+            document_id: documentId
+        };
+        
+        // Save file record to database
+        try {
+            const fileRecordResponse = await fetch('/api/files', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(fileRecord)
+            });
+            
+            if (!fileRecordResponse.ok) {
+                const errorData = await fileRecordResponse.json();
+                console.warn('Warning: Failed to create file record:', errorData.error || 'Unknown error');
+            } else {
+                console.log('File record created successfully');
+            }
+        } catch (fileRecordError) {
+            console.warn('Warning: Error creating file record:', fileRecordError);
+            // Continue even if file record creation fails
+        }
         
         // Save author information
         if (formData.get('author')) {
@@ -446,7 +490,7 @@ async function handleSingleDocumentSubmit(e) {
             
             if (authors.length > 0) {
                 const authorData = {
-                    document_id: result.id,
+                    document_id: documentId,
                     authors: authors
                 };
                 
@@ -471,7 +515,7 @@ async function handleSingleDocumentSubmit(e) {
             
             if (researchAgendaItems.length > 0) {
                 const researchAgendaData = {
-                    document_id: result.id,
+                    document_id: documentId,
                     agenda_items: researchAgendaItems
                 };
                 
@@ -512,39 +556,59 @@ async function handleCompiledDocumentSubmit(e) {
     e.preventDefault();
     
     try {
-        // Show loading state
-        showLoading('Uploading compiled document...');
+        showLoading('Saving compiled document...');
         
-        // Get form data
-        const formData = new FormData(e.target);
+        const form = e.target;
+        const formData = new FormData(form);
         
-        // Get category
-        const categorySelect = document.getElementById('compiled-category');
-        const categoryValue = categorySelect.value;
+        // Validate required fields
+        const title = formData.get('title');
+        const category = formData.get('category');
         
-        let documentType;
-        let compiledStoragePath = 'storage/compiled/';
-        let categoryId = null;
+        if (!category) {
+            throw new Error('Category is required');
+        }
         
-        if (categoryValue === 'Confluence') {
-            documentType = 'CONFLUENCE';
-            compiledStoragePath += 'confluence/';
-            categoryId = 3; // Set the appropriate category ID for Confluence
-        } else if (categoryValue === 'Synergy') {
-            documentType = 'SYNERGY';
-            compiledStoragePath += 'synergy/';
-            categoryId = 4; // Set the appropriate category ID for Synergy
-        } else {
-            throw new Error('Invalid document type');
+        // Determine category ID based on category name
+        let categoryId = 0;
+        switch (category.toLowerCase()) {
+            case 'confluence':
+                categoryId = 3; // ID for Confluence category
+                break;
+            case 'synergy':
+                categoryId = 4; // ID for Synergy category
+                break;
+            default:
+                throw new Error('Invalid category');
+        }
+        
+        // Determine document type based on category
+        const documentType = category === 'Synergy' ? 'SYNERGY' : 'CONFLUENCE';
+        
+        // Create storage path for compiled document
+        const compiledStoragePath = `storage/compiled/${category.toLowerCase()}/`;
+        
+        // Ensure the directory exists
+        await ensureDirectoriesExist(compiledStoragePath);
+        await ensureDirectoriesExist(compiledStoragePath + 'studies/');
+        
+        // Set department_id if it's a Synergy document
+        let departmentId = null;
+        if (documentType === 'SYNERGY') {
+            const departmentalSelect = document.getElementById('compiled-departmental');
+            if (departmentalSelect && departmentalSelect.value) {
+                departmentId = parseInt(departmentalSelect.value);
+            }
         }
         
         // Create compiled document data
         const compiledDocumentData = {
-            title: `${categoryValue} ${formData.get('volume') || ''} ${formData.get('issued-no') || ''}`.trim(),
+            title: `${category} ${formData.get('volume') || ''}`.trim(),
             start_year: formData.get('pub-year-start') || null,
             end_year: formData.get('pub-year-end') || null,
             volume: formData.get('volume') || null,
-            issue: formData.get('issued-no') || null,
+            issue: documentType === 'SYNERGY' ? null : formData.get('issued-no') || null,
+            department_id: departmentId,
             is_public: true,
             document_type: documentType,
             file_path: compiledStoragePath, // Store the path to the compiled document folder
@@ -552,7 +616,7 @@ async function handleCompiledDocumentSubmit(e) {
         };
         
         // Save compiled document to database
-        const documentResponse = await fetch('/documents', {
+        const documentResponse = await fetch('/api/documents', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -573,159 +637,122 @@ async function handleCompiledDocumentSubmit(e) {
         const studyPromises = [];
         
         for (const section of researchSections) {
-            const sectionId = section.dataset.sectionId;
-            const titleInput = section.querySelector(`#study-title-${sectionId}`);
-            const authorsInput = section.querySelector(`#authors-${sectionId}`);
-            const researchAgendaInput = section.querySelector(`#research-agenda-${sectionId}`);
-            const fileInput = section.querySelector(`input[type="file"]`);
+            const fileInput = section.querySelector('.research-file');
+            const titleInput = section.querySelector('.research-title');
+            const abstractInput = section.querySelector('.research-abstract');
+            
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                continue; // Skip sections without files
+            }
             
             if (!titleInput || !titleInput.value) {
-                continue; // Skip if no title
+                throw new Error('Each study must have a title');
             }
             
-            if (!fileInput || fileInput.files.length === 0) {
-                throw new Error(`Please attach a file for "${titleInput.value}"`);
-            }
-            
-            // Upload file
             const file = fileInput.files[0];
-            const fileData = new FormData();
-            fileData.append('file', file);
             
-            // Store study files in the same location as the parent document
-            fileData.append('storagePath', compiledStoragePath + 'studies/');
+            // Create study-specific file upload
+            const studyFormData = new FormData();
+            studyFormData.append('file', file);
+            studyFormData.append('path', `${compiledStoragePath}studies/`);
             
-            const fileUploadPromise = fetch('/api/upload', {
+            // Upload the study file
+            const studyFileResponse = await fetch('/api/upload', {
                 method: 'POST',
-                body: fileData
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(data => {
-                        throw new Error(data.error || `Failed to upload file for "${titleInput.value}"`);
-                    });
-                }
-                return response.json();
-            })
-            .then(fileResult => {
-                // Create study document that is linked to the compiled document
+                body: studyFormData
+            });
+            
+            if (!studyFileResponse.ok) {
+                const errorData = await studyFileResponse.json();
+                throw new Error(errorData.error || 'Failed to upload study file');
+            }
+            
+            const fileResult = await studyFileResponse.json();
+            
+            // Get study category ID (should match the parent document category)
+            let studyCategoryId = categoryId;
+            
+            // Create study document data (will be linked to the compiled document)
                 const studyData = {
                     title: titleInput.value,
+                abstract: abstractInput.value || 'No abstract provided',
+                publication_date: new Date().toISOString().split('T')[0],
+                document_type: 'RESEARCH_STUDY',
                     file_path: fileResult.filePath,
-                    is_public: true,
-                    document_type: 'THESIS', // Default to thesis
                     parent_document_id: compiledDocumentId,
-                    category_id: 1, // Default to thesis category ID
-                    page_count: 0,
-                    abstract: 'Study within compiled document'
+                category_id: studyCategoryId, // Use the appropriate category based on parent
+                pages: 0,
+                is_public: true
                 };
                 
-                // If metadata was extracted, use it
+            // Extract metadata from PDF if available
                 if (fileResult.metadata && fileResult.fileType === 'pdf') {
                     studyData.abstract = fileResult.metadata.abstract || studyData.abstract;
-                    studyData.page_count = fileResult.metadata.pageCount || 0;
+                studyData.pages = fileResult.metadata.pageCount || 0;
                 }
                 
-                // Save study to database
-                return fetch('/documents', {
+            // Save study document to database
+            const studyPromise = fetch('/api/documents', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(studyData)
-                });
-            })
-            .then(response => {
+            }).then(response => {
                 if (!response.ok) {
-                    return response.json().then(data => {
-                        throw new Error(data.error || `Failed to save study "${titleInput.value}"`);
+                    return response.json().then(errorData => {
+                        throw new Error(errorData.error || 'Failed to save study document');
                     });
                 }
                 return response.json();
-            })
-            .then(studyResult => {
-                const promises = [];
-                
-                // Save author information if provided
-                if (authorsInput && authorsInput.value) {
-                    const authors = authorsInput.value.split(';')
-                        .map(name => name.trim())
-                        .filter(name => name !== '');
-                    
-                    if (authors.length > 0) {
-                        const authorData = {
-                            document_id: studyResult.id,
-                            authors: authors
-                        };
-                        
-                        const authorPromise = fetch('/document-authors', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify(authorData)
-                        })
-                        .then(response => {
-                            if (!response.ok) {
-                                console.warn(`Warning: Authors may not have been saved correctly for "${titleInput.value}"`);
-                            }
-                            return response;
-                        });
-                        
-                        promises.push(authorPromise);
-                    }
-                }
-                
-                // Save research agenda items if provided
-                if (researchAgendaInput && researchAgendaInput.value) {
-                    const researchAgendaItems = researchAgendaInput.value.split(',')
-                        .map(item => item.trim())
-                        .filter(item => item !== '');
-                    
-                    if (researchAgendaItems.length > 0) {
-                        const researchAgendaData = {
-                            document_id: studyResult.id,
-                            agenda_items: researchAgendaItems
-                        };
-                        
-                        const researchAgendaPromise = fetch('/document-research-agenda', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify(researchAgendaData)
-                        })
-                        .then(response => {
-                            if (!response.ok) {
-                                console.warn(`Warning: Research agenda items may not have been saved correctly for "${titleInput.value}"`);
-                            }
-                            return response;
-                        });
-                        
-                        promises.push(researchAgendaPromise);
-                    }
-                }
-                
-                return Promise.all(promises);
             });
             
-            studyPromises.push(fileUploadPromise);
+            studyPromises.push(studyPromise);
         }
         
-        // Wait for all studies to be processed
+        // Wait for all study documents to be saved
         await Promise.all(studyPromises);
         
-        // Show success
-        showSuccess('Compiled document uploaded successfully!', function() {
-            // Redirect back to upload document page
-            window.location.href = 'upload_document.html';
+        hideLoading();
+        showSuccess('Compiled document created successfully', function() {
+            // Reset form
+            form.reset();
+            
+            // Clear research sections
+            const researchContainer = document.getElementById('research-container');
+            if (researchContainer) {
+                researchContainer.innerHTML = '';
+                addResearchSection(); // Add one empty section
+            }
+            
+            // Commenting out the redirect to stay on the current page
+            // window.location.href = 'documents.html';
         });
         
     } catch (error) {
-        console.error('Upload error:', error);
-        showError(error.message || 'An error occurred during upload');
-    } finally {
         hideLoading();
+        showError(error.message);
+        console.error('Error creating compiled document:', error);
+                    }
+                }
+                
+/**
+ * Helper function to ensure directories exist
+ * @param {string} path - Directory path
+ */
+async function ensureDirectoriesExist(path) {
+    try {
+        // Use a simple fetch to trigger server-side directory creation
+        await fetch('/api/ensure-directory', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+            body: JSON.stringify({ path })
+        });
+    } catch (error) {
+        console.warn('Could not ensure directory exists:', path, error);
+        // Continue anyway as the upload might still work if directory exists
     }
 }
 
@@ -831,11 +858,57 @@ function updatePreviewIcon(category) {
     console.log('Updated single document preview icon to:', iconPath);
 }
 
-// Function to update compiled document preview icon
-function updateCompiledPreviewIcon(category) {
-    const previewIcon = document.getElementById('compiled-preview-category-icon');
-    if (!previewIcon) return;
+// Function to update compiled document preview
+function updateCompiledPreview() {
+    // Get form elements
+    const titleElement = document.getElementById('preview-main-title');
+    const pubYearElement = document.getElementById('preview-pub-year');
+    const volumeElement = document.getElementById('preview-volume');
+    const categoryElement = document.getElementById('preview-category');
+    const categorySelect = document.getElementById('compiled-category');
+    const volumeInput = document.getElementById('compiled-volume');
+    const departmentalSelect = document.getElementById('compiled-departmental');
+    const issuedNoInput = document.getElementById('compiled-issued-no');
     
+    if (!titleElement || !categorySelect) return;
+    
+    // Get the category value
+    const category = categorySelect.value;
+    
+    // Build the title based on category, volume, and department or issue number
+    let title = category || 'Compiled Document';
+    
+    if (volumeInput && volumeInput.value) {
+        title += ` Volume ${volumeInput.value}`;
+    }
+    
+    if (category === 'Synergy') {
+        // For Synergy, use the department name
+        if (departmentalSelect && departmentalSelect.selectedIndex > 0) {
+            title += ` - ${getSelectedDepartmentText()}`;
+        }
+    } else {
+        // For other types, use the issue number
+        if (issuedNoInput && issuedNoInput.value) {
+            title += ` Issue ${issuedNoInput.value}`;
+        }
+    }
+    
+    // Update title in preview
+    titleElement.textContent = title;
+    
+    // Update other elements as needed
+    if (categoryElement) {
+        categoryElement.textContent = category || 'N/A';
+    }
+    
+    if (volumeElement && volumeInput) {
+        volumeElement.textContent = volumeInput.value || 'N/A';
+    }
+    
+    // Update icon
+    const previewIcon = document.getElementById('compiled-preview-category-icon');
+    if (previewIcon) {
     let iconPath = 'icons/category-icons/default_category_icon.png';
     
     // Set the appropriate icon based on the selected category
@@ -852,6 +925,7 @@ function updateCompiledPreviewIcon(category) {
     
     previewIcon.src = iconPath;
     console.log('Updated compiled document preview icon to:', iconPath);
+    }
 }
 
 /**
@@ -1330,3 +1404,196 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 }); 
+
+/**
+ * Handles file selection for PDF uploads
+ * @param {Event} event - The file input change event
+ */
+async function handleFileSelection(event) {
+    const fileInput = event.target;
+    const file = fileInput.files[0];
+    
+    if (!file) return;
+    
+    // Only accept PDF files
+    if (file.type !== 'application/pdf') {
+        showError('Please select a valid PDF file.');
+        fileInput.value = '';
+        return;
+    }
+    
+    // Show loading indicator
+    const uploadBox = document.querySelector('.upload-box');
+    uploadBox.classList.add('loading');
+    
+    try {
+        // Upload file to server
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const response = await fetch('/api/documents/upload-file', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to upload file');
+        }
+        
+        const data = await response.json();
+        
+        // Store file info and extract metadata
+        fileUploadResult = data;
+        
+        // Show success indicator and file name
+        uploadBox.classList.remove('loading');
+        uploadBox.classList.add('success');
+        
+        // Show file name
+        const fileIndicator = document.getElementById('file-indicator');
+        fileIndicator.textContent = file.name;
+        fileIndicator.style.display = 'block';
+        
+        // Update form with metadata if available
+        if (data.metadata) {
+            // Set abstract from PDF
+            const abstractTextarea = document.getElementById('abstract');
+            if (abstractTextarea && data.metadata.abstract) {
+                abstractTextarea.value = data.metadata.abstract;
+            }
+            
+            // Set extracted page count
+            const pageCount = data.metadata.pageCount || 0;
+            document.getElementById('page-count-value').textContent = pageCount;
+        }
+    } catch (error) {
+        console.error('File upload error:', error);
+        uploadBox.classList.remove('loading');
+        uploadBox.classList.add('error');
+        showError(`Upload failed: ${error.message}`);
+        
+        // Reset file input
+        fileInput.value = '';
+    }
+}
+
+/**
+ * Prepares data for document creation
+ * @returns {Object} Document data ready for submission
+ */
+function prepareDocumentData() {
+    // Get form values
+    const title = document.getElementById('title').value;
+    const abstract = document.getElementById('abstract').value;
+    const publicationDate = document.getElementById('publication-date').value;
+    const volumeNumber = document.getElementById('volume').value;
+    const category = document.getElementById('category').value;
+    
+    // Create document data object
+    const documentData = {
+        title,
+        abstract,
+        publication_date: publicationDate,
+        volume: volumeNumber,
+        category,
+        document_type: 'research',
+        pages: 0,
+        is_public: document.getElementById('is-public').checked,
+        authors: selectedAuthors.map(author => ({ id: author.id })),
+        topics: selectedTopics.map(topic => ({ id: topic.id }))
+    };
+    
+    // Add metadata from file upload if available
+    if (fileUploadResult && fileUploadResult.metadata) {
+        documentData.pages = fileUploadResult.metadata.pageCount || 0;
+        documentData.file_path = fileUploadResult.filePath;
+    }
+    
+    return documentData;
+}
+
+// Add a function to fetch departments from the API
+async function fetchDepartments() {
+    try {
+        const response = await fetch('/api/departments');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching departments:", error);
+        return [];
+    }
+}
+
+// Populate the departmental dropdown with values from the database
+async function populateDepartmentalDropdown() {
+    const departmentalSelect = document.getElementById('compiled-departmental');
+    if (!departmentalSelect) return;
+    
+    try {
+        // Clear existing options except the first one
+        while (departmentalSelect.options.length > 1) {
+            departmentalSelect.remove(1);
+        }
+        
+        // Fetch departments from the API
+        const departments = await fetchDepartments();
+        
+        // Add each department as an option
+        departments.forEach(dept => {
+            const option = document.createElement('option');
+            option.value = dept.id; // Use the department ID as the value
+            option.textContent = `${dept.department_name} (${dept.code})`; // Show both name and code
+            departmentalSelect.appendChild(option);
+        });
+        
+        // Add an event listener to update the preview when selection changes
+        departmentalSelect.addEventListener('change', updateCompiledPreview);
+    } catch (error) {
+        console.error("Error populating departmental dropdown:", error);
+    }
+}
+
+// When compiling a Synergy document, handle the department selection
+function handleCategoryChange() {
+    const categoryInput = document.getElementById('compiled-category');
+    const issuedNoContainer = document.getElementById('compiled-issued-no-container');
+    const issuedNoInput = document.getElementById('compiled-issued-no');
+    const departmentalSelect = document.getElementById('compiled-departmental');
+    
+    if (!categoryInput || !issuedNoContainer || !issuedNoInput || !departmentalSelect) return;
+    
+    if (categoryInput.value === 'Synergy') {
+        // If Synergy is selected, show departmental dropdown and hide issued no input
+        issuedNoInput.style.display = 'none';
+        departmentalSelect.style.display = 'block';
+        
+        // Load departments if not already loaded
+        populateDepartmentalDropdown();
+        
+        // Update label
+        const label = document.getElementById('compiled-issued-no-label');
+        if (label) label.textContent = 'Department';
+    } else {
+        // For other categories, show issued no input and hide departmental dropdown
+        issuedNoInput.style.display = 'block';
+        departmentalSelect.style.display = 'none';
+        
+        // Update label
+        const label = document.getElementById('compiled-issued-no-label');
+        if (label) label.textContent = 'Issued No.';
+    }
+    
+    // Update preview
+    updateCompiledPreview();
+}
+
+// Function to get the selected department text (name and code)
+function getSelectedDepartmentText() {
+    const departmentalSelect = document.getElementById('compiled-departmental');
+    if (!departmentalSelect || departmentalSelect.selectedIndex < 0) return '';
+    
+    return departmentalSelect.options[departmentalSelect.selectedIndex].text;
+} 

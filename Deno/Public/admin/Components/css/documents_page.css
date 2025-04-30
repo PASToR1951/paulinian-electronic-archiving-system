@@ -449,23 +449,237 @@ td:first-child {
 
 /* Document card styling */
 .document-card {
-    background-color: #fff;
-    border-radius: 8px;
-    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    margin-bottom: 15px;
     border: 1px solid #e0e0e0;
-    transition: all 0.3s ease;
-    position: relative;
-    max-width: 1200px;
-    margin-left: auto;
-    margin-right: auto;
-    cursor: pointer; /* Add pointer cursor for document cards */
+    border-radius: 8px;
+    background-color: #ffffff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .document-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Box shadow when hovering */
-    border-color: transparent; /* Remove border on hover */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.document-icon {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.document-icon img {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.document-info {
+    flex: 1;
+    min-width: 0; /* Fixes flex child overflow issues */
+}
+
+.document-title {
+    margin: 0 0 5px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+.document-author {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    color: #666;
+}
+
+.document-metadata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: #666;
+}
+
+.metadata-item {
+    display: flex;
+    align-items: center;
+}
+
+.metadata-item i {
+    margin-right: 5px;
+    color: #555;
+}
+
+.document-topics {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.topics-label {
+    font-size: 13px;
+    color: #666;
+    margin-right: 5px;
+}
+
+.topics-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.topic-tag {
+    background-color: #f0f0f0;
+    color: #555;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+}
+
+.document-actions {
+    display: flex;
+    gap: 10px;
+    margin-left: 15px;
+    flex-shrink: 0;
+}
+
+.document-actions button {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background-color: #f5f5f5;
+    color: #555;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.2s ease;
+}
+
+.view-document-btn:hover {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+.edit-document-btn:hover {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.delete-document-btn:hover {
+    background-color: #ffebee;
+    color: #c62828;
+}
+
+/* Compiled document specific styles */
+.document-card.compilation {
     background-color: #f8f9fa;
+    border-left: 4px solid #4285f4;
+}
+
+.document-volume {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    color: #555;
+    font-weight: 500;
+}
+
+.toggle-children-btn {
+    background-color: transparent;
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-size: 13px;
+    color: #555;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    margin-top: 5px;
+    transition: background-color 0.2s ease;
+}
+
+.toggle-children-btn:hover {
+    background-color: #f1f3f4;
+}
+
+.toggle-children-btn i {
+    margin-right: 5px;
+}
+
+.children-container {
+    margin-top: 10px;
+    margin-left: 30px;
+    padding-left: 15px;
+    border-left: 2px dashed #dadce0;
+}
+
+/* Child document card styles */
+.child-document-card {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background-color: #ffffff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.child-document-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+}
+
+.child-document-info {
+    flex: 1;
+}
+
+.child-document-title {
+    margin: 0 0 5px 0;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.child-document-author {
+    margin: 0 0 5px 0;
+    font-size: 13px;
+    color: #666;
+}
+
+.child-document-metadata {
+    display: flex;
+    gap: 10px;
+    font-size: 12px;
+    color: #666;
+}
+
+.child-document-actions {
+    display: flex;
+}
+
+/* Loading states */
+.loading-children {
+    padding: 10px;
+    color: #666;
+    font-style: italic;
+    font-size: 14px;
+}
+
+.no-children, .error-message {
+    padding: 10px;
+    color: #666;
+    font-style: italic;
+    font-size: 14px;
 }
 
 /* Filter indicator section */
@@ -2286,4 +2500,37 @@ select:focus {
     padding: 10px;
     border-radius: 4px;
     background-color: #fadbd8;
+}
+
+/* Research Agenda Bubbles */
+.research-agenda-bubble {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    margin-right: 8px;
+    margin-bottom: 5px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.research-agenda-bubble:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+}
+
+.topics-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+.topics-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #555;
+    margin-right: 8px;
 }

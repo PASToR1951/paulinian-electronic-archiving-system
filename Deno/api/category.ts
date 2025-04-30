@@ -1,4 +1,4 @@
-import { fetchCategories } from "../controllers/document-Controller.ts";
+import { fetchCategories } from "../controllers/documentController.ts";
 
 export async function handler(req: Request): Promise<Response> {
     if (req.method === "GET") {

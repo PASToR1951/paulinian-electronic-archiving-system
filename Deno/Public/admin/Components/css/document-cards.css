@@ -140,36 +140,152 @@
 }
 
 .document-card.compilation {
-    border-left: none;
+    border-left: 4px solid #4285f4;
     background-color: #f0f8ff;
+    transition: all 0.3s ease;
+    padding: 12px;
+    position: relative;
 }
 
-.document-card.compilation .card-title {
+.document-card.compilation:hover {
+    background-color: #e8f4ff;
+}
+
+.document-card.compilation[data-is-expanded="true"] {
+    background-color: #e3f2fd;
+    border-left-color: #2196f3;
+}
+
+.document-card.compilation .document-title {
+    font-weight: 600;
+    color: #1976d2;
+    margin-bottom: 6px;
+}
+
+.document-card.compilation .document-volume {
+    color: #555;
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+}
+
+.document-card.compilation .document-metadata {
+    display: flex;
+    gap: 12px;
+    color: #666;
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+}
+
+.document-card.compilation .metadata-item {
     display: flex;
     align-items: center;
+    gap: 5px;
 }
 
-.document-card.compilation .expand-icon {
-    margin-right: 10px;
-    font-size: 12px;
+.document-card.compilation .toggle-children-btn {
+    background-color: transparent;
+    border: 1px solid #4285f4;
+    color: #4285f4;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 5px;
+}
+
+.document-card.compilation .toggle-children-btn:hover {
+    background-color: #4285f4;
+    color: white;
+}
+
+.document-card.compilation .document-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-left: 15px;
+}
+
+.document-card.compilation .action-btn {
+    background: none;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
     color: #555;
-    transition: transform 0.2s;
+}
+
+.document-card.compilation .edit-document-btn {
+    background-color: rgba(15, 157, 88, 0.1);
+    color: #0f9d58;
+}
+
+.document-card.compilation .delete-document-btn {
+    background-color: rgba(219, 68, 55, 0.1);
+    color: #db4437;
+}
+
+.document-card.compilation .edit-document-btn:hover {
+    background-color: #0f9d58;
+    color: white;
+}
+
+.document-card.compilation .delete-document-btn:hover {
+    background-color: #db4437;
+    color: white;
 }
 
 .children-container {
-    margin-left: 30px;
-    margin-top: 5px;
-    border-left: 2px dashed #ccc;
+    margin-top: 15px;
+    border-left: 2px dashed #90caf9;
     padding-left: 15px;
+    transition: all 0.3s ease;
 }
 
 .child-document-card {
-    margin-bottom: 5px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    cursor: pointer;
+    background-color: white;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
 }
 
-.no-children-message {
+.child-document-card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.loading-children {
+    padding: 10px;
+    color: #666;
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.loading-children:before {
+    content: "";
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #ddd;
+    border-top-color: #2196f3;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.no-children {
     padding: 10px;
     color: #666;
     font-style: italic;
@@ -197,5 +313,12 @@
     
     #documents-container {
         height: 500px !important; /* Slightly shorter on mobile */
+    }
+    
+    .document-card.compilation .document-actions {
+        flex-direction: row;
+        margin-top: 10px;
+        margin-left: 0;
+        justify-content: flex-end;
     }
 }

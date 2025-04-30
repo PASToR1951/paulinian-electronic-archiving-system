@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document Upload - PEAS</title>
+    <link rel="stylesheet" href="css/common.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/lucide-static@latest/dist/lucide.min.js"></script>
     
@@ -14,6 +15,175 @@
         if (window.pdfjsLib) {
             window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
         }
+        
+        // Define the abstract extraction function globally so it's available before DOM content loaded
+        window.extractPDFAbstractForCompiledDoc = function(file, abstractElement) {
+            if (!file || !abstractElement || file.type !== 'application/pdf') {
+                abstractElement.textContent = 'Abstract extraction is only available for PDF files.';
+                return;
+            }
+            
+            abstractElement.textContent = 'Extracting abstract...';
+            console.log('Starting abstract extraction for file:', file.name);
+            
+            // Check file size, limit to 10MB to prevent browser hanging
+            if (file.size > 10 * 1024 * 1024) {
+                abstractElement.textContent = 'File too large for preview. Abstract will be extracted during submission.';
+                console.log('PDF file too large for browser extraction');
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    console.log('PDF file loaded, processing content...');
+                    const typedArray = new Uint8Array(e.target.result);
+                    
+                    // Check PDF.js availability
+                    if (!window.pdfjsLib) {
+                        console.error('PDF.js library not available');
+                        abstractElement.textContent = 'PDF processing library not available. Abstract will be extracted during submission.';
+                        return;
+                    }
+                    
+                    // Load the PDF document
+                    const loadingTask = window.pdfjsLib.getDocument({ data: typedArray });
+                    loadingTask.promise.then(async function(pdf) {
+                        try {
+                            console.log(`PDF document loaded with ${pdf.numPages} pages`);
+                            // Search through the first few pages for abstract
+                            const maxPagesToSearch = Math.min(5, pdf.numPages);
+                            let abstractText = "";
+                            let foundAbstract = false;
+                            
+                            for (let pageNum = 1; pageNum <= maxPagesToSearch; pageNum++) {
+                                console.log(`Processing page ${pageNum}/${maxPagesToSearch}`);
+                                const page = await pdf.getPage(pageNum);
+                                const textContent = await page.getTextContent();
+                                
+                                // Convert text content to string
+                                const pageText = textContent.items.map(item => item.str).join(' ');
+                                
+                                // Look for the abstract in this page
+                                if (pageText.toLowerCase().includes('abstract')) {
+                                    console.log(`Found abstract keyword on page ${pageNum}`);
+                                    abstractText = pageText;
+                                    foundAbstract = true;
+                                    break;
+                                }
+                                
+                                // If we haven't found the abstract yet, keep collecting text
+                                if (abstractText === "" && pageNum === 1) {
+                                    abstractText = pageText;
+                                }
+                            }
+                            
+                            if (!foundAbstract) {
+                                console.log('Abstract keyword not found in first pages, using first page text');
+                            }
+                            
+                            // Clean and extract the abstract
+                            const cleanedText = abstractText.replace(/(\r\n|\n|\r)/gm, " ").trim();
+                            const abstractStartText = window.findAbstractStart(cleanedText);
+                            
+                            if (abstractStartText) {
+                                console.log('Abstract content extracted successfully');
+                                const finalAbstract = window.cleanAbstractText(abstractStartText).substring(0, 500) + '...';
+                                abstractElement.textContent = finalAbstract;
+                                
+                                // Show the abstract preview section if it's hidden
+                                const abstractSection = abstractElement.closest('.abstract-preview-section');
+                                if (abstractSection && abstractSection.classList.contains('hidden')) {
+                                    abstractSection.classList.remove('hidden');
+                                }
+                            } else {
+                                console.log('Could not locate abstract content in extracted text');
+                                abstractElement.textContent = 'Abstract will be fully extracted during document submission.';
+                            }
+                        } catch (error) {
+                            console.error('Error extracting text from PDF:', error);
+                            abstractElement.textContent = 'Error extracting abstract. Abstract will be processed during submission.';
+                        }
+                    }).catch(function(error) {
+                        console.error('Error loading PDF:', error);
+                        abstractElement.textContent = 'Error loading PDF. Abstract will be extracted during submission.';
+                    });
+                } catch (error) {
+                    console.error('Error processing file:', error);
+                    abstractElement.textContent = 'Error processing file. Abstract will be extracted during submission.';
+                }
+            };
+            
+            reader.onerror = function() {
+                console.error('Error reading file');
+                abstractElement.textContent = 'Error reading file. Abstract will be extracted during submission.';
+            };
+            
+            // Read the file as an array buffer
+            reader.readAsArrayBuffer(file);
+        };
+        
+        // Function to find the start of an abstract in PDF text
+        window.findAbstractStart = function(text) {
+            if (!text) return null;
+            
+            const abstractMarkers = [
+                'Abstract:',
+                'ABSTRACT:',
+                'Abstract',
+                'ABSTRACT',
+                'Abstract.',
+                'ABSTRACT.',
+                'Abstract -',
+                'ABSTRACT -'
+            ];
+            
+            const lowerText = text.toLowerCase();
+            
+            for (const marker of abstractMarkers) {
+                const index = lowerText.indexOf(marker.toLowerCase());
+                if (index !== -1) {
+                    console.log(`Found abstract marker: "${marker}"`);
+                    // Get the text after the abstract marker
+                    const startIndex = index + marker.length;
+                    let abstractText = text.substring(startIndex).trim();
+                    
+                    // Remove any leading colons or spaces
+                    abstractText = abstractText.replace(/^[:.\s]+/, '').trim();
+                    
+                    // Find end of abstract by common markers
+                    const endMarkers = ['introduction', 'keyword', 'keywords'];
+                    let endIndex = abstractText.length;
+                    
+                    for (const endMarker of endMarkers) {
+                        const markerIndex = abstractText.toLowerCase().indexOf(endMarker);
+                        if (markerIndex !== -1 && markerIndex < endIndex) {
+                            endIndex = markerIndex;
+                        }
+                    }
+                    
+                    // Limit text to 1000 characters or the end marker, whichever is first
+                    return abstractText.substring(0, Math.min(endIndex, 1000));
+                }
+            }
+            return null;
+        };
+        
+        // Function to clean abstract text
+        window.cleanAbstractText = function(text) {
+            if (!text) return '';
+            
+            return text
+                .replace(/^ABSTRACT\s*[:.]?\s*/i, '') // Remove "ABSTRACT" header
+                .replace(/\n{3,}/g, '\n\n') // Normalize multiple line breaks
+                .replace(/\s+/g, ' ') // Normalize spaces
+                .replace(/\n\s*\n/g, '\n') // Remove empty lines
+                .replace(/acknowledgements?.*$/is, '') // Remove any acknowledgement section
+                .replace(/keywords?:.*$/im, '') // Remove keywords section
+                .replace(/\s+/g, ' ') // Normalize spaces again after cleanup
+                .trim();
+        };
     </script>
     
     <script>
@@ -272,9 +442,17 @@
                                 <label for="compiled-volume" class="block text-sm font-medium text-gray-700">Volume</label>
                                 <input type="text" id="compiled-volume" name="volume" placeholder="Enter volume number" class="form-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm">
                             </div>
-                            <div>
-                                <label for="compiled-issued-no" id="compiled-issued-no-label" class="block text-sm font-medium text-gray-700">Issued No.</label>
-                                <input type="text" id="compiled-issued-no" name="issued-no" placeholder="Enter value" class="form-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm">
+                            <div class="form-group" id="compiled-issued-no-container">
+                                <label for="compiled-issued-no" id="compiled-issued-no-label">Issued No.</label>
+                                <input type="text" id="compiled-issued-no" name="issued-no" placeholder="Enter issue number" class="form-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm">
+                                <select id="compiled-departmental" name="departmental" class="form-input mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm" style="display: none;">
+                                    <option value="">Select Department</option>
+                                    <option value="College of Business in Information Technology">College of Business in Information Technology</option>
+                                    <option value="College of Nursing">College of Nursing</option>
+                                    <option value="College of Arts and Science Education">College of Arts and Science Education</option>
+                                    <option value="Basic Academic Education">Basic Academic Education</option>
+                                    
+                                </select>
                             </div>
                             <div>
                                 <label for="compiled-category" class="block text-sm font-medium text-gray-700">Category</label>
@@ -285,6 +463,51 @@
                                 </select>
                             </div>
                         </div>
+
+                        <script>
+                            // Category change handler to show/hide departmental dropdown
+                            document.addEventListener('DOMContentLoaded', function() {
+                                const compiledCategoryInput = document.getElementById('compiled-category');
+                                const compiledIssuedNoInput = document.getElementById('compiled-issued-no');
+                                const compiledDepartmental = document.getElementById('compiled-departmental');
+                                const issuedNoLabel = document.getElementById('compiled-issued-no-label');
+                                const previewIssuedNoLabel = document.getElementById('preview-issued-no-label');
+                                
+                                if (compiledCategoryInput) {
+                                    compiledCategoryInput.addEventListener('change', function() {
+                                        if (this.value === 'Synergy') {
+                                            // If Synergy is selected, change the label to "Departmental" and show dropdown
+                                            if (issuedNoLabel) issuedNoLabel.textContent = 'Departmental';
+                                            if (previewIssuedNoLabel) previewIssuedNoLabel.textContent = 'Departmental:';
+                                            if (compiledIssuedNoInput) compiledIssuedNoInput.style.display = 'none';
+                                            if (compiledDepartmental) compiledDepartmental.style.display = 'block';
+                                        } else {
+                                            // For any other category, use "Issued No." and show text input
+                                            if (issuedNoLabel) issuedNoLabel.textContent = 'Issued No.';
+                                            if (previewIssuedNoLabel) previewIssuedNoLabel.textContent = 'Issued No:';
+                                            if (compiledIssuedNoInput) compiledIssuedNoInput.style.display = 'block';
+                                            if (compiledDepartmental) compiledDepartmental.style.display = 'none';
+                                        }
+                                        
+                                        // Update preview if the function exists
+                                        if (typeof updateCompiledDocumentPreview === 'function') {
+                                            setTimeout(updateCompiledDocumentPreview, 10);
+                                        }
+                                    });
+                                }
+                                
+                                // Add event listener for departmental dropdown
+                                if (compiledDepartmental) {
+                                    compiledDepartmental.addEventListener('change', function() {
+                                        console.log("Departmental changed:", this.value);
+                                        // Update preview if the function exists
+                                        if (typeof updateCompiledDocumentPreview === 'function') {
+                                            setTimeout(updateCompiledDocumentPreview, 10);
+                                        }
+                                    });
+                                }
+                            });
+                        </script>
 
                         <div class="border-t border-gray-200 pt-6">
                             <h2 class="text-lg font-medium text-gray-900 mb-4">Contents Section</h2>
@@ -299,11 +522,7 @@
                                             <i data-lucide="file-text" class="w-5 h-5 mr-2"></i> Research 1
                                             <i data-lucide="chevron-down" class="toggle-icon w-5 h-5 ml-2 text-gray-500"></i>
                                         </h3>
-                                        <div class="flex items-center">
-                                            <button type="button" class="view-file-btn hidden p-2.5 bg-white border border-gray-200 shadow rounded-full" title="Preview PDF" onclick="event.stopPropagation(); viewResearchFile(this)">
-                                                <i data-lucide="eye" class="w-6 h-6 text-gray-400"></i>
-                                            </button>
-                                        </div>
+                                        <!-- Removed the eye button container -->
                                     </div>
                                     <div class="research-content space-y-4 mt-3">
                                         <div>
@@ -497,12 +716,9 @@
             compiledDocTab.addEventListener('click', function() {
                 switchTab(compiledDocTab, singleDocTab, compiledDocForm, singleDocForm, compiledDocPreview, singleDocPreview);
                 
-                // Force immediate update of the compiled document preview when switching to compiled tab
-                console.log("Switched to compiled document tab");
-                if (typeof updateCompiledDocumentPreview === 'function') {
-                    // Call immediately without delay to ensure it runs
-                    updateCompiledDocumentPreview();
-                }
+                // Force immediate update of the compiled document preview
+                console.log("Switched to compiled document tab, forcing preview update");
+                setTimeout(updateCompiledDocumentPreview, 10); // Small delay to ensure DOM is updated
             });
             
             // File upload handling for single document
@@ -585,11 +801,7 @@
                             <i data-lucide="file-text" class="w-5 h-5 mr-2"></i> Research ${sectionCounter}
                             <i data-lucide="chevron-down" class="toggle-icon w-5 h-5 ml-2 text-gray-500"></i>
                         </h3>
-                        <div class="flex items-center">
-                            <button type="button" class="view-file-btn hidden p-2.5 bg-white border border-gray-200 shadow rounded-full" title="Preview PDF" onclick="event.stopPropagation(); viewResearchFile(this)">
-                                <i data-lucide="eye" class="w-6 h-6 text-gray-400"></i>
-                            </button>
-                        </div>
+                        <!-- Removed the eye button container -->
                     </div>
                     <div class="research-content space-y-4 mt-3">
                         <div>
@@ -692,16 +904,15 @@
                                 script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
                                 script.onload = function() {
                                     window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-                                    extractPDFAbstractForCompiledDoc(file, abstractContent);
+                                    window.extractPDFAbstractForCompiledDoc(file, abstractContent);
                                 };
                                 document.head.appendChild(script);
                             } else {
-                                extractPDFAbstractForCompiledDoc(file, abstractContent);
+                                window.extractPDFAbstractForCompiledDoc(file, abstractContent);
                             }
                         }
                         
-                        // Update eye icon visibility
-                        updateEyeIcon(e.target);
+                        // No longer need to update eye icon since it's removed
                     } else {
                         fileNameDisplay.textContent = '';
                         
@@ -711,8 +922,7 @@
                             abstractPreviewSection.classList.add('hidden');
                         }
                         
-                        // Update eye icon visibility
-                        updateEyeIcon(e.target);
+                        // No longer need to update eye icon since it's removed
                     }
                     
                     // Update studies list in the preview
@@ -758,16 +968,15 @@
                                 script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
                                 script.onload = function() {
                                     window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-                                    extractPDFAbstractForCompiledDoc(file, abstractContent);
+                                    window.extractPDFAbstractForCompiledDoc(file, abstractContent);
                                 };
                                 document.head.appendChild(script);
                             } else {
-                                extractPDFAbstractForCompiledDoc(file, abstractContent);
+                                window.extractPDFAbstractForCompiledDoc(file, abstractContent);
                             }
                         }
                         
-                        // Update eye icon visibility
-                        updateEyeIcon(e.target);
+                        // No longer need to update eye icon since it's removed
                     } else {
                         fileNameDisplay.textContent = '';
                         
@@ -777,8 +986,7 @@
                             abstractPreviewSection.classList.add('hidden');
                         }
                         
-                        // Update eye icon visibility
-                        updateEyeIcon(e.target);
+                        // No longer need to update eye icon since it's removed
                     }
                     
                     // Update studies list in the preview
@@ -792,9 +1000,46 @@
                 input.addEventListener('change', function(e) {
                     if (e.target.files.length > 0) {
                         fileNameDisplay.textContent = e.target.files[0].name;
+                        
+                        // Extract abstract from PDF
+                        const file = e.target.files[0];
+                        const section = input.closest('.research-section');
+                        const abstractContent = section.querySelector('.abstract-content');
+                        const abstractPreviewSection = section.querySelector('.abstract-preview-section');
+                        
+                        if (file.type === 'application/pdf' && abstractContent && abstractPreviewSection) {
+                            abstractContent.textContent = 'Extracting abstract...';
+                            abstractPreviewSection.classList.remove('hidden');
+                            
+                            // Load PDF.js if not already loaded
+                            if (!window.pdfjsLib) {
+                                const script = document.createElement('script');
+                                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
+                                script.onload = function() {
+                                    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+                                    window.extractPDFAbstractForCompiledDoc(file, abstractContent);
+                                };
+                                document.head.appendChild(script);
+                            } else {
+                                window.extractPDFAbstractForCompiledDoc(file, abstractContent);
+                            }
+                        }
+                        
+                        // No longer need to update eye icon since it's removed
                     } else {
                         fileNameDisplay.textContent = '';
+                        
+                        // Hide abstract section
+                        const abstractPreviewSection = section.querySelector('.abstract-preview-section');
+                        if (abstractPreviewSection) {
+                            abstractPreviewSection.classList.add('hidden');
+                        }
+                        
+                        // No longer need to update eye icon since it's removed
                     }
+                    
+                    // Update studies list in the preview
+                    updateStudiesList();
                 });
             });
             
@@ -864,27 +1109,54 @@
             
             // Update single document preview when form inputs change
             function updateSingleDocumentPreview() {
-                // Update title
-                previewTitle.textContent = titleInput.value || 'Title of Document';
+                // Get preview elements
+                const previewTitle = document.getElementById('preview-title');
+                const previewAuthor = document.getElementById('preview-author');
+                const previewPubDate = document.getElementById('preview-pub-date');
+                const previewVolume = document.getElementById('preview-volume');
+                const previewIssue = document.getElementById('preview-issue');
+                const previewCategory = document.getElementById('preview-category');
+                const previewAddedDate = document.getElementById('preview-added-date');
                 
-                // Update author
-                previewAuthor.textContent = authorInput.value ? `by ${authorInput.value}` : 'by Author Name';
+                // Get form inputs
+                const titleInput = document.getElementById('title');
+                const authorInput = document.getElementById('author');
+                const pubMonthInput = document.getElementById('pub-month');
+                const pubYearInput = document.getElementById('pub-year');
+                const volumeInput = document.getElementById('volume');
+                const issueInput = document.getElementById('issue');
+                const categoryInput = document.getElementById('category');
                 
-                // Update publishing date
-                const pubDate = pubMonthInput.value ? `${pubMonthInput.value}/${pubYearInput.value}` : 'N/A';
-                previewPubDate.textContent = pubDate;
+                // Update preview elements - with null checks
+                if (previewTitle && titleInput) {
+                    previewTitle.textContent = titleInput.value || 'Title of Document';
+                }
                 
-                // Update volume
-                previewVolume.textContent = volumeInput.value || 'N/A';
+                if (previewAuthor && authorInput) {
+                    previewAuthor.textContent = authorInput.value ? `by ${authorInput.value}` : 'by Author Name';
+                }
                 
-                // Update issue
-                previewIssue.textContent = issueInput.value || 'N/A';
+                if (previewPubDate && pubMonthInput && pubYearInput) {
+                    const pubDate = (pubMonthInput.value && pubYearInput.value) ? 
+                        `${pubMonthInput.value}/${pubYearInput.value}` : 'N/A';
+                    previewPubDate.textContent = pubDate;
+                }
                 
-                // Update category
-                previewCategory.textContent = categoryInput.value || 'N/A';
+                if (previewVolume && volumeInput) {
+                    previewVolume.textContent = volumeInput.value || 'N/A';
+                }
                 
-                // Update added date
-                previewAddedDate.textContent = new Date().toLocaleDateString();
+                if (previewIssue && issueInput) {
+                    previewIssue.textContent = issueInput.value || 'N/A';
+                }
+                
+                if (previewCategory && categoryInput) {
+                    previewCategory.textContent = categoryInput.value || 'N/A';
+                }
+                
+                if (previewAddedDate) {
+                    previewAddedDate.textContent = new Date().toLocaleDateString();
+                }
             }
             
             // Add event listener to form inputs
@@ -892,8 +1164,9 @@
             authorInput.addEventListener('input', updateSingleDocumentPreview);
             pubMonthInput.addEventListener('change', updateSingleDocumentPreview);
             pubYearInput.addEventListener('change', updateSingleDocumentPreview);
-            volumeInput.addEventListener('change', updateSingleDocumentPreview);
-            issueInput.addEventListener('change', updateSingleDocumentPreview);
+            if (volumeInput) volumeInput.addEventListener('change', updateSingleDocumentPreview);
+            // Add null check for issueInput which doesn't exist in the DOM
+            if (issueInput) issueInput.addEventListener('change', updateSingleDocumentPreview);
             categoryInput.addEventListener('change', updateSingleDocumentPreview);
             
             // --- Compiled Document Preview ---
@@ -918,59 +1191,143 @@
             
             // Update compiled document preview
             function updateCompiledDocumentPreview() {
-                console.log("Updating compiled document preview");
-                console.log("Category selected:", compiledCategoryInput.value);
-                
-                // Update category icon
-                if (compiledCategoryInput.value) {
-                    compiledPreviewIcon.src = `icons/category-icons/${compiledCategoryInput.value.toLowerCase()}.png`;
-                    console.log("Updated icon src to:", compiledPreviewIcon.src);
-                } else {
-                    compiledPreviewIcon.src = 'icons/category-icons/default_category_icon.png';
-                }
-                
-                // Update title based on category and volume
-                let title = 'Compiled Document';
-                if (compiledCategoryInput.value) {
-                    title = compiledCategoryInput.value;
-                    if (compiledVolumeInput.value) {
-                        title += ` Volume ${compiledVolumeInput.value}`;
+                try {
+                    console.log("Updating compiled document preview");
+                    
+                    // Check if we're in the compiled document tab
+                    if (!document.getElementById('compiledDocPreview').classList.contains('active')) {
+                        console.log("Not in compiled document tab, skipping preview update");
+                        return;
                     }
-                    if (compiledIssuedNoInput.value) {
-                        title += ` Issue ${compiledIssuedNoInput.value}`;
+                    
+                    // Debug: Check if all elements are properly found
+                    console.log("Form elements:", {
+                        compiledPubYearStartInput: compiledPubYearStartInput,
+                        compiledPubYearEndInput: compiledPubYearEndInput,
+                        compiledVolumeInput: compiledVolumeInput,
+                        compiledIssuedNoInput: compiledIssuedNoInput,
+                        compiledCategoryInput: compiledCategoryInput
+                    });
+                    
+                    console.log("Preview elements:", {
+                        previewMainTitle: previewMainTitle,
+                        previewPubYear: previewPubYear,
+                        previewCompiledVolume: previewCompiledVolume,
+                        previewIssuedNo: previewIssuedNo,
+                        previewCompiledCategory: previewCompiledCategory,
+                        previewAddedDateCompiled: previewAddedDateCompiled
+                    });
+                    
+                    console.log("Category selected:", compiledCategoryInput ? compiledCategoryInput.value : 'compiledCategoryInput is null');
+                    
+                    // Update category icon
+                    if (compiledCategoryInput && compiledCategoryInput.value) {
+                        compiledPreviewIcon.src = `icons/category-icons/${compiledCategoryInput.value.toLowerCase()}.png`;
+                        console.log("Updated icon src to:", compiledPreviewIcon.src);
+                    } else {
+                        if (compiledPreviewIcon) {
+                            compiledPreviewIcon.src = 'icons/category-icons/default_category_icon.png';
+                        } else {
+                            console.error("compiledPreviewIcon element not found");
+                        }
                     }
+                    
+                    // Update title based on category and volume
+                    let title = 'Compiled Document';
+                    if (compiledCategoryInput && compiledCategoryInput.value) {
+                        title = compiledCategoryInput.value;
+                        if (compiledVolumeInput && compiledVolumeInput.value) {
+                            title += ` Volume ${compiledVolumeInput.value}`;
+                        }
+                        
+                        // Check if we should use departmental dropdown or issued no input
+                        let issuedNoValue = '';
+                        if (compiledCategoryInput.value === 'Synergy') {
+                            const departmentalSelect = document.getElementById('compiled-departmental');
+                            if (departmentalSelect && departmentalSelect.value) {
+                                issuedNoValue = departmentalSelect.options[departmentalSelect.selectedIndex].text;
+                            }
+                        } else {
+                            if (compiledIssuedNoInput) {
+                                issuedNoValue = compiledIssuedNoInput.value;
+                            }
+                        }
+                        
+                        if (issuedNoValue) {
+                            title += ` Issue ${issuedNoValue}`;
+                        }
+                    }
+                    if (previewMainTitle) {
+                        previewMainTitle.textContent = title;
+                        console.log("Updated title to:", title);
+                    } else {
+                        console.error("previewMainTitle element not found");
+                    }
+                    
+                    // Update publication year
+                    let pubYearText = 'N/A';
+                    if (compiledPubYearStartInput && compiledPubYearEndInput) {
+                        if (compiledPubYearStartInput.value && compiledPubYearEndInput.value) {
+                            pubYearText = `${compiledPubYearStartInput.value} - ${compiledPubYearEndInput.value}`;
+                        } else if (compiledPubYearStartInput.value) {
+                            pubYearText = compiledPubYearStartInput.value;
+                        } else if (compiledPubYearEndInput.value) {
+                            pubYearText = compiledPubYearEndInput.value;
+                        }
+                    }
+                    if (previewPubYear) {
+                        previewPubYear.textContent = pubYearText;
+                        console.log("Updated publication year to:", pubYearText);
+                    } else {
+                        console.error("previewPubYear element not found");
+                    }
+                    
+                    // Update volume
+                    if (previewCompiledVolume) {
+                        previewCompiledVolume.textContent = compiledVolumeInput && compiledVolumeInput.value ? compiledVolumeInput.value : 'N/A';
+                    } else {
+                        console.error("previewCompiledVolume element not found");
+                    }
+                    
+                    // Update issued no/departmental
+                    if (previewIssuedNo) {
+                        if (compiledCategoryInput && compiledCategoryInput.value === 'Synergy') {
+                            const departmentalSelect = document.getElementById('compiled-departmental');
+                            if (departmentalSelect && departmentalSelect.value) {
+                                previewIssuedNo.textContent = departmentalSelect.options[departmentalSelect.selectedIndex].text;
+                            } else {
+                                previewIssuedNo.textContent = 'N/A';
+                            }
+                        } else {
+                            previewIssuedNo.textContent = compiledIssuedNoInput && compiledIssuedNoInput.value ? compiledIssuedNoInput.value : 'N/A';
+                        }
+                    } else {
+                        console.error("previewIssuedNo element not found");
+                    }
+                    
+                    // Update category
+                    if (previewCompiledCategory) {
+                        previewCompiledCategory.textContent = compiledCategoryInput && compiledCategoryInput.value ? compiledCategoryInput.value : 'N/A';
+                    } else {
+                        console.error("previewCompiledCategory element not found");
+                    }
+                    
+                    // Update added date
+                    const today = new Date().toLocaleDateString();
+                    if (previewAddedDateCompiled) {
+                        previewAddedDateCompiled.textContent = today;
+                        console.log("Updated added date to:", today);
+                    } else {
+                        console.error("previewAddedDateCompiled element not found");
+                    }
+                    
+                    // Update studies list
+                    updateStudiesList();
+                    
+                    console.log("Completed updating compiled document preview");
+                } catch (error) {
+                    console.error("Error in updateCompiledDocumentPreview:", error);
                 }
-                previewMainTitle.textContent = title;
-                console.log("Updated title to:", title);
-                
-                // Update publication year
-                let pubYearText = 'N/A';
-                if (compiledPubYearStartInput.value && compiledPubYearEndInput.value) {
-                    pubYearText = `${compiledPubYearStartInput.value} - ${compiledPubYearEndInput.value}`;
-                } else if (compiledPubYearStartInput.value) {
-                    pubYearText = compiledPubYearStartInput.value;
-                } else if (compiledPubYearEndInput.value) {
-                    pubYearText = compiledPubYearEndInput.value;
-                }
-                previewPubYear.textContent = pubYearText;
-                console.log("Updated publication year to:", pubYearText);
-                
-                // Update volume
-                previewCompiledVolume.textContent = compiledVolumeInput.value || 'N/A';
-                
-                // Update issued no
-                previewIssuedNo.textContent = compiledIssuedNoInput.value || 'N/A';
-                
-                // Update category
-                previewCompiledCategory.textContent = compiledCategoryInput.value || 'N/A';
-                
-                // Update added date
-                const today = new Date().toLocaleDateString();
-                previewAddedDateCompiled.textContent = today;
-                console.log("Updated added date to:", today);
-                
-                // Update studies list
-                updateStudiesList();
             }
             
             // Update studies list in the preview
@@ -978,25 +1335,46 @@
                 const sections = document.querySelectorAll('.research-section');
                 
                 // Clear previous list
-                previewStudiesList.innerHTML = '';
+                if (previewStudiesList) {
+                    previewStudiesList.innerHTML = '';
+                }
+                
+                // Add debug logging
+                console.log("Updating studies list, found sections:", sections.length);
                 
                 // Show "no studies" message if no research sections
                 if (sections.length === 0) {
-                    previewNoStudiesMsg.style.display = 'block';
+                    if (previewNoStudiesMsg) {
+                        previewNoStudiesMsg.style.display = 'block';
+                    }
                     return;
                 }
                 
                 // Hide "no studies" message
-                previewNoStudiesMsg.style.display = 'none';
+                if (previewNoStudiesMsg) {
+                    previewNoStudiesMsg.style.display = 'none';
+                }
                 
                 // Add each study to the preview
                 sections.forEach((section, index) => {
-                    const sectionId = section.dataset.sectionId;
+                    const sectionId = section.dataset.sectionId || '1'; // Default to 1 if not set
                     const titleInput = section.querySelector(`#study-title-${sectionId}`);
                     const authorsInput = section.querySelector(`#authors-${sectionId}`);
                     const fileInput = section.querySelector('input[type="file"]');
                     const abstractPreviewSection = section.querySelector('.abstract-preview-section');
                     const abstractContent = section.querySelector('.abstract-content');
+                    
+                    console.log(`Processing study ${index + 1}:`, {
+                        titleInput: titleInput ? titleInput.value : 'No title input found',
+                        authorsInput: authorsInput ? authorsInput.value : 'No authors input found',
+                        hasFile: fileInput && fileInput.files && fileInput.files.length > 0
+                    });
+                    
+                    // Skip if title input doesn't exist
+                    if (!titleInput) {
+                        console.error(`Title input not found for section ${sectionId}`);
+                        return;
+                    }
                     
                     const studyItem = document.createElement('div');
                     studyItem.className = 'mb-3 p-2 border-l-4 border-primary-light';
@@ -1013,24 +1391,6 @@
                         authorsElement.className = 'text-sm text-gray-600 mt-1 italic'; // Added italic
                         authorsElement.textContent = `by ${authorsInput.value}`;
                         studyItem.appendChild(authorsElement);
-                    }
-                    
-                    // Abstract preview (if file attached)
-                    if (fileInput && fileInput.files && fileInput.files.length > 0 && abstractContent && abstractContent.textContent.trim() !== 'Abstract will be extracted from the PDF file.') {
-                        const abstractPreview = document.createElement('div');
-                        abstractPreview.className = 'mt-2 mb-2';
-                        
-                        const abstractHeading = document.createElement('h5');
-                        abstractHeading.className = 'text-xs font-medium text-gray-700';
-                        abstractHeading.textContent = 'Abstract';
-                        abstractPreview.appendChild(abstractHeading);
-                        
-                        const abstractText = document.createElement('p');
-                        abstractText.className = 'text-xs text-gray-600 mt-1 p-2 bg-gray-50 border border-gray-200 rounded-md';
-                        abstractText.textContent = abstractContent.textContent;
-                        abstractPreview.appendChild(abstractText);
-                        
-                        studyItem.appendChild(abstractPreview);
                     }
                     
                     // File status and Read Document button
@@ -1062,10 +1422,7 @@
                             window.open(fileUrl, '_blank');
                         };
                         
-                        // Show abstract preview section if it exists
-                        if (abstractPreviewSection) {
-                            abstractPreviewSection.classList.remove('hidden');
-                        }
+                        // Note: Removed abstract preview section reference
                     } else {
                         // No file attached
                         fileStatus.className += ' text-red-500';
@@ -1076,10 +1433,7 @@
                         readButton.classList.add('text-primary-dark', 'bg-white', 'border-primary', 'opacity-50', 'cursor-not-allowed');
                         readButton.disabled = true;
                         
-                        // Hide abstract preview section if it exists
-                        if (abstractPreviewSection) {
-                            abstractPreviewSection.classList.add('hidden');
-                        }
+                        // Note: Removed abstract preview section reference
                     }
                     
                     fileStatusContainer.appendChild(fileStatus);
@@ -1087,8 +1441,14 @@
                     studyItem.appendChild(fileStatusContainer);
                     
                     // Add to preview
-                    previewStudiesList.appendChild(studyItem);
+                    if (previewStudiesList) {
+                        previewStudiesList.appendChild(studyItem);
+                    } else {
+                        console.error("Preview studies list element not found");
+                    }
                 });
+                
+                console.log("Studies list updated");
             }
             
             // Add event listeners for compiled document form
@@ -1127,17 +1487,42 @@
                     // Update the issued no label based on the selected category
                     const issuedNoLabel = document.getElementById('compiled-issued-no-label');
                     const previewIssuedNoLabel = document.getElementById('preview-issued-no-label');
+                    const issuedNoInput = document.getElementById('compiled-issued-no');
+                    const departmentalSelect = document.getElementById('compiled-departmental');
                     
                     if (this.value === 'Synergy') {
-                        // If Synergy is selected, change the label to "Departmental"
+                        // If Synergy is selected, change the label to "Departmental" and show dropdown
                         if (issuedNoLabel) issuedNoLabel.textContent = 'Departmental';
                         if (previewIssuedNoLabel) previewIssuedNoLabel.textContent = 'Departmental:';
+                        if (issuedNoInput) issuedNoInput.style.display = 'none';
+                        if (departmentalSelect) {
+                            departmentalSelect.style.display = 'block';
+                            // Update the compiled preview based on the departmental select value
+                            if (previewIssuedNo) {
+                                previewIssuedNo.textContent = departmentalSelect.options[departmentalSelect.selectedIndex].text || 'N/A';
+                            }
+                        }
                     } else {
-                        // For any other category, use "Issued No."
+                        // For any other category, use "Issued No." and show text input
                         if (issuedNoLabel) issuedNoLabel.textContent = 'Issued No.';
                         if (previewIssuedNoLabel) previewIssuedNoLabel.textContent = 'Issued No:';
+                        if (issuedNoInput) issuedNoInput.style.display = 'block';
+                        if (departmentalSelect) departmentalSelect.style.display = 'none';
+                        // Update the compiled preview based on the issued no input value
+                        if (previewIssuedNo) {
+                            previewIssuedNo.textContent = issuedNoInput.value || 'N/A';
+                        }
                     }
                     
+                    updateCompiledDocumentPreview();
+                });
+            }
+            
+            // Add event listener for departmental dropdown
+            const compiledDepartmental = document.getElementById('compiled-departmental');
+            if (compiledDepartmental) {
+                compiledDepartmental.addEventListener('change', function() {
+                    console.log("Departmental changed:", this.value);
                     updateCompiledDocumentPreview();
                 });
             }
@@ -1176,6 +1561,25 @@
                     // The section will be added by the existing code
                     // MutationObserver will detect the change and update the preview
                     setTimeout(updateStudiesList, 100); // Small delay to ensure DOM is updated
+                    
+                    // Also need to add event listeners to the new section's input fields
+                    setTimeout(function() {
+                        // Get the newly added section
+                        const newSection = document.querySelector('.research-section:last-child');
+                        if (newSection) {
+                            // Add event listeners to the input fields in the new section
+                            newSection.querySelectorAll('.study-title-input, .authors-input').forEach(input => {
+                                input.addEventListener('input', function() {
+                                    console.log("New study field changed, updating preview");
+                                    updateStudiesList();
+                                    // Also update full preview if in compiled tab
+                                    if (document.getElementById('compiledDocPreview').classList.contains('active')) {
+                                        setTimeout(window.updateCompiledDocumentPreview, 10);
+                                    }
+                                });
+                            });
+                        }
+                    }, 200);
                 });
             }
             
@@ -1234,136 +1638,28 @@
             };
             
             // Function to extract abstract from PDF for compiled document studies
+            // This function is now defined globally at the top of the file
+            /* Removed duplicate function
             function extractPDFAbstractForCompiledDoc(file, abstractElement) {
-                if (!file || !abstractElement || file.type !== 'application/pdf') {
-                    abstractElement.textContent = 'Abstract extraction is only available for PDF files.';
-                    return;
-                }
-                
-                abstractElement.textContent = 'Extracting abstract...';
-                
-                // Check file size, limit to 10MB to prevent browser hanging
-                if (file.size > 10 * 1024 * 1024) {
-                    abstractElement.textContent = 'File too large for preview. Abstract will be extracted during submission.';
-                    return;
-                }
-                
-                const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    try {
-                        const typedArray = new Uint8Array(e.target.result);
-                        
-                        // Initialize PDF.js
-                        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-                        
-                        // Load the PDF document
-                        const loadingTask = window.pdfjsLib.getDocument({ data: typedArray });
-                        loadingTask.promise.then(async function(pdf) {
-                            try {
-                                // Search through the first few pages for abstract
-                                const maxPagesToSearch = Math.min(5, pdf.numPages);
-                                let abstractText = "";
-                                
-                                for (let pageNum = 1; pageNum <= maxPagesToSearch; pageNum++) {
-                                    const page = await pdf.getPage(pageNum);
-                                    const textContent = await page.getTextContent();
-                                    
-                                    // Convert text content to string
-                                    const pageText = textContent.items.map(item => item.str).join(' ');
-                                    
-                                    // Look for the abstract in this page
-                                    if (pageText.toLowerCase().includes('abstract')) {
-                                        abstractText = pageText;
-                                        break;
-                                    }
-                                    
-                                    // If we haven't found the abstract yet, keep collecting text
-                                    if (abstractText === "" && pageNum === 1) {
-                                        abstractText = pageText;
-                                    }
-                                }
-                                
-                                // Clean and extract the abstract
-                                const cleanedText = abstractText.replace(/(\r\n|\n|\r)/gm, " ").trim();
-                                const abstractStartText = findAbstractStart(cleanedText);
-                                
-                                if (abstractStartText) {
-                                    abstractElement.textContent = cleanAbstractText(abstractStartText).substring(0, 500) + '...';
-                                } else {
-                                    abstractElement.textContent = 'Abstract will be fully extracted during document submission.';
-                                }
-                            } catch (error) {
-                                console.error('Error extracting text from PDF:', error);
-                                abstractElement.textContent = 'Error extracting abstract. Abstract will be processed during submission.';
-                            }
-                        }).catch(function(error) {
-                            console.error('Error loading PDF:', error);
-                            abstractElement.textContent = 'Error loading PDF. Abstract will be extracted during submission.';
-                        });
-                    } catch (error) {
-                        console.error('Error processing file:', error);
-                        abstractElement.textContent = 'Error processing file. Abstract will be extracted during submission.';
-                    }
-                };
-                
-                reader.onerror = function() {
-                    console.error('Error reading file');
-                    abstractElement.textContent = 'Error reading file. Abstract will be extracted during submission.';
-                };
-                
-                // Read the file as an array buffer
-                reader.readAsArrayBuffer(file);
+                ... code removed ...
             }
+            */
             
             // Function to find the start of an abstract in PDF text
+            // This function is now defined globally at the top of the file
+            /* Removed duplicate function
             function findAbstractStart(text) {
-                if (!text) return null;
-                
-                const abstractMarkers = [
-                    'Abstract:',
-                    'ABSTRACT:',
-                    'Abstract',
-                    'ABSTRACT',
-                    'Abstract.',
-                    'ABSTRACT.',
-                    'Abstract -',
-                    'ABSTRACT -'
-                ];
-                
-                const lowerText = text.toLowerCase();
-                
-                for (const marker of abstractMarkers) {
-                    const index = lowerText.indexOf(marker.toLowerCase());
-                    if (index !== -1) {
-                        // Get the text after the abstract marker
-                        const startIndex = index + marker.length;
-                        let abstractText = text.substring(startIndex).trim();
-                        
-                        // Remove any leading colons or spaces
-                        abstractText = abstractText.replace(/^[:.\s]+/, '').trim();
-                        
-                        // Limit text to 1000 characters for preview
-                        return abstractText.substring(0, 1000);
-                    }
-                }
-                return null;
+                ... code removed ...
             }
+            */
             
             // Function to clean abstract text
+            // This function is now defined globally at the top of the file
+            /* Removed duplicate function
             function cleanAbstractText(text) {
-                if (!text) return '';
-                
-                return text
-                    .replace(/^ABSTRACT\s*[:.]?\s*/i, '') // Remove "ABSTRACT" header
-                    .replace(/\n{3,}/g, '\n\n') // Normalize multiple line breaks
-                    .replace(/\s+/g, ' ') // Normalize spaces
-                    .replace(/\n\s*\n/g, '\n') // Remove empty lines
-                    .replace(/acknowledgements?.*$/is, '') // Remove any acknowledgement section
-                    .replace(/keywords?:.*$/im, '') // Remove keywords section
-                    .replace(/\s+/g, ' ') // Normalize spaces again after cleanup
-                    .trim();
+                ... code removed ...
             }
+            */
         });
     </script>
     
@@ -1395,54 +1691,35 @@
         }
         
         /**
-         * Open file in a new tab when eye icon is clicked
-         * @param {HTMLElement} eyeButton - The eye button that was clicked
-         */
-        function viewResearchFile(eyeButton) {
-            const section = eyeButton.closest('.research-section');
-            const fileInput = section.querySelector('input[type="file"]');
-            
-            if (fileInput && fileInput.files && fileInput.files[0]) {
-                const url = URL.createObjectURL(fileInput.files[0]);
-                window.open(url, '_blank');
-            }
-        }
-        
-        /**
-         * Update eye icon visibility based on file attachment
+         * Update eye icon visibility based on file attachment - This function is no longer needed
+         * but we'll keep it with a note to prevent errors
          * @param {HTMLElement} fileInput - The file input element that changed
          */
         function updateEyeIcon(fileInput) {
-            const section = fileInput.closest('.research-section');
-            const eyeButton = section.querySelector('.view-file-btn');
-            
-            if (fileInput.files && fileInput.files.length > 0) {
-                eyeButton.classList.remove('hidden');
-                eyeButton.classList.add('visible-eye-icon');
-            } else {
-                eyeButton.classList.add('hidden');
-                eyeButton.classList.remove('visible-eye-icon');
-            }
+            // This function is no longer needed since we removed the eye buttons
+            console.log('updateEyeIcon called but eye buttons were removed');
+            return; // Do nothing
+        }
+        
+        /**
+         * Open file in a new tab when eye icon is clicked - This function is no longer needed
+         * but we'll keep it with a note to prevent errors
+         * @param {HTMLElement} eyeButton - The eye button that was clicked
+         */
+        function viewResearchFile(eyeButton) {
+            // This function is no longer needed since we removed the eye buttons
+            console.log('viewResearchFile called but eye buttons were removed');
+            return; // Do nothing
         }
         
         // Initialize all research sections
         document.addEventListener('DOMContentLoaded', function() {
-            // Set up file input change listeners to update eye icons
-            document.querySelectorAll('.research-section input[type="file"]').forEach(input => {
-                input.addEventListener('change', function() {
-                    updateEyeIcon(this);
-                });
-            });
+            // No longer need to set up file input change listeners to update eye icons
+            // since we removed the eye buttons
             
-            // Ensure eye icon state is correct on page load
-            document.querySelectorAll('.research-section').forEach(section => {
-                const fileInput = section.querySelector('input[type="file"]');
-                if (fileInput) {
-                    updateEyeIcon(fileInput);
-                }
-                
-                // Keep the first section expanded, collapse others
-                if (section !== document.querySelector('.research-section')) {
+            // Keep the first section expanded, collapse others
+            document.querySelectorAll('.research-section').forEach((section, index) => {
+                if (index > 0) { // Skip the first one
                     const content = section.querySelector('.research-content');
                     const toggleIcon = section.querySelector('.toggle-icon');
                     if (content && toggleIcon) {
@@ -1528,5 +1805,203 @@
             to { opacity: 1; transform: scale(1); }
         }
     </style>
+
+    <!-- Debug script and final fixes -->
+    <script>
+        window.addEventListener('load', function() {
+            console.log("Window fully loaded - running final fixes");
+            
+            // Debug helper function
+            function debugElement(id) {
+                const element = document.getElementById(id);
+                console.log(`Element #${id}: ${element ? 'Found' : 'NOT FOUND'}`);
+                return element;
+            }
+            
+            // Get preview elements directly with helpful debug info
+            const previewMainTitle = debugElement('preview-main-title');
+            const previewPubYear = debugElement('preview-pub-year');
+            const previewVolume = debugElement('preview-volume');
+            const previewIssuedNo = debugElement('preview-issued-no');
+            const previewCategory = debugElement('preview-category');
+            const previewAddedDate = debugElement('preview-added-date');
+            
+            // Get form elements directly
+            const compiledPubYearStartInput = debugElement('compiled-pub-year-start');
+            const compiledPubYearEndInput = debugElement('compiled-pub-year-end');
+            const compiledVolumeInput = debugElement('compiled-volume');
+            const compiledIssuedNoInput = debugElement('compiled-issued-no');
+            const compiledCategoryInput = debugElement('compiled-category');
+            const compiledDepartmentalInput = debugElement('compiled-departmental');
+            
+            // Corrected implementation for updating the compiled document preview
+            function updateCompiledPreview() {
+                console.log("Running enhanced compiled preview update");
+                
+                // Skip if not in compiled document view
+                if (!document.getElementById('compiledDocPreview').classList.contains('active')) {
+                    console.log("Not in compiled document tab, skipping preview update");
+                    return;
+                }
+                
+                // Update title & category icon
+                let title = 'Compiled Document';
+                const categoryIcon = document.getElementById('compiled-preview-category-icon');
+                
+                if (compiledCategoryInput && compiledCategoryInput.value) {
+                    title = compiledCategoryInput.value;
+                    if (categoryIcon) categoryIcon.src = `icons/category-icons/${compiledCategoryInput.value.toLowerCase()}.png`;
+                    
+                    // Add volume if provided
+                    if (compiledVolumeInput && compiledVolumeInput.value) {
+                        title += ` Volume ${compiledVolumeInput.value}`;
+                    }
+                    
+                    // Add issue number/departmental
+                    let issuedValue = '';
+                    if (compiledCategoryInput.value === 'Synergy' && compiledDepartmentalInput) {
+                        if (compiledDepartmentalInput.value) {
+                            const selectedIndex = compiledDepartmentalInput.selectedIndex;
+                            issuedValue = compiledDepartmentalInput.options[selectedIndex].text;
+                        }
+                    } else if (compiledIssuedNoInput && compiledIssuedNoInput.value) {
+                        issuedValue = compiledIssuedNoInput.value;
+                    }
+                    
+                    if (issuedValue) {
+                        title += ` Issue ${issuedValue}`;
+                    }
+                } else if (categoryIcon) {
+                    categoryIcon.src = 'icons/category-icons/default_category_icon.png';
+                }
+                
+                // Update preview elements
+                if (previewMainTitle) previewMainTitle.textContent = title;
+                
+                // Update year range - modified to use "to" instead of "-"
+                let yearText = 'N/A';
+                if (compiledPubYearStartInput && compiledPubYearEndInput) {
+                    if (compiledPubYearStartInput.value && compiledPubYearEndInput.value) {
+                        yearText = `${compiledPubYearStartInput.value} to ${compiledPubYearEndInput.value}`;
+                    } else if (compiledPubYearStartInput.value) {
+                        yearText = compiledPubYearStartInput.value;
+                    } else if (compiledPubYearEndInput.value) {
+                        yearText = compiledPubYearEndInput.value;
+                    }
+                }
+                if (previewPubYear) previewPubYear.textContent = yearText;
+                
+                // Update volume
+                if (previewVolume) {
+                    previewVolume.textContent = compiledVolumeInput && compiledVolumeInput.value ? 
+                        compiledVolumeInput.value : 'N/A';
+                }
+                
+                // Update issued no/departmental
+                if (previewIssuedNo) {
+                    if (compiledCategoryInput && compiledCategoryInput.value === 'Synergy') {
+                        if (compiledDepartmentalInput && compiledDepartmentalInput.value) {
+                            const selectedIndex = compiledDepartmentalInput.selectedIndex;
+                            previewIssuedNo.textContent = compiledDepartmentalInput.options[selectedIndex].text;
+                        } else {
+                            previewIssuedNo.textContent = 'N/A';
+                        }
+                    } else if (compiledIssuedNoInput) {
+                        previewIssuedNo.textContent = compiledIssuedNoInput.value || 'N/A';
+                    }
+                }
+                
+                // Update category
+                if (previewCategory) {
+                    previewCategory.textContent = compiledCategoryInput && compiledCategoryInput.value ? 
+                        compiledCategoryInput.value : 'N/A';
+                }
+                
+                // Update added date
+                if (previewAddedDate) {
+                    previewAddedDate.textContent = new Date().toLocaleDateString();
+                }
+                
+                // Call existing updateStudiesList if available
+                if (typeof updateStudiesList === 'function') {
+                    updateStudiesList();
+                } else if (typeof window.updateStudiesList === 'function') {
+                    window.updateStudiesList();
+                }
+                
+                console.log("Enhanced compiled preview update completed");
+            }
+            
+            // Replace or supplement the existing update function
+            window.updateCompiledDocumentPreview = updateCompiledPreview;
+            
+            // Add compiled tab click handler to ensure preview updates
+            const compiledTab = document.getElementById('compiledDocTab');
+            if (compiledTab) {
+                compiledTab.addEventListener('click', function() {
+                    setTimeout(window.updateCompiledDocumentPreview, 50);
+                });
+            }
+            
+            // Add event listeners to study fields to update the preview when content changes
+            document.querySelectorAll('.study-title-input, .authors-input').forEach(input => {
+                input.addEventListener('input', function() {
+                    console.log("Study field changed, updating preview");
+                    if (typeof updateStudiesList === 'function') {
+                        updateStudiesList();
+                    }
+                    // Also update full preview if in compiled tab
+                    if (document.getElementById('compiledDocPreview').classList.contains('active')) {
+                        setTimeout(window.updateCompiledDocumentPreview, 10);
+                    }
+                });
+            });
+            
+            // Force update studies list when the page loads
+            setTimeout(function() {
+                console.log("Forcing initial studies list update");
+                if (typeof updateStudiesList === 'function') {
+                    updateStudiesList();
+                }
+            }, 200);
+            
+            // Initial update
+            setTimeout(window.updateCompiledDocumentPreview, 100);
+        });
+    </script>
+
+    <!-- After the document.addEventListener('DOMContentLoaded', ... block -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up category change handler
+            const compiledCategoryInput = document.getElementById('compiled-category');
+            if (compiledCategoryInput) {
+                compiledCategoryInput.addEventListener('change', function() {
+                    // Get current value
+                    const category = compiledCategoryInput.value;
+                    
+                    // Get elements
+                    const issuedNoInput = document.getElementById('compiled-issued-no');
+                    const departmentalSelect = document.getElementById('compiled-departmental');
+                    const issuedNoLabel = document.getElementById('compiled-issued-no-label');
+                    
+                    if (category === 'Synergy') {
+                        // Show department dropdown
+                        if (issuedNoInput) issuedNoInput.style.display = 'none';
+                        if (departmentalSelect) departmentalSelect.style.display = 'block';
+                        if (issuedNoLabel) issuedNoLabel.textContent = 'Department';
+                        
+                        // Load departments
+                        populateDepartmentalDropdown();
+                    } else {
+                        // Show issue number input
+                        if (issuedNoInput) issuedNoInput.style.display = 'block';
+                        if (departmentalSelect) departmentalSelect.style.display = 'none';
+                        if (issuedNoLabel) issuedNoLabel.textContent = 'Issued No.';
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

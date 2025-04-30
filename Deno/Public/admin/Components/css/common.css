@@ -1,0 +1,253 @@
+/* Common Shared Styles */
+
+/* ---------- Modal Basics ---------- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.modal-content {
+    width: 100%;
+    max-width: 1000px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 24px;
+}
+
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    font-size: 24px;
+    font-weight: bold;
+    color: #666;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.15s ease;
+}
+
+.close-btn:hover {
+    color: #000;
+}
+
+/* ---------- Form Elements ---------- */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.form-row .form-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #555;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.form-group select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23333'%3E%3Cpath d='M4 6h8l-4 5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+}
+
+/* ---------- Button Styles ---------- */
+.btn-primary, 
+.btn-secondary {
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    border: none;
+}
+
+.btn-primary {
+    background-color: #00B050;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #009045;
+}
+
+.btn-secondary {
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+.btn-secondary:hover {
+    background-color: #e0e0e0;
+}
+
+.read-document-btn {
+    display: block;
+    width: 100%;
+    background-color: #00B050;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 12px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: background-color 0.15s ease;
+}
+
+.read-document-btn:hover {
+    background-color: #009045;
+}
+
+/* ---------- Layout Structures ---------- */
+.modal-content .container {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.modal-content .left-panel {
+    flex: 1;
+    min-width: 400px;
+    padding: 30px;
+    border-right: 1px solid #e0e0e0;
+}
+
+.modal-content .right-panel {
+    flex: 0 0 350px;
+    min-width: 300px;
+    padding: 30px;
+    background-color: #f9f9f9;
+}
+
+.submit-container {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 30px;
+}
+
+/* ---------- Metadata Display ---------- */
+.preview-metadata {
+    background-color: #f7f7f7;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.metadata-row {
+    display: flex;
+    margin-bottom: 10px;
+}
+
+.metadata-row:last-child {
+    margin-bottom: 0;
+}
+
+.metadata-label {
+    font-weight: 500;
+    color: #555;
+    width: 120px;
+    flex-shrink: 0;
+}
+
+.metadata-value {
+    color: #333;
+    flex-grow: 1;
+}
+
+/* ---------- Preview Elements ---------- */
+.preview-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.preview-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #00B050;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.preview-title-section {
+    flex-grow: 1;
+}
+
+.preview-title {
+    font-size: 20px;
+    margin: 0 0 5px 0;
+    font-weight: 600;
+    color: #333;
+}
+
+.preview-author {
+    font-size: 14px;
+    margin: 0;
+    color: #666;
+}
+
+.preview-abstract {
+    margin-top: 20px;
+}
+
+.abstract-title {
+    font-size: 16px;
+    margin: 0 0 10px 0;
+    font-weight: 600;
+    color: #333;
+}
+
+.abstract-content {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #555;
+    margin: 0;
+} 

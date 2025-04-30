@@ -1,0 +1,93 @@
+/* Compiled document specific styles */
+
+/* Custom styles for compiled document entries */
+.document-entries {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    background-color: #fafafa;
+}
+
+.document-entry {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+}
+
+.document-entry:last-child {
+    border-bottom: none;
+}
+
+.entry-title {
+    flex-grow: 1;
+    font-size: 14px;
+}
+
+.entry-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.entry-actions button {
+    background: none;
+    border: none;
+    color: #007bff;
+    cursor: pointer;
+    padding: 0;
+    font-size: 14px;
+}
+
+.entry-actions button:hover {
+    text-decoration: underline;
+}
+
+.entry-actions .delete-btn {
+    color: #dc3545;
+}
+
+/* Compilation preview styles */
+.compilation-preview {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    padding: 10px;
+    background-color: #fafafa;
+}
+
+.compilation-study {
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    font-size: 13px;
+}
+
+.compilation-study:last-child {
+    border-bottom: none;
+}
+
+/* Year fields in publication years */
+.publication-years .year-fields {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.year-separator {
+    color: #666;
+}
+
+/* Contents section header */
+.contents-section {
+    margin-top: 30px;
+    border-top: 1px solid #eee;
+    padding-top: 20px;
+}
+
+.contents-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 18px;
+    color: #333;
+} 

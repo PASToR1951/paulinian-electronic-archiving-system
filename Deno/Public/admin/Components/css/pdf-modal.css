@@ -8,12 +8,14 @@
     height: 100%;
     background-color: rgba(0, 0, 0, 0.7);
     z-index: 2000;
-    justify-content: center;
-    align-items: center;
 }
 
-#pdf-modal.active {
-    display: flex;
+/* When the modal is active, display it as flex */
+#pdf-modal.active,
+#pdf-modal[style*="display: block"] {
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
 }
 
 .modal-content {

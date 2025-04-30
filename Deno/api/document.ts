@@ -43,3 +43,23 @@ export async function handleCreateDocument(req: Request): Promise<Response> {
     }
     return new Response("Method Not Allowed", { status: 405 });
 }
+
+/**
+ * Handle document update
+ */
+export async function handleUpdateDocument(req: Request): Promise<Response> {
+    if (req.method === "PUT") {
+        return await updateDocument(req);
+    }
+    return new Response("Method Not Allowed", { status: 405 });
+}
+
+/**
+ * Handle document deletion
+ */
+export async function handleDeleteDocument(req: Request): Promise<Response> {
+    if (req.method === "DELETE") {
+        return await deleteDocument(req);
+    }
+    return new Response("Method Not Allowed", { status: 405 });
+}

@@ -516,9 +516,6 @@ window.authorSearch = {
     init: initAuthorSearch
 };
 
-// Return focus to input element
-window.setTimeout(() => inputElement.focus(), 10);
-
 // Initialize all author search inputs when the document is loaded
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Initializing author search inputs...');

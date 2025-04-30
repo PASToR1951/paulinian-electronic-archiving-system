@@ -3,7 +3,9 @@ import { RouterContext } from "../deps.ts";
 import { 
     handleFetchDocuments, 
     handleDocumentById, 
-    handleCreateDocument 
+    handleCreateDocument,
+    handleUpdateDocument,
+    handleDeleteDocument 
 } from "../api/document.ts";
 
 // Document route handlers
@@ -70,7 +72,7 @@ const updateDocument = async (ctx: RouterContext<any, any, any>) => {
         body: JSON.stringify(body)
     });
     
-    const response = await handleDocumentById(request);
+    const response = await handleUpdateDocument(request);
     
     // Convert Response back to context
     ctx.response.status = response.status;
@@ -87,7 +89,7 @@ const deleteDocument = async (ctx: RouterContext<any, any, any>) => {
         headers: ctx.request.headers
     });
     
-    const response = await handleDocumentById(request);
+    const response = await handleDeleteDocument(request);
     
     // Convert Response back to context
     ctx.response.status = response.status;

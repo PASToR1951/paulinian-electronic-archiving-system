@@ -25,6 +25,8 @@ export interface Document {
   department_id?: number;
   file_path: string;
   pages?: number;
+  volume?: string;
+  issue?: string;
   is_public: boolean;
   document_type: DocumentType;
   created_at?: Date;
@@ -166,13 +168,13 @@ export class DocumentModel {
    */
   static async create(document: Omit<Document, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>): Promise<Document | null> {
     try {
-      const result = await client.queryObject<Document>(
+      const result = await client.queryObject(
         `INSERT INTO documents (
           title, description, abstract, publication_date, 
           start_year, end_year, category_id, department_id,
-          file_path, pages, is_public, document_type
+          file_path, pages, volume, issue, is_public, document_type
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
         ) RETURNING *`,
         [
           document.title,
@@ -185,6 +187,8 @@ export class DocumentModel {
           document.department_id || null,
           document.file_path,
           document.pages || null,
+          document.volume || null,
+          document.issue || null,
           document.is_public || false,
           document.document_type
         ]
@@ -428,4 +432,43 @@ export class DocumentModel {
       return null;
     }
   }
+}
+
+/**
+ * Helper function to convert BigInt values to regular numbers for JSON serialization
+ * This function is used internally and doesn't affect the typings of the main methods
+ */
+function processRowsForSerialization(rows: any): any {
+  // If it's a single object (single row result)
+  if (rows && typeof rows === 'object' && !Array.isArray(rows)) {
+    const processed = { ...rows };
+    
+    // Convert any BigInt values to numbers
+    for (const key in processed) {
+      if (typeof processed[key] === 'bigint') {
+        processed[key] = Number(processed[key]);
+      }
+    }
+    
+    return processed;
+  }
+  
+  // If it's an array of objects (multiple rows)
+  if (Array.isArray(rows)) {
+    return rows.map(row => {
+      const processed = { ...row };
+      
+      // Convert any BigInt values to numbers
+      for (const key in processed) {
+        if (typeof processed[key] === 'bigint') {
+          processed[key] = Number(processed[key]);
+        }
+      }
+      
+      return processed;
+    });
+  }
+  
+  // If it's neither an object nor an array, return as is
+  return rows;
 }

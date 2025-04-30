@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Documents Page</title>
+    <link rel="stylesheet" href="css/common.css">
     <link rel="stylesheet" href="css/documents_page.css">
     <link rel="stylesheet" href="css/side_bar.css">
     <link rel="stylesheet" href="css/navbar_header.css">
@@ -17,7 +18,7 @@
 
 <body>
   <!-- Sidebar container -->
-  <div id="side-bar"></div>
+  <div id="sidebar-container"></div>
   
   <!-- Navbar container -->
   <div id="navbar-header"></div>
@@ -338,7 +339,7 @@
     </div>
 
     <!-- Preview Modal -->
-    <div class="preview-modal" id="preview-modal">
+    <div class="preview-modal" id="preview-modal" style="display: none;">
         <div class="preview-container">
             <button class="preview-close" onclick="closePreviewModal()">&times;</button>
             <div class="preview-header">
@@ -380,7 +381,7 @@
     </div>
 
     <!-- PDF Viewer Modal -->
-    <div id="pdf-modal">
+    <div id="pdf-modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 class="modal-title" id="pdf-modal-title">Document Viewer</h2>
@@ -395,7 +396,17 @@
         fetch('./side_bar.html')
             .then(response => response.text())
             .then(data => {
-                document.getElementById('side-bar').innerHTML = data;
+                document.getElementById('sidebar-container').innerHTML = data;
+                
+                // Initialize sidebar functionality after loading
+                if (typeof highlightActiveSidebarLink === 'function') {
+                  highlightActiveSidebarLink();
+                }
+                
+                // Setup logout if it exists
+                if (typeof setupLogout === 'function') {
+                  setupLogout();
+                }
             })
             .catch(error => console.error('Error loading sidebar:', error));
 
@@ -408,7 +419,13 @@
       });
     </script>
 
-    <script src="js/document-page.js"></script>
+    <!-- Load modular JS files instead of single document-page.js -->
+    <script src="js/document-utils.js"></script>
+    <script src="js/document-card-components.js"></script>
+    <script src="js/document-list.js"></script>
+    <script src="js/document-preview.js"></script>
+    <script src="js/document-edit.js"></script>
+    <script src="js/compiled-document-edit.js"></script>
     <script src="js/side_bar.js"></script>
 </body>
 
