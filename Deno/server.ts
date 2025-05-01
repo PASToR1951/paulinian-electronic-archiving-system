@@ -5,7 +5,7 @@
 // -----------------------------
 import { Application, Router, FormDataReader } from "./deps.ts";
 import { ensureDir } from "https://deno.land/std@0.190.0/fs/ensure_dir.ts";
-import { connectToDb } from "./db/denopost_conn.ts"; // DB connection (PostgreSQL)
+import { connectToDb, diagnoseDatabaseIssues } from "./db/denopost_conn.ts"; // Using connectToDb from conn.ts
 import { client } from "./db/denopost_conn.ts"; // Client for database queries
 import { routes } from "./routes/index.ts"; // All route handlers in one file
 import { authorRoutes } from "./routes/authorRoutes.ts"; // Import author routes directly
@@ -18,6 +18,12 @@ import fileRoutes from "./routes/fileRoutes.ts"; // Import file routes
 import { handler as categoryHandler } from "./api/category.ts"; // Import category handler
 import { getDepartments } from "./api/departments.ts";
 import { handleCreateDocument } from "./api/document.ts"; // Import document creation handler
+import { getCategories } from "./controllers/categoryController.ts";
+import { getChildDocuments } from "./controllers/documentController.ts";
+import { getDocumentAuthors } from "./controllers/documentAuthorController.ts";
+import { AuthorModel } from "./models/authorModel.ts";
+import { DocumentModel } from "./models/documentModel.ts";
+import { ResearchAgendaModel } from "./models/researchAgendaModel.ts";
 
 // -----------------------------
 // SECTION: Configuration
@@ -123,27 +129,125 @@ router.get("/api/category", async (ctx) => {
   ctx.response.body = await response.json();
 });
 
-// Add document routes directly
+// Get documents with sorting and filtering
 router.get("/api/documents", async (ctx) => {
   try {
-    // Extract query parameters
-    const category = ctx.request.url.searchParams.get("category");
-    const page = parseInt(ctx.request.url.searchParams.get("page") || "1");
-    const size = parseInt(ctx.request.url.searchParams.get("size") || "20");
-    const sort = ctx.request.url.searchParams.get("sort") || "latest";
+    const url = new URL(ctx.request.url);
+    const page = parseInt(url.searchParams.get("page") || "1");
+    const limit = parseInt(url.searchParams.get("size") || "10");
+    const sort = url.searchParams.get("sort") || "latest";
+    const category = url.searchParams.get("category") || null;
+    const search = url.searchParams.get("search") || null;
     
-    console.log(`Handling /api/documents request with params: category=${category}, page=${page}, size=${size}, sort=${sort}`);
+    let order = 'DESC';
+    let orderBy = 'created_at';
     
-    // Use the document service to fetch documents
-    const responseData = await fetchDocuments(category || undefined, page, size, sort);
+    console.log(`Handling /api/documents request with params: category=${category}, page=${page}, limit=${limit}, sort=${sort}, order=${order}, search=${search}`);
     
-    ctx.response.status = 200;
-    ctx.response.headers.set("Content-Type", "application/json");
-    ctx.response.body = responseData;
+    // Determine sort column and direction
+    switch (sort) {
+      case 'latest':
+        orderBy = 'created_at';
+        order = 'DESC';
+        break;
+      case 'earliest':
+        orderBy = 'created_at';
+        order = 'ASC';
+        break;
+      case 'title_asc':
+        orderBy = 'title';
+        order = 'ASC';
+        break;
+      case 'title_desc':
+        orderBy = 'title';
+        order = 'DESC';
+        break;
+      case 'author_asc':
+      case 'author_desc':
+        // Author sorting requires a join, handled in the query below
+        orderBy = 'author';
+        order = sort === 'author_asc' ? 'ASC' : 'DESC';
+        break;
+    }
+    
+    // Construct the SQL query based on parameters
+    let queryBase = '';
+    let countQueryBase = '';
+    const params: any[] = [];
+    
+    if (orderBy === 'author') {
+      // When sorting by author, we need a join with the authors table
+      queryBase = `
+        SELECT DISTINCT d.*
+        FROM documents d
+        LEFT JOIN document_authors da ON d.id = da.document_id
+        LEFT JOIN authors a ON da.author_id = a.id
+        WHERE d.deleted_at IS NULL
+      `;
+      countQueryBase = `
+        SELECT COUNT(DISTINCT d.id)
+        FROM documents d
+        LEFT JOIN document_authors da ON d.id = da.document_id
+        LEFT JOIN authors a ON da.author_id = a.id
+        WHERE d.deleted_at IS NULL
+      `;
+    } else {
+      // Standard query for other sorting options
+      queryBase = "SELECT * FROM documents WHERE deleted_at IS NULL";
+      countQueryBase = "SELECT COUNT(*) FROM documents WHERE deleted_at IS NULL";
+    }
+    
+    // Add category filter if specified
+    if (category && category !== "All") {
+      queryBase += " AND document_type = $1";
+      countQueryBase += " AND document_type = $1";
+      params.push(category.toUpperCase());
+    }
+    
+    // Add search filter if specified
+    if (search) {
+      const searchParam = `%${search}%`;
+      if (params.length > 0) {
+        queryBase += ` AND (title ILIKE $${params.length + 1} OR description ILIKE $${params.length + 1})`;
+        countQueryBase += ` AND (title ILIKE $${params.length + 1} OR description ILIKE $${params.length + 1})`;
+      } else {
+        queryBase += " AND (title ILIKE $1 OR description ILIKE $1)";
+        countQueryBase += " AND (title ILIKE $1 OR description ILIKE $1)";
+      }
+      params.push(searchParam);
+    }
+    
+    // Add ORDER BY clause
+    if (orderBy === 'author') {
+      queryBase += ` ORDER BY a.full_name ${order}, d.title ASC`;
+    } else {
+      queryBase += ` ORDER BY ${orderBy} ${order}`;
+    }
+    
+    // Add pagination
+    const offset = (page - 1) * limit;
+    queryBase += ` LIMIT ${limit} OFFSET ${offset}`;
+    
+    // Execute count query first to get total documents
+    const countResult = await client.queryObject(countQueryBase, params);
+    const totalDocuments = parseInt(countResult.rows[0].count.toString());
+    const totalPages = Math.ceil(totalDocuments / limit);
+    
+    // Execute main query
+    const result = await client.queryObject(queryBase, params);
+    const documents = result.rows;
+    
+    // Return results with pagination info
+    ctx.response.body = {
+      documents,
+      totalDocuments,
+      totalPages,
+      currentPage: page
+    };
   } catch (error) {
-    console.error("Error handling documents request:", error);
+    console.error("Error fetching documents:", error);
     ctx.response.status = 500;
-    ctx.response.body = { error: error.message };
+    ctx.response.body = { error: "Failed to fetch documents" };
   }
 });
 
@@ -180,23 +284,644 @@ router.post("/api/documents", async (ctx) => {
 router.get("/api/documents/:id/children", async (ctx) => {
   try {
     const docId = ctx.params.id;
-    console.log(`Handling request for child documents of document ID: ${docId}`);
+    console.log(`Server: Handling request for child documents of document ID: ${docId}`);
     
-    // Use the document service to fetch child documents
-    const responseData = await fetchChildDocuments(docId);
+    // Convert context to Request for the controller
+    const request = new Request(`${ctx.request.url.origin}/api/documents/${docId}/children`, {
+      method: "GET",
+      headers: ctx.request.headers
+    });
     
-    ctx.response.status = 200;
-    ctx.response.headers.set("Content-Type", "application/json");
-    ctx.response.body = responseData;
+    // Use the document controller to handle the request
+    const response = await getChildDocuments(request);
+    
+    // Set response from controller
+    ctx.response.status = response.status;
+    ctx.response.headers = response.headers;
+    ctx.response.body = await response.json();
   } catch (error) {
-    console.error(`Error handling child documents request for ID ${ctx.params.id}:`, error);
+    console.error(`Error handling child documents request:`, error);
     ctx.response.status = 500;
-    ctx.response.body = { error: error.message };
+    ctx.response.body = { 
+      error: "Failed to fetch child documents",
+      message: error instanceof Error ? error.message : String(error)
+    };
   }
 });
 
 // Add the departments endpoint to your router
 router.get("/api/departments", getDepartments);
+
+// Add categories endpoint to router
+router.get("/api/categories", getCategories);
+
+// Add document-authors endpoint
+router.get("/api/document-authors/:documentId", async (ctx) => {
+  try {
+    const documentId = ctx.params.documentId;
+    console.log(`Server: Handling request for authors of document ID: ${documentId}`);
+    
+    // Get document authors from the controller
+    const authors = await getDocumentAuthors(documentId);
+    
+    ctx.response.status = 200;
+    ctx.response.body = {
+      document_id: documentId,
+      authors_count: authors.length,
+      authors: authors
+    };
+  } catch (error) {
+    console.error(`Error fetching authors for document ${ctx.params.documentId}:`, error);
+    ctx.response.status = 500;
+    ctx.response.body = {
+      error: "Failed to fetch document authors",
+      details: error instanceof Error ? error.message : String(error)
+    };
+  }
+});
+
+// Add endpoint to get all authors
+router.get("/api/authors/all", async (ctx) => {
+  try {
+    console.log("Server: Handling request for all authors");
+    
+    // Import AuthorModel dynamically to avoid circular dependencies
+    const { AuthorModel } = await import("./models/authorModel.ts");
+    
+    // Get all authors from the model
+    const authors = await AuthorModel.getAll();
+    
+    // Format the data in a frontend-friendly way
+    const formattedAuthors = authors.map(author => {
+      return {
+        id: author.id, // Keep the UUID as the internal ID for API calls
+        spud_id: author.spud_id || '', // Include spud_id for display purposes
+        full_name: author.full_name,
+        department: author.department || '',
+        affiliation: author.affiliation || '',
+        email: author.email || '',
+        bio: author.biography || '',
+        profilePicUrl: author.profile_picture || '',
+        // Default to zero works - will be populated by client
+        worksCount: 0
+      };
+    });
+    
+    ctx.response.status = 200;
+    ctx.response.body = {
+      count: authors.length,
+      authors: formattedAuthors
+    };
+  } catch (error) {
+    console.error("Error fetching all authors:", error);
+    ctx.response.status = 500;
+    ctx.response.body = { 
+      error: error instanceof Error ? error.message : "Unknown error", 
+      authors: [] 
+    };
+  }
+});
+
+// Add endpoint to get works (documents) authored by a specific author
+router.get("/api/authors/:authorId/works", async (ctx) => {
+  const authorId = ctx.params.authorId;
+
+  if (!authorId) {
+      ctx.response.status = 400;
+    ctx.response.body = { error: "Author ID is required" };
+      return;
+    }
+    
+  console.log(`Fetching works for author ID: ${authorId}`);
+  
+  try {
+    // Get document IDs authored by this author
+    const docIds = await AuthorModel.getDocuments(authorId);
+
+    // Get full document details for each ID
+    const works = [];
+    for (const docId of docIds) {
+      const doc = await DocumentModel.getById(docId);
+      if (doc) {
+        console.log(`Processing document ${docId}, type: ${doc.document_type}`);
+        
+        // Get topics for this document
+        const topicsQuery = `
+          SELECT ra.id, ra.name
+          FROM research_agenda ra
+          JOIN document_research_agenda dra ON ra.id = dra.research_agenda_id
+          WHERE dra.document_id = $1
+        `;
+        try {
+          const topicsResult = await client.queryObject(topicsQuery, [docId]);
+          // Add topics to document using type assertion
+          (doc as any).topics = topicsResult.rows.map((topic: any) => ({
+            id: topic.id,
+            name: topic.name || '',
+          }));
+          console.log(`Found ${(doc as any).topics.length} topics directly for document ${docId}`);
+        } catch (error) {
+          console.error(`Error fetching topics for document ${docId}:`, error instanceof Error ? error.message : String(error));
+          (doc as any).topics = [];
+        }
+
+        // Get category directly from document_type field
+        let categoryName = 'N/A';
+        if (doc.document_type) {
+          // Convert document_type enum to a readable category name
+          switch(doc.document_type) {
+            case 'THESIS':
+              categoryName = 'Thesis';
+              break;
+            case 'DISSERTATION':
+              categoryName = 'Dissertation';
+              break;
+            case 'CONFLUENCE':
+              categoryName = 'Confluence';
+              break;
+            case 'SYNERGY':
+              categoryName = 'Synergy';
+              break;
+            default:
+              categoryName = doc.document_type;
+          }
+          console.log(`Using document_type "${doc.document_type}" as category for document ${docId}`);
+        }
+
+        // If no topics, but we might have research agendas elsewhere
+        // Skip the category_research_agenda query since that table doesn't exist
+
+        // Format work for frontend consumption
+        works.push({
+          id: doc.id,
+          title: doc.title,
+          // Format dates based on document type
+          year: formatDocumentDate(doc),
+          category: categoryName,
+          // Join research agenda topics for display
+          researchAgenda: (doc as any).topics && (doc as any).topics.length > 0 
+            ? (doc as any).topics.map((t: any) => t.name).join(', ') 
+            : 'N/A',
+          // Add URL for document viewing if needed
+          url: `/document/${doc.id}`,
+          // Include original document data if needed
+          document: doc
+        });
+      }
+    }
+
+    // Helper function to format document dates based on type
+    function formatDocumentDate(doc: any): string {
+      console.log(`Formatting date for document type: ${doc.document_type}, pub date: ${doc.publication_date}, start: ${doc.start_year}, end: ${doc.end_year}`);
+      
+      // For single documents (THESIS or DISSERTATION) with publication date
+      if (doc.publication_date && (doc.document_type === 'THESIS' || doc.document_type === 'DISSERTATION')) {
+        try {
+          const date = new Date(doc.publication_date);
+          // Format as Month Year (e.g., "May 2023")
+          return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        } catch (e) {
+          console.error("Error formatting publication date:", e);
+          return String(doc.publication_date);
+        }
+      }
+      
+      // For compiled documents (CONFLUENCE or SYNERGY) with start and end years
+      if ((doc.document_type === 'CONFLUENCE' || doc.document_type === 'SYNERGY')) {
+        if (doc.start_year && doc.end_year) {
+          return `${doc.start_year} - ${doc.end_year}`;
+        } else if (doc.start_year) {
+          return String(doc.start_year);
+        }
+      }
+      
+      // Fallback: Use any available date info
+      if (doc.publication_date) {
+        try {
+          const date = new Date(doc.publication_date);
+          return date.getFullYear().toString();
+        } catch (e) {
+          return String(doc.publication_date);
+        }
+      } else if (doc.start_year) {
+        return String(doc.start_year);
+      }
+      
+      return 'N/A';
+    }
+
+    ctx.response.status = 200;
+    ctx.response.body = {
+      authorId,
+      works_count: works.length,
+      worksCount: works.length, // Include both formats for backward compatibility
+      works,
+    };
+  } catch (error) {
+    console.error('Error fetching author works:', error instanceof Error ? error.message : String(error));
+    ctx.response.status = 500;
+    ctx.response.body = {
+      error: 'Failed to fetch author works',
+      details: error instanceof Error ? error.message : String(error),
+    };
+  }
+});
+
+// Check and synchronize compiled document authors
+router.get("/api/compiled-documents/:compiledDocId/sync-authors", async (ctx) => {
+  const compiledDocId = ctx.params.compiledDocId;
+
+  if (!compiledDocId) {
+      ctx.response.status = 400;
+    ctx.response.body = { error: "Compiled document ID is required" };
+      return;
+    }
+    
+  console.log(`Synchronizing authors for compiled document ID: ${compiledDocId}`);
+  
+  try {
+    // Get child documents for this compiled document
+    const childDocsResponse = await fetchChildDocuments(compiledDocId);
+    const childDocs = childDocsResponse.documents;
+
+    if (!childDocs || childDocs.length === 0) {
+      ctx.response.status = 200;
+      ctx.response.body = { 
+        message: 'No child documents found for this compiled document',
+        compiledDocId,
+        childCount: 0
+      };
+      return;
+    }
+
+    // Track all authors across all child documents
+    const authorMap = new Map();
+    
+    // Process each child document to collect all authors
+    for (const doc of childDocs) {
+      console.log(`Processing child document: ${doc.id} with ${doc.authors.length} authors`);
+      
+      // Process each author of this document
+      for (const author of doc.authors) {
+        if (!authorMap.has(author.id)) {
+          // Store the author ID and name if we haven't seen this author before
+          authorMap.set(author.id, author.full_name);
+        }
+      }
+    }
+
+    // Convert the author map to an array
+    const uniqueAuthors = Array.from(authorMap).map(([id, name]) => ({
+      id,
+      full_name: name
+    }));
+
+    console.log(`Found ${uniqueAuthors.length} unique authors across ${childDocs.length} child documents`);
+
+    ctx.response.status = 200;
+    ctx.response.body = {
+      compiledDocId,
+      childCount: childDocs.length,
+      authorCount: uniqueAuthors.length,
+      authors: uniqueAuthors,
+      status: 'success'
+    };
+  } catch (error) {
+    console.error('Error synchronizing compiled document authors:', error instanceof Error ? error.message : String(error));
+    ctx.response.status = 500;
+    ctx.response.body = {
+      error: 'Failed to synchronize compiled document authors',
+      details: error instanceof Error ? error.message : String(error),
+    };
+  }
+});
+
+// Add endpoint to update author information
+router.put("/api/authors/:authorId", async (ctx) => {
+  const authorId = ctx.params.authorId;
+  
+  if (!authorId) {
+      ctx.response.status = 400;
+    ctx.response.body = { error: "Author ID is required" };
+      return;
+    }
+    
+  try {
+    // Parse the request body
+    const body = ctx.request.body();
+    if (body.type !== "json") {
+      ctx.response.status = 400;
+      ctx.response.body = { error: "Request body must be JSON" };
+      return;
+    }
+    
+    const authorData = await body.value;
+    
+    // Check if the author exists
+    const existingAuthor = await AuthorModel.getById(authorId);
+    if (!existingAuthor) {
+      ctx.response.status = 404;
+      ctx.response.body = { error: "Author not found" };
+      return;
+    }
+    
+    // If trying to change ID, check if the new ID already exists
+    if (authorData.newId && authorData.newId !== authorId) {
+      const duplicateCheck = await AuthorModel.getById(authorData.newId);
+      if (duplicateCheck) {
+        ctx.response.status = 409; // Conflict
+        ctx.response.body = { error: "The new ID is already in use" };
+        return;
+      }
+    }
+    
+    // Prepare update data
+    const updateData: any = {
+      full_name: authorData.full_name || authorData.full_name,
+      department: authorData.department || null,
+      affiliation: authorData.affiliation || null,
+      email: authorData.email || null,
+      biography: authorData.bio || null,
+      profile_picture: authorData.profilePicUrl || null
+    };
+    
+    // Add spud_id to update data if provided
+    if (authorData.spud_id !== undefined) {
+      updateData.spud_id = authorData.spud_id || null;
+    }
+    
+    // Update the author in the database
+    await AuthorModel.update(authorId, updateData);
+    
+    // Handle ID change if requested
+    if (authorData.newId && authorData.newId !== authorId) {
+      await AuthorModel.updateId(authorId, authorData.newId);
+    }
+    
+    // Return the updated author
+    const updatedAuthor = await AuthorModel.getById(authorData.newId || authorId);
+    
+    ctx.response.status = 200;
+    ctx.response.body = {
+      message: "Author updated successfully",
+      author: updatedAuthor
+    };
+  } catch (error) {
+    console.error(`Error updating author ${authorId}:`, error);
+    ctx.response.status = 500;
+    ctx.response.body = { error: error instanceof Error ? error.message : "Unknown error" };
+  }
+});
+
+// Add authors endpoint
+router.post("/api/document-research-agenda/link", async (ctx) => {
+  try {
+    const body = await ctx.request.body({ type: "json" }).value;
+    
+    if (!body.document_id) {
+      ctx.response.status = 400;
+      ctx.response.body = { error: "Document ID is required" };
+      return;
+    }
+    
+    if (!body.agenda_items || !Array.isArray(body.agenda_items) || body.agenda_items.length === 0) {
+      ctx.response.status = 400;
+      ctx.response.body = { error: "At least one agenda item is required" };
+      return;
+    }
+    
+    console.log(`Linking ${body.agenda_items.length} research agenda items to document ${body.document_id}`);
+    
+    const result = await ResearchAgendaModel.linkItemsToDocumentByName(
+      parseInt(body.document_id.toString()),
+      body.agenda_items
+    );
+    
+    if (result.success) {
+      ctx.response.status = 200;
+      ctx.response.body = { 
+        message: `Linked ${result.linkedIds.length} research agenda items to document ${body.document_id}`,
+        linked_items: result.linkedIds
+      };
+    } else {
+      ctx.response.status = 500;
+      ctx.response.body = { error: "Failed to link research agenda items to document" };
+    }
+  } catch (error) {
+    console.error("Error linking research agenda items:", error instanceof Error ? error.message : String(error));
+    ctx.response.status = 500;
+    ctx.response.body = { 
+      error: "Failed to link research agenda items",
+      details: error instanceof Error ? error.message : String(error)
+    };
+  }
+});
+
+// Get archived documents
+router.get("/api/documents/archived", async (ctx) => {
+  try {
+    const url = new URL(ctx.request.url);
+    const page = parseInt(url.searchParams.get("page") || "1");
+    const limit = parseInt(url.searchParams.get("limit") || "10");
+    const sort = url.searchParams.get("sort") || "latest";
+    const category = url.searchParams.get("category") || null;
+    const search = url.searchParams.get("search") || null;
+    
+    let order = 'DESC';
+    let orderBy = 'deleted_at'; // Default sort by archive date
+    
+    // Determine sort column and direction
+    switch (sort) {
+      case 'latest':
+        orderBy = 'deleted_at';
+        order = 'DESC';
+        break;
+      case 'earliest':
+        orderBy = 'deleted_at';
+        order = 'ASC';
+        break;
+      case 'title_asc':
+        orderBy = 'title';
+        order = 'ASC';
+        break;
+      case 'title_desc':
+        orderBy = 'title';
+        order = 'DESC';
+        break;
+      case 'author_asc':
+      case 'author_desc':
+        orderBy = 'author';
+        order = sort === 'author_asc' ? 'ASC' : 'DESC';
+        break;
+    }
+    
+    // Construct the SQL query
+    let queryBase = '';
+    let countQueryBase = '';
+    const params: any[] = [];
+    
+    if (orderBy === 'author') {
+      // When sorting by author, we need a join with the authors table
+      queryBase = `
+        SELECT DISTINCT d.*
+        FROM documents d
+        LEFT JOIN document_authors da ON d.id = da.document_id
+        LEFT JOIN authors a ON da.author_id = a.id
+        WHERE d.deleted_at IS NOT NULL
+      `;
+      countQueryBase = `
+        SELECT COUNT(DISTINCT d.id)
+        FROM documents d
+        LEFT JOIN document_authors da ON d.id = da.document_id
+        LEFT JOIN authors a ON da.author_id = a.id
+        WHERE d.deleted_at IS NOT NULL
+      `;
+    } else {
+      // Standard query for other sorting options
+      queryBase = "SELECT * FROM documents WHERE deleted_at IS NOT NULL";
+      countQueryBase = "SELECT COUNT(*) FROM documents WHERE deleted_at IS NOT NULL";
+    }
+    
+    // Add category filter if specified
+    if (category && category !== "All") {
+      queryBase += " AND document_type = $1";
+      countQueryBase += " AND document_type = $1";
+      params.push(category.toUpperCase());
+    }
+    
+    // Add search filter if specified
+    if (search) {
+      const searchParam = `%${search}%`;
+      if (params.length > 0) {
+        queryBase += ` AND (title ILIKE $${params.length + 1} OR description ILIKE $${params.length + 1})`;
+        countQueryBase += ` AND (title ILIKE $${params.length + 1} OR description ILIKE $${params.length + 1})`;
+      } else {
+        queryBase += " AND (title ILIKE $1 OR description ILIKE $1)";
+        countQueryBase += " AND (title ILIKE $1 OR description ILIKE $1)";
+      }
+      params.push(searchParam);
+    }
+    
+    // Add ORDER BY clause
+    if (orderBy === 'author') {
+      queryBase += ` ORDER BY a.full_name ${order}, d.title ASC`;
+    } else {
+      queryBase += ` ORDER BY ${orderBy} ${order}`;
+    }
+    
+    // Add pagination
+    const offset = (page - 1) * limit;
+    queryBase += ` LIMIT ${limit} OFFSET ${offset}`;
+    
+    // Execute count query first to get total documents
+    const countResult = await client.queryObject(countQueryBase, params);
+    const totalDocuments = parseInt(countResult.rows[0].count.toString());
+    const totalPages = Math.ceil(totalDocuments / limit);
+    
+    // Execute main query
+    const result = await client.queryObject(queryBase, params);
+    const documents = result.rows;
+    
+    // For each document, fetch the authors
+    for (const doc of documents) {
+      const authorsResult = await client.queryObject(
+        "SELECT a.* FROM authors a JOIN document_authors da ON a.id = da.author_id WHERE da.document_id = $1",
+        [doc.id]
+      );
+      doc.authors = authorsResult.rows;
+    }
+    
+    // Return results with pagination info
+    ctx.response.body = {
+      documents,
+      totalDocuments,
+      totalPages,
+      currentPage: page
+    };
+  } catch (error) {
+    console.error("Error fetching archived documents:", error);
+    ctx.response.status = 500;
+    ctx.response.body = { error: "Failed to fetch archived documents" };
+  }
+});
+
+// Restore archived document
+router.post("/api/documents/:id/restore", async (ctx) => {
+  try {
+    const id = ctx.params.id;
+    
+    if (!id) {
+      ctx.response.status = 400;
+      ctx.response.body = { error: "Document ID is required" };
+      return;
+    }
+    
+    // Check if document exists and is deleted
+    const checkQuery = "SELECT * FROM documents WHERE id = $1 AND deleted_at IS NOT NULL";
+    const checkResult = await client.queryObject<any>(checkQuery, [id]);
+    
+    if (checkResult.rows.length === 0) {
+      ctx.response.status = 404;
+      ctx.response.body = { error: "Archived document not found" };
+      return;
+    }
+    
+    // Restore document by setting deleted_at to null
+    const restoreQuery = "UPDATE documents SET deleted_at = NULL WHERE id = $1 RETURNING *";
+    const restoreResult = await client.queryObject<any>(restoreQuery, [id]);
+    
+    ctx.response.body = {
+      message: "Document restored successfully",
+      document: restoreResult.rows[0]
+    };
+    
+  } catch (error) {
+    console.error("Error restoring document:", error);
+    ctx.response.status = 500;
+    ctx.response.body = {
+      error: "An error occurred while restoring the document"
+    };
+  }
+});
+
+// Soft delete a document
+router.delete("/api/documents/:id/soft-delete", async (ctx) => {
+  try {
+    const id = ctx.params.id;
+    
+    if (!id) {
+      ctx.response.status = 400;
+      ctx.response.body = { error: "Document ID is required" };
+      return;
+    }
+    
+    // Check if document exists and is not already deleted
+    const checkQuery = "SELECT * FROM documents WHERE id = $1 AND deleted_at IS NULL";
+    const checkResult = await client.queryObject(checkQuery);
+    
+    if (checkResult.rows.length === 0) {
+      ctx.response.status = 404;
+      ctx.response.body = { error: "Document not found or already archived" };
+      return;
+    }
+    
+    // Soft delete the document by setting deleted_at to current timestamp
+    const deleteQuery = "UPDATE documents SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *";
+    const deleteResult = await client.queryObject(deleteQuery, [id]);
+    
+    ctx.response.body = {
+      message: "Document archived successfully",
+      document: deleteResult.rows[0]
+    };
+    
+  } catch (error) {
+    console.error("Error archiving document:", error);
+    ctx.response.status = 500;
+    ctx.response.body = {
+      error: "An error occurred while archiving the document"
+    };
+  }
+});
 
 // Add router to app
 app.use(router.routes());
@@ -252,10 +977,10 @@ router.post("/api/upload", async (ctx) => {
         }
       }
       
-      if (!file) {
-        ctx.response.status = 400;
+    if (!file) {
+      ctx.response.status = 400;
         ctx.response.body = { error: "No file provided in the request" };
-        return;
+      return;
       }
     }
     
@@ -316,7 +1041,7 @@ router.post("/api/upload", async (ctx) => {
     ctx.response.status = 200;
     ctx.response.body = {
       message: "File uploaded successfully",
-      filePath: fileResult.path,
+      filePath: "/" + fileResult.path.replace(/\\/g, "/"),
       originalName: fileResult.name,
       size: fileResult.size,
       metadata: metadata || null,
@@ -419,14 +1144,76 @@ router.post("/api/ensure-directory", async (ctx) => {
 });
 
 // -----------------------------
-// SECTION: Server Startup
+// SECTION: Directory Setup
 // -----------------------------
-console.log(`Server is running at http://localhost:${PORT}`);
-try {
-await connectToDb(); // Make sure DB is connected before serving
-  console.log("Database connection successful");
-} catch (dbError) {
-  console.error("Database connection failed, but server will continue:", dbError);
+// Create required directories for storage
+async function setupDirectories() {
+  console.log("Setting up storage directories...");
+  
+  try {
+    // Create main storage directory
+    await ensureDir("./storage");
+    
+    // Create subdirectories for different document types
+    await ensureDir("./storage/uploads");
+    await ensureDir("./storage/documents");
+    await ensureDir("./storage/single/thesis");
+    await ensureDir("./storage/single/dissertation");
+    await ensureDir("./storage/compiled/confluence");
+    await ensureDir("./storage/compiled/synergy");
+    await ensureDir("./storage/research_studies");
+    
+    console.log("Storage directories created successfully");
+  } catch (error) {
+    console.error("Error creating storage directories:", error);
+    throw new Error(`Failed to create storage directories: ${error.message}`);
+  }
 }
 
-await app.listen({ port: +PORT }); // Start the Oak server
+// -----------------------------
+// SECTION: Server Startup
+// -----------------------------
+async function startServer() {
+  try {
+    // Setup storage directories
+    await setupDirectories();
+    
+    // Connect to the database
+    console.log("Connecting to database...");
+    await connectToDb();
+    
+    // Run database diagnostics
+    await diagnoseDatabaseIssues();
+    
+    // Register routes with the application
+    app.use(router.routes());
+    app.use(router.allowedMethods());
+    
+    // Start the server
+    console.log(`🌐 Server running on http://localhost:${PORT}`);
+    await app.listen({ port: Number(PORT) });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    Deno.exit(1);
+  }
+}
+
+router.get('/api/affiliations', async (ctx) => {
+  try {
+    // Get distinct affiliations from authors table
+    const result = await client.queryObject(
+      "SELECT DISTINCT affiliation FROM authors WHERE affiliation IS NOT NULL ORDER BY affiliation"
+    );
+    
+    ctx.response.status = 200;
+    ctx.response.type = "json";
+    ctx.response.body = result.rows.map((row: any) => row.affiliation);
+  } catch (error) {
+    console.error("Error fetching affiliations:", error);
+    ctx.response.status = 500;
+    ctx.response.type = "json";
+    ctx.response.body = { error: error instanceof Error ? error.message : "Unknown error" };
+  }
+});
+
+startServer();

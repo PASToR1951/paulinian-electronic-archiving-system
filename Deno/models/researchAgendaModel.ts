@@ -55,6 +55,102 @@ export class ResearchAgendaModel {
   }
 
   /**
+   * Link research agenda items to a document in the junction table
+   * @param documentId - The document ID
+   * @param agendaItemIds - Array of research agenda item IDs
+   * @returns True if successful, false otherwise
+   */
+  static async linkItemsToDocument(documentId: number, agendaItemIds: number[]): Promise<boolean> {
+    try {
+      // First delete any existing links for this document to avoid duplicates
+      await client.queryArray(
+        "DELETE FROM document_research_agenda WHERE document_id = $1",
+        [documentId]
+      );
+      
+      // Insert all new links
+      for (const agendaItemId of agendaItemIds) {
+        await client.queryArray(
+          "INSERT INTO document_research_agenda (document_id, research_agenda_id) VALUES ($1, $2)",
+          [documentId, agendaItemId]
+        );
+        console.log(`Linked research agenda ${agendaItemId} to document ${documentId}`);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Error linking research agenda items to document:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Link research agenda items to a document by name
+   * @param documentId - The document ID
+   * @param agendaItemNames - Array of research agenda item names
+   * @returns Object with success status and array of linked item IDs
+   */
+  static async linkItemsToDocumentByName(
+    documentId: number, 
+    agendaItemNames: string[]
+  ): Promise<{ success: boolean; linkedIds: number[] }> {
+    try {
+      const linkedIds: number[] = [];
+      
+      // First delete any existing links for this document to avoid duplicates
+      await client.queryArray(
+        "DELETE FROM document_research_agenda WHERE document_id = $1",
+        [documentId]
+      );
+      
+      // Process each agenda item
+      for (const name of agendaItemNames) {
+        if (!name.trim()) continue;
+        
+        // Try to find existing agenda item by name
+        const existingItem = await client.queryObject(
+          "SELECT id FROM research_agenda WHERE name ILIKE $1",
+          [name.trim()]
+        );
+        
+        let agendaItemId: number;
+        
+        if (existingItem.rows.length > 0) {
+          // Use existing agenda item
+          agendaItemId = Number((existingItem.rows[0] as any).id);
+        } else {
+          // Create new agenda item
+          const newItem = await client.queryObject(
+            "INSERT INTO research_agenda (name) VALUES ($1) RETURNING id",
+            [name.trim()]
+          );
+          
+          if (newItem.rows.length === 0) {
+            console.error(`Failed to create research agenda item: ${name}`);
+            continue;
+          }
+          
+          agendaItemId = Number((newItem.rows[0] as any).id);
+        }
+        
+        // Link to document
+        await client.queryArray(
+          "INSERT INTO document_research_agenda (document_id, research_agenda_id) VALUES ($1, $2)",
+          [documentId, agendaItemId]
+        );
+        
+        linkedIds.push(agendaItemId);
+        console.log(`Linked research agenda "${name}" (ID: ${agendaItemId}) to document ${documentId}`);
+      }
+      
+      return { success: true, linkedIds };
+    } catch (error) {
+      console.error("Error linking research agenda items to document by name:", error);
+      return { success: false, linkedIds: [] };
+    }
+  }
+
+  /**
    * Get all research agenda items for a document
    * @param documentId - The document ID
    * @returns Array of research agenda items

@@ -1,6 +1,8 @@
 // Global variables for filtering and pagination
 let currentPage = 1;
 let currentCategoryFilter = null;
+let currentSort = 'latest';
+let currentSearchQuery = '';
 let visibleEntriesCount = 0;
 
 /**
@@ -10,27 +12,48 @@ let visibleEntriesCount = 0;
 function filterByCategory(categoryName) {
     console.log(`Filtering by category: ${categoryName}`);
     
-    // Reset all active categories
-    document.querySelectorAll('.category').forEach(cat => {
-        cat.classList.remove('active');
-    });
+    // Check if we're clicking the already active category
+    const isActiveCategory = document.querySelector(`.category[data-category="${categoryName}"].active`) !== null;
     
-    // Set or clear the current category filter
-    if (categoryName === 'All') {
+    if (isActiveCategory) {
+        // If clicking the active category, clear the filter and set to All
+        console.log(`Clearing filter as ${categoryName} is already active`);
         currentCategoryFilter = null;
+        
+        // Remove active class from all categories
+        document.querySelectorAll('.category').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // Set "All" category as active
         document.querySelector('.category[data-category="All"]').classList.add('active');
     } else {
-        currentCategoryFilter = categoryName;
-        document.querySelector(`.category[data-category="${categoryName}"]`).classList.add('active');
+        // Convert display category names to document_type ENUM values for API
+        const categoryTypeMap = {
+            'All': 'All',
+            'Thesis': 'THESIS',
+            'Dissertation': 'DISSERTATION',
+            'Confluence': 'CONFLUENCE',
+            'Synergy': 'SYNERGY'
+        };
+        
+        // Use the mapped value for the filter
+        currentCategoryFilter = categoryTypeMap[categoryName] || categoryName;
+        
+        console.log(`Mapped category from ${categoryName} to ${currentCategoryFilter}`);
+        
+        // Update active category styling
+        document.querySelectorAll('.category').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-category') === categoryName);
+        });
     }
     
-    // Reset to page 1 and load documents
+    currentPage = 1; // Reset to first page when changing filters
+    
+    // Load documents with the updated filter
     if (window.documentList && window.documentList.loadDocuments) {
         window.documentList.loadDocuments(1, true);
     }
-    
-    // Update filter indicator
-    updateFilterIndicator();
 }
 
 /**
@@ -39,10 +62,10 @@ function filterByCategory(categoryName) {
 function setupCategoryFilters() {
     console.log('Setting up category filters');
     
-    document.querySelectorAll('.category').forEach(category => {
-        category.addEventListener('click', function() {
-            const categoryName = this.getAttribute('data-category');
-            filterByCategory(categoryName);
+    document.querySelectorAll('.category').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const category = btn.getAttribute('data-category');
+            filterByCategory(category);
         });
     });
 }
@@ -54,7 +77,7 @@ async function loadCategories() {
     console.log('Loading categories');
     
     try {
-        const response = await fetch('/api/category');
+        const response = await fetch('/api/categories');
         
         if (!response.ok) {
             throw new Error(`Server returned ${response.status}: ${response.statusText}`);
@@ -76,7 +99,7 @@ async function loadCategories() {
  * @param {Array} categories - Array of category objects with counts
  */
 function updateCategoryCounts(categories) {
-    console.log('Updating category counts');
+    console.log('Updating category counts:', categories);
     
     // Calculate total documents across all categories
     let totalDocs = 0;
@@ -85,16 +108,29 @@ function updateCategoryCounts(categories) {
     });
     
     // Update the "All" category count
-    const allCategoryElement = document.querySelector('.category[data-category="All"] .category-file-count');
-    if (allCategoryElement) {
-        allCategoryElement.textContent = `${totalDocs} files`;
+    const allCountElement = document.querySelector('.category[data-category="All"] .category-file-count');
+    if (allCountElement) {
+        allCountElement.textContent = `${totalDocs} files`;
     }
+    
+    // Map API document_type to display names
+    const typeDisplayMap = {
+        'THESIS': 'Thesis',
+        'DISSERTATION': 'Dissertation',
+        'CONFLUENCE': 'Confluence',
+        'SYNERGY': 'Synergy'
+    };
     
     // Update each individual category count
     categories.forEach(category => {
-        const categoryElement = document.querySelector(`.category[data-category="${category.name}"] .category-file-count`);
-        if (categoryElement) {
-            categoryElement.textContent = `${category.count} ${category.count === 1 ? 'file' : 'files'}`;
+        // Use the display name mapped from document_type
+        const displayName = typeDisplayMap[category.name] || category.name;
+        console.log(`Updating count for category: ${category.name} -> ${displayName} with count: ${category.count}`);
+        const countElement = document.querySelector(`.category[data-category="${displayName}"] .category-file-count`);
+        if (countElement) {
+            countElement.textContent = `${category.count} ${category.count === 1 ? 'file' : 'files'}`;
+        } else {
+            console.warn(`Could not find element for category: ${displayName}`);
         }
     });
 }
@@ -204,52 +240,23 @@ function updateEntriesInfo() {
  * Update filter indicator based on current filter
  */
 function updateFilterIndicator() {
-    console.log('Updating filter indicator');
-    
-    let indicator = document.querySelector('.filter-indicator');
-    
-    if (currentCategoryFilter) {
-        // Create or update indicator
-        if (!indicator) {
-            indicator = document.createElement('div');
-            indicator.className = 'filter-indicator';
-            document.querySelector('.docs-container').insertBefore(indicator, document.getElementById('documents-container'));
-        }
-        
-        indicator.innerHTML = `
-            <span>Filtered by: <strong>${currentCategoryFilter}</strong></span>
-            <button class="clear-filter" data-filter="category">Clear</button>
-        `;
-        
-        document.querySelectorAll('.clear-filter').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const filterType = this.getAttribute('data-filter');
-                if (filterType === 'category') {
-                    currentCategoryFilter = null;
-                    document.querySelectorAll('.category').forEach(cat => {
-                        cat.classList.remove('active');
-                    });
-                    if (window.documentList && window.documentList.loadDocuments) {
-                        window.documentList.loadDocuments(1, true);
-                    }
-                    if (indicator) {
-                        indicator.remove();
-                    }
-                }
-            });
-        });
-    } else if (indicator) {
-        indicator.remove();
-    }
+    // Function intentionally left empty to remove filter indicator
+    // The category buttons themselves now show the active state
 }
 
 /**
  * Initialize filters and pagination
  */
 function initializeFiltersAndPagination() {
+    console.log('Initializing filters and pagination');
+    
+    // Set up event listeners
     setupCategoryFilters();
     setupSortOrder();
     setupPaginationControls();
+    setupSearchInput();
+    
+    // Load initial categories
     loadCategories();
 }
 
@@ -295,15 +302,84 @@ function getCurrentPage() {
     return currentPage;
 }
 
-// Export functions for use in document-list.js
+/**
+ * Setup search input handler
+ */
+function setupSearchInput() {
+    const searchInput = document.getElementById('search-documents');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            currentSearchQuery = this.value.trim();
+            currentPage = 1; // Reset to first page when searching
+            
+            if (window.documentList && window.documentList.loadDocuments) {
+                // Store the search query so we can process it after loading documents
+                window.documentList.currentSearchQuery = currentSearchQuery;
+                
+                // Load documents with search
+                window.documentList.loadDocuments(1, true);
+            }
+        });
+    }
+}
+
+/**
+ * Get current search query
+ * @returns {string} Current search query
+ */
+function getCurrentSearchQuery() {
+    return currentSearchQuery;
+}
+
+/**
+ * Reset all filters to their default state
+ */
+function resetFilters() {
+    // Reset category filter
+    currentCategoryFilter = null;
+    document.querySelectorAll('.category').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Set "All" category as active
+    const allCategory = document.querySelector('.category[data-category="All"]');
+    if (allCategory) {
+        allCategory.classList.add('active');
+    }
+    
+    // Reset page
+    currentPage = 1;
+    
+    // Reset sort order
+    const sortOrderSelect = document.getElementById('sort-order');
+    if (sortOrderSelect) {
+        sortOrderSelect.value = 'latest';
+        currentSort = 'latest';
+    }
+    
+    // Reset search query
+    currentSearchQuery = '';
+    const searchInput = document.getElementById('search-documents');
+    if (searchInput) {
+        searchInput.value = '';
+    }
+    
+    // Load documents with reset filters
+    if (window.documentList && window.documentList.loadDocuments) {
+        window.documentList.loadDocuments(1, true);
+    }
+}
+
+// Export functions for use in other modules
 window.documentFilters = {
     initializeFiltersAndPagination,
-    filterByCategory,
-    updatePagination,
     setCurrentPage,
     setVisibleEntriesCount,
     getCurrentCategoryFilter,
     getCurrentSortOrder,
+    getCurrentPage,
+    getCurrentSearchQuery,
+    updatePagination,
     updateFilterIndicator,
-    getCurrentPage
+    resetFilters
 }; 

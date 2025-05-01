@@ -18,277 +18,308 @@
 }
 
 .document-card {
+    background-color: #fff;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 12px;
+    overflow: visible;
+    transition: box-shadow 0.2s ease;
     display: flex;
-    width: 100%;
-    background: white;
-    border-radius: 8px;
-    border: 1px solid #e0e0e0;
-    overflow: hidden;
-    transition: transform 0.2s, box-shadow 0.2s;
-    box-sizing: border-box;
-    cursor: pointer;
+    align-items: center;
+    padding: 12px 20px;
+    position: relative;
+    z-index: 1;
 }
 
 .document-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    border-color: transparent;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    z-index: 5;
 }
 
-.document-card .card-icon {
-    width: 80px;
-    height: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #f0f0f0;
+/* Document icon container */
+.document-icon {
+    margin-right: 15px;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
 }
 
-.document-card .card-icon img {
-    width: 50px;
-    height: 50px;
+.document-icon img {
+    width: 100%;
+    height: 100%;
     object-fit: contain;
 }
 
-.document-card .card-content {
+/* Document info */
+.document-info {
     flex: 1;
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
 }
 
-.document-card .card-title {
+/* Document title */
+.document-title {
+    font-weight: 500;
     font-size: 16px;
-    font-weight: bold;
-    margin-bottom: 5px;
     color: #333;
+    margin: 0 0 4px 0;
 }
 
-.document-card .card-metadata {
-    font-size: 14px;
+/* Document meta information */
+.document-meta {
     color: #666;
+    font-size: 14px;
     margin-bottom: 8px;
-}
-
-.document-card .card-tags {
     display: flex;
-    gap: 5px;
     flex-wrap: wrap;
+    gap: 12px;
 }
 
-.document-card .tag {
-    background-color: #ffe57f;
-    color: #333;
-    padding: 3px 8px;
-    border-radius: 12px;
+.meta-item {
+    display: inline-flex;
+    align-items: center;
+}
+
+.meta-item i {
+    margin-right: 5px;
+    color: #4285f4;
     font-size: 12px;
 }
 
-.document-card .tag.document-type {
-    background-color: #ffe57f;
+/* Category badge */
+.category-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+    background-color: #f0f0f0;
+    margin-right: 8px;
 }
 
-.document-card .tag.topic {
-    background-color: #ffe57f;
+.category-badge.thesis {
+    background-color: #ffeeba;
+    color: #856404;
 }
 
-.document-card .card-actions {
+.category-badge.dissertation {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.category-badge.confluence {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.category-badge.synergy {
+    background-color: #e2e3ff;
+    color: #3d348b;
+}
+
+/* Action buttons */
+.document-actions {
     display: flex;
-    gap: 5px;
-    margin-left: auto;
-    align-self: center;
-    padding: 0 15px;
-}
-
-.document-card .action-button {
-    padding: 6px 12px;
-    border-radius: 4px;
-    border: none;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.document-card .action-button.view {
-    background-color: #4285f4;
-    color: white;
-}
-
-.document-card .action-button.edit {
-    background-color: #0f9d58;
-    color: white;
-}
-
-.document-card .action-button.delete {
-    background-color: #db4437;
-    color: white;
-}
-
-.document-card .action-button:hover {
-    opacity: 0.9;
-}
-
-/* Compilation styles */
-.compilation-wrapper {
-    width: 100%;
-    max-width: 1200px;
-    margin-bottom: 5px;
-    margin-left: auto;
-    margin-right: auto;
-    box-sizing: border-box;
-}
-
-.document-card.compilation {
-    border-left: 4px solid #4285f4;
-    background-color: #f0f8ff;
-    transition: all 0.3s ease;
-    padding: 12px;
-    position: relative;
-}
-
-.document-card.compilation:hover {
-    background-color: #e8f4ff;
-}
-
-.document-card.compilation[data-is-expanded="true"] {
-    background-color: #e3f2fd;
-    border-left-color: #2196f3;
-}
-
-.document-card.compilation .document-title {
-    font-weight: 600;
-    color: #1976d2;
-    margin-bottom: 6px;
-}
-
-.document-card.compilation .document-volume {
-    color: #555;
-    font-size: 0.9rem;
-    margin-bottom: 5px;
-}
-
-.document-card.compilation .document-metadata {
-    display: flex;
-    gap: 12px;
-    color: #666;
-    font-size: 0.85rem;
-    margin-bottom: 8px;
-}
-
-.document-card.compilation .metadata-item {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.document-card.compilation .toggle-children-btn {
-    background-color: transparent;
-    border: 1px solid #4285f4;
-    color: #4285f4;
-    border-radius: 4px;
-    padding: 4px 8px;
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    margin-top: 5px;
-}
-
-.document-card.compilation .toggle-children-btn:hover {
-    background-color: #4285f4;
-    color: white;
-}
-
-.document-card.compilation .document-actions {
-    display: flex;
-    flex-direction: column;
     gap: 8px;
-    margin-left: 15px;
 }
 
-.document-card.compilation .action-btn {
-    background: none;
+.action-btn {
+    padding: 8px;
+    font-size: 14px;
+    border-radius: 4px;
     border: none;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    color: #555;
+    width: 36px;
+    height: 36px;
 }
 
-.document-card.compilation .edit-document-btn {
-    background-color: rgba(15, 157, 88, 0.1);
-    color: #0f9d58;
+.action-btn i {
+    font-size: 16px;
 }
 
-.document-card.compilation .delete-document-btn {
-    background-color: rgba(219, 68, 55, 0.1);
-    color: #db4437;
-}
-
-.document-card.compilation .edit-document-btn:hover {
-    background-color: #0f9d58;
+.expand-btn {
+    background-color: #4285f4;
     color: white;
 }
 
-.document-card.compilation .delete-document-btn:hover {
-    background-color: #db4437;
+.expand-btn:hover {
+    background-color: #2b6ed9;
+}
+
+.view-btn {
+    background-color: #4285f4;
     color: white;
 }
 
+.view-btn:hover {
+    background-color: #2b6ed9;
+}
+
+.edit-btn {
+    background-color: #34a853;
+    color: white;
+}
+
+.edit-btn:hover {
+    background-color: #2d8e47;
+}
+
+.delete-btn {
+    background-color: #ea4335;
+    color: white;
+}
+
+.delete-btn:hover {
+    background-color: #d33426;
+}
+
+.download-btn {
+    background-color: #8950fc;
+    color: white;
+}
+
+.download-btn:hover {
+    background-color: #7337e0;
+}
+
+/* Compiled document specific styles */
+.compiled-document {
+    background-color: #f8fbff;
+}
+
+.compiled-document .document-title {
+    display: flex;
+    align-items: center;
+}
+
+.compiled-document .toggle-indicator {
+    margin-right: 8px;
+    font-size: 14px;
+    color: #4285f4;
+}
+
+/* Children container */
 .children-container {
-    margin-top: 15px;
-    border-left: 2px dashed #90caf9;
-    padding-left: 15px;
-    transition: all 0.3s ease;
+    width: 90%;
+    margin-left: 10%;
+    padding: 15px;
+    border-radius: 6px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    background-color: white;
+    border-left: 2px solid #4285f4;
+    position: relative;
+    z-index: 10;
+    max-height: 400px;
+    overflow-y: auto;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 5px;
 }
 
+/* Child document card */
 .child-document-card {
-    background-color: white;
-    border-radius: 6px;
+    margin-bottom: 8px;
     padding: 12px;
-    margin-bottom: 10px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    transition: all 0.2s ease;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    border-left: 3px solid #4285f4;
+    transition: all 0.2s;
 }
 
 .child-document-card:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
+    background-color: #f0f7ff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.loading-children {
-    padding: 10px;
-    color: #666;
-    font-style: italic;
+/* Parent card with expanded children needs relative positioning */
+.document-card.compiled {
+    position: relative;
+    background-color: #f8fbff;
+    border-left: 3px solid #4285f4;
+}
+
+/* Add spacing below compiled cards to make room for overlay */
+.document-card.compiled {
+    margin-bottom: 20px;
+}
+
+/* Toggle button */
+.toggle-children-btn {
+    background: none;
+    border: none;
+    color: #4285f4;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 0;
     display: flex;
     align-items: center;
-    gap: 8px;
 }
 
-.loading-children:before {
-    content: "";
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    border: 2px solid #ddd;
-    border-top-color: #2196f3;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+.toggle-children-btn i {
+    margin-right: 4px;
 }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
+/* Simplified layout for image match */
+.simple-card {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    border-radius: 4px;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 10px;
 }
 
-.no-children {
-    padding: 10px;
+.simple-card .document-icon {
+    width: 36px;
+    height: 36px;
+    margin-right: 16px;
+}
+
+.simple-card .document-info {
+    flex: 1;
+}
+
+.simple-card .document-title {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.simple-card .document-meta {
+    font-size: 13px;
     color: #666;
-    font-style: italic;
+    margin-bottom: 6px;
+}
+
+.simple-card .category-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 11px;
+    border-radius: 12px;
+}
+
+.simple-card .document-actions {
+    display: flex;
+    gap: 5px;
+    margin-left: 10px;
+}
+
+.simple-card .action-btn {
+    padding: 4px 10px;
+    font-size: 13px;
+}
+
+/* Compiled simple card variations */
+.simple-card.compiled {
+    background-color: #f8fbff;
+}
+
+.simple-card.compiled .toggle-indicator {
+    margin-right: 8px;
 }
 
 /* Responsive adjustments */
@@ -321,4 +352,15 @@
         margin-left: 0;
         justify-content: flex-end;
     }
+}
+
+/* Fix z-index for document cards and their dropdowns */
+#documents-container {
+    position: relative;
+    z-index: 1;
+}
+
+/* When a card has an open dropdown, keep it at highest z-index */
+.document-card.compiled:has(.children-container) {
+    z-index: 10;
 }

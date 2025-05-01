@@ -432,7 +432,7 @@ async function handleSingleDocumentSubmit(e) {
         updateDocumentPreview(fileResult);
         
         // Save document to database
-        const documentResponse = await fetch('/documents', {
+        const documentResponse = await fetch('/api/documents', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -514,6 +514,7 @@ async function handleSingleDocumentSubmit(e) {
             const researchAgendaItems = formData.get('researchAgenda').split(',').map(item => item.trim()).filter(item => item !== '');
             
             if (researchAgendaItems.length > 0) {
+                // First add items to the old endpoint for backward compatibility
                 const researchAgendaData = {
                     document_id: documentId,
                     agenda_items: researchAgendaItems
@@ -529,7 +530,23 @@ async function handleSingleDocumentSubmit(e) {
                 });
                 
                 if (!researchAgendaResponse.ok) {
-                    console.warn('Warning: Research agenda items may not have been saved correctly');
+                    console.warn('Warning: Research agenda items may not have been saved correctly to old endpoint');
+                }
+                
+                // Now also use the new linkage endpoint that creates entries in the junction table
+                const linkResponse = await fetch('/api/document-research-agenda/link', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(researchAgendaData)
+                });
+                
+                if (!linkResponse.ok) {
+                    console.warn('Warning: Failed to link research agenda items in junction table');
+                } else {
+                    const linkResult = await linkResponse.json();
+                    console.log('Research agenda linking result:', linkResult);
                 }
             }
         }
@@ -556,10 +573,48 @@ async function handleCompiledDocumentSubmit(e) {
     e.preventDefault();
     
     try {
+        // Log all study section data for debugging
+        logStudySectionData();
+        
+        // First validate all research sections
+        if (!validateResearchSections()) {
+            showError('Please fix the errors in the research sections before submitting.');
+            return;
+        }
+        
         showLoading('Saving compiled document...');
         
         const form = e.target;
         const formData = new FormData(form);
+        
+        // Debug information - log research sections
+        const researchSections = document.querySelectorAll('.research-section');
+        console.log(`Found ${researchSections.length} research sections`);
+        
+        // Count sections with valid files
+        let sectionsWithFiles = 0;
+        researchSections.forEach((section, index) => {
+            // Use the broader selector to find file inputs
+            const fileInput = section.querySelector('input[type="file"], .research-file, .hidden-file-input, #file-upload-' + (index+1));
+            
+            console.log(`Section ${index+1} file input element:`, fileInput);
+            
+            if (fileInput) {
+                console.log(`Section ${index+1} file input name:`, fileInput.name);
+                console.log(`Section ${index+1} file input id:`, fileInput.id);
+                console.log(`Section ${index+1} has files:`, fileInput.files ? fileInput.files.length : 0);
+                
+                if (fileInput.files && fileInput.files.length > 0) {
+                    sectionsWithFiles++;
+                    console.log(`Section ${index+1} has file: ${fileInput.files[0].name}`);
+        } else {
+                    console.log(`Section ${index+1} has no file or empty files collection`);
+                }
+            } else {
+                console.log(`Section ${index+1} - NO file input found!`);
+            }
+        });
+        console.log(`${sectionsWithFiles} out of ${researchSections.length} sections have files`);
         
         // Validate required fields
         const title = formData.get('title');
@@ -599,62 +654,92 @@ async function handleCompiledDocumentSubmit(e) {
             if (departmentalSelect && departmentalSelect.value) {
                 departmentId = parseInt(departmentalSelect.value);
             }
+            
+            if (!departmentId) {
+                showError('Department is required for Synergy documents.');
+                hideLoading();
+                return;
+            }
         }
         
-        // Create compiled document data
-        const compiledDocumentData = {
-            title: `${category} ${formData.get('volume') || ''}`.trim(),
-            start_year: formData.get('pub-year-start') || null,
-            end_year: formData.get('pub-year-end') || null,
-            volume: formData.get('volume') || null,
-            issue: documentType === 'SYNERGY' ? null : formData.get('issued-no') || null,
-            department_id: departmentId,
-            is_public: true,
-            document_type: documentType,
-            file_path: compiledStoragePath, // Store the path to the compiled document folder
-            category_id: categoryId
+        // Create compiled document data directly in the compiled_documents table
+        // instead of going through the documents table first
+        const compiledDocData = {
+            start_year: formData.get('pub-year-start') ? parseInt(formData.get('pub-year-start')) : null,
+            end_year: formData.get('pub-year-end') ? parseInt(formData.get('pub-year-end')) : null,
+            volume: formData.get('volume') ? parseInt(formData.get('volume')) : null,
+            issue_number: documentType === 'SYNERGY' ? null : (formData.get('issued-no') ? parseInt(formData.get('issued-no')) : null),
+            department: departmentId ? getSelectedDepartmentText() : null,
+            category: category
         };
         
-        // Save compiled document to database
-        const documentResponse = await fetch('/api/documents', {
+        // Call API to create the compiled document entry
+        const compiledDocResponse = await fetch('/api/compiled-documents', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(compiledDocumentData)
+            body: JSON.stringify({
+                compiledDoc: compiledDocData,
+                documentIds: [] // Start with empty array, will add children later
+            })
         });
         
-        if (!documentResponse.ok) {
-            const errorData = await documentResponse.json();
-            throw new Error(errorData.error || 'Failed to save compiled document');
+        if (!compiledDocResponse.ok) {
+            const errorData = await compiledDocResponse.json();
+            console.warn('Warning: Failed to create compiled document entry:', errorData.error);
+            throw new Error(`Failed to create compiled document entry: ${errorData.error || 'Unknown error'}`);
         }
         
-        const compiledResult = await documentResponse.json();
-        const compiledDocumentId = compiledResult.id;
+        const compiledDocResult = await compiledDocResponse.json();
+        console.log('Created compiled document entry with ID:', compiledDocResult.id);
         
-        // Process each research section
-        const researchSections = document.querySelectorAll('.research-section');
+        // Store the compiled document ID (this is the ID in the compiled_documents table)
+        const compiledDocEntryId = compiledDocResult.id;
+        
+        // Process each research section (use existing researchSections variable)
         const studyPromises = [];
+        const studyDocumentIds = [];
         
-        for (const section of researchSections) {
-            const fileInput = section.querySelector('.research-file');
-            const titleInput = section.querySelector('.research-title');
-            const abstractInput = section.querySelector('.research-abstract');
+        for (let i = 0; i < researchSections.length; i++) {
+            const section = researchSections[i];
+            // Use the broader selector to find file inputs
+            const fileInput = section.querySelector('input[type="file"], .research-file, .hidden-file-input, #file-upload-' + (i+1));
+            
+            // Try multiple selectors for finding the title input
+            const titleInput = section.querySelector('.research-title, input[name^="research"][name$="[study_title]"], #study-title-' + (i+1));
+            
+            console.log(`Section ${i+1} title input:`, titleInput);
+            if (titleInput) {
+                console.log(`Section ${i+1} title value:`, titleInput.value);
+            }
+            
+            // Try to find the abstract input with multiple selectors
+            const abstractInput = section.querySelector('.research-abstract, textarea[name^="research"][name$="[abstract]"], #research-abstract-' + (i+1));
+            console.log(`Section ${i+1} abstract input:`, abstractInput);
             
             if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                console.log(`Skipping section ${i+1} - no file uploaded`);
                 continue; // Skip sections without files
             }
             
-            if (!titleInput || !titleInput.value) {
-                throw new Error('Each study must have a title');
+            if (!titleInput) {
+                console.log(`ERROR: Title input not found for section ${i+1}`);
+                throw new Error(`Title input not found for section ${i+1}. Please refresh the page and try again.`);
+            }
+            
+            if (!titleInput.value || titleInput.value.trim() === '') {
+                console.log(`ERROR: Missing title for section ${i+1}`);
+                throw new Error(`Each study must have a title (section ${i+1} is missing a title)`);
             }
             
             const file = fileInput.files[0];
+            console.log(`Processing study ${i+1} file: ${file.name} (${file.size} bytes) for section with title: ${titleInput.value}`);
             
             // Create study-specific file upload
             const studyFormData = new FormData();
             studyFormData.append('file', file);
-            studyFormData.append('path', `${compiledStoragePath}studies/`);
+            studyFormData.append('storagePath', `${compiledStoragePath}studies/`);
             
             // Upload the study file
             const studyFileResponse = await fetch('/api/upload', {
@@ -672,32 +757,35 @@ async function handleCompiledDocumentSubmit(e) {
             // Get study category ID (should match the parent document category)
             let studyCategoryId = categoryId;
             
+            // Get abstract text with a null check
+            const abstractText = abstractInput && abstractInput.value ? abstractInput.value.trim() : 'No abstract provided';
+            
             // Create study document data (will be linked to the compiled document)
-                const studyData = {
-                    title: titleInput.value,
-                abstract: abstractInput.value || 'No abstract provided',
+            const studyData = {
+                title: titleInput.value,
+                abstract: abstractText,
                 publication_date: new Date().toISOString().split('T')[0],
-                document_type: 'RESEARCH_STUDY',
-                    file_path: fileResult.filePath,
-                    parent_document_id: compiledDocumentId,
-                category_id: studyCategoryId, // Use the appropriate category based on parent
+                document_type: documentType,
+                file_path: fileResult.filePath,
+                category_id: studyCategoryId,
                 pages: 0,
-                is_public: true
-                };
-                
+                is_public: true,
+                compiled_parent_id: compiledDocEntryId  // Reference to the compiled document ID
+            };
+            
             // Extract metadata from PDF if available
-                if (fileResult.metadata && fileResult.fileType === 'pdf') {
-                    studyData.abstract = fileResult.metadata.abstract || studyData.abstract;
+            if (fileResult.metadata && fileResult.fileType === 'pdf') {
+                studyData.abstract = fileResult.metadata.abstract || abstractText;
                 studyData.pages = fileResult.metadata.pageCount || 0;
-                }
+            }
                 
             // Save study document to database
             const studyPromise = fetch('/api/documents', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(studyData)
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(studyData)
             }).then(response => {
                 if (!response.ok) {
                     return response.json().then(errorData => {
@@ -705,6 +793,106 @@ async function handleCompiledDocumentSubmit(e) {
                     });
                 }
                 return response.json();
+            }).then(async result => {
+                // Store the study document ID for later linking to the compiled document
+                const studyDocId = result.id;
+                studyDocumentIds.push(studyDocId);
+                
+                // Find author input in this research section
+                const authorInput = section.querySelector('.authors-input, input[name^="research"][name$="[authors]"], #authors-' + (i+1));
+                
+                // Process authors if present
+                if (authorInput && authorInput.value && authorInput.value.trim() !== '') {
+                    try {
+                        console.log(`Processing authors for study ${i+1} with ID ${studyDocId}`);
+                        
+                        // Split authors by semicolon and clean up
+                        const authors = authorInput.value.split(';')
+                            .map(name => name.trim())
+                            .filter(name => name !== '');
+                        
+                        if (authors.length > 0) {
+                            console.log(`Found ${authors.length} authors for study ${i+1}: ${authors.join(', ')}`);
+                            
+                            // Prepare data for document-authors endpoint
+                            const authorData = {
+                                document_id: studyDocId,
+                                authors: authors
+                            };
+                            
+                            // Send authors to the document-authors endpoint
+                            const authorResponse = await fetch('/document-authors', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(authorData)
+                            });
+                            
+                            if (!authorResponse.ok) {
+                                const errorText = await authorResponse.text();
+                                console.warn(`Warning: Authors may not have been saved correctly for study ${i+1}:`, 
+                                    authorResponse.status, errorText);
+                            } else {
+                                console.log(`Successfully associated ${authors.length} authors with study ${i+1}`);
+                            }
+                        }
+                    } catch (authorError) {
+                        console.error(`Error processing authors for study ${i+1}:`, authorError);
+                        // Continue with document creation even if author association fails
+                    }
+                } else {
+                    console.log(`No authors specified for study ${i+1}`);
+                }
+                
+                // Add research agenda items if provided
+                if (section.querySelector('.research-agenda')) {
+                    const researchAgendaInput = section.querySelector('.research-agenda');
+                    const researchAgendaItems = researchAgendaInput.value.split(',').map(item => item.trim()).filter(item => item !== '');
+                    
+                    if (researchAgendaItems.length > 0) {
+                        // First add items to research_agenda table (backwards compatibility)
+                        const researchAgendaData = {
+                            document_id: studyDocId,
+                            agenda_items: researchAgendaItems
+                        };
+                        
+                        try {
+                            // Send research agenda items to the document-research-agenda endpoint
+                            const researchAgendaResponse = await fetch('/document-research-agenda', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(researchAgendaData)
+                            });
+                            
+                            if (!researchAgendaResponse.ok) {
+                                console.warn(`Warning: Research agenda items for section ${i+1} may not have been saved correctly`);
+                            }
+                            
+                            // Now also link to the junction table
+                            const linkResponse = await fetch('/api/document-research-agenda/link', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(researchAgendaData)
+                            });
+                            
+                            if (!linkResponse.ok) {
+                                console.warn(`Warning: Failed to link research agenda items for section ${i+1}`);
+                            } else {
+                                const linkResult = await linkResponse.json();
+                                console.log(`Research agenda linking result for section ${i+1}:`, linkResult);
+                            }
+                        } catch (agendaError) {
+                            console.warn(`Error saving research agenda items for section ${i+1}:`, agendaError);
+                        }
+                    }
+                }
+                
+                return result;
             });
             
             studyPromises.push(studyPromise);
@@ -713,29 +901,119 @@ async function handleCompiledDocumentSubmit(e) {
         // Wait for all study documents to be saved
         await Promise.all(studyPromises);
         
-        hideLoading();
-        showSuccess('Compiled document created successfully', function() {
-            // Reset form
-            form.reset();
-            
-            // Clear research sections
-            const researchContainer = document.getElementById('research-container');
-            if (researchContainer) {
-                researchContainer.innerHTML = '';
-                addResearchSection(); // Add one empty section
+        // Link all child documents to the compiled document if we have a valid compiled doc ID
+        if (studyDocumentIds.length > 0) {
+            try {
+                console.debug(`Creating junction table entries for compiled document ${compiledDocEntryId} with ${studyDocumentIds.length} child documents`);
+                console.debug('Child document IDs:', studyDocumentIds);
+                        
+                const linkResponse = await fetch('/api/compiled-documents/add-documents', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        compiledDocumentId: compiledDocEntryId, // Use the ID from compiled_documents table
+                        documentIds: studyDocumentIds
+                    })
+                });
+                
+                if (!linkResponse.ok) {
+                    const errorData = await linkResponse.json();
+                    console.warn('Warning: Failed to link some child documents to compilation:', errorData.error);
+                    // Continue anyway since the documents were created, but show a more informative message
+                    showError(`Compiled document created, but some studies may not appear in the list. Please check the console for details or try refreshing the document list.`);
+                } else {
+                    const linkResult = await linkResponse.json();
+                    console.debug('Junction table entries created:', linkResult);
+                    
+                    // Check if any failures occurred
+                    if (linkResult.results && linkResult.results.some(r => !r.success)) {
+                        const failedCount = linkResult.results.filter(r => !r.success).length;
+                        console.warn(`${failedCount} out of ${linkResult.results.length} document links failed`);
+                        showError(`Compiled document created, but ${failedCount} studies may not appear in the list. Please check the console for details.`);
+                    }
+                }
+            } catch (linkError) {
+                console.error('Error linking child documents to compilation:', linkError);
+                // Continue anyway since the documents were created
+                showError(`Compiled document created, but studies may not appear in the list due to an error: ${linkError.message}`);
             }
-            
-            // Commenting out the redirect to stay on the current page
-            // window.location.href = 'documents.html';
-        });
+        }
+        
+        // Display upload summary in the console
+        console.log("-------------------------------------------");
+        console.log("📊 COMPILED DOCUMENT UPLOAD SUMMARY");
+        console.log("-------------------------------------------");
+        console.log(`✅ Compiled Document ID: ${compiledDocEntryId}`);
+        console.log(`📚 Title: ${formData.get('title') || `${category} ${formData.get('volume') || ''}`}`);
+        console.log(`📚 Type: ${documentType}`);
+        console.log(`📚 Category: ${category}`);
+        console.log(`📚 Volume: ${formData.get('volume') || 'N/A'}`);
+        
+        if (documentType === "SYNERGY") {
+            console.log(`📚 Department: ${departmentId ? getSelectedDepartmentText() : 'N/A'}`);
+        } else {
+            console.log(`📚 Issue: ${formData.get('issued-no') || 'N/A'}`);
+        }
+        
+        console.log(`📚 Years: ${formData.get('pub-year-start') || 'N/A'} - ${formData.get('pub-year-end') || 'N/A'}`);
+        console.log(`📚 Child Studies: ${studyDocumentIds.length} (found ${researchSections.length} research sections, ${sectionsWithFiles} with files)`);
+        console.log(`📁 Storage Path: ${compiledStoragePath}`);
+        console.log("-------------------------------------------");
+        
+        hideLoading();
+        
+        // Show success message or warning if files were skipped
+        if (sectionsWithFiles === 0) {
+            showError('No study files were uploaded. Please add at least one study with a file.');
+        } else if (sectionsWithFiles < researchSections.length) {
+            showWarning(`Compiled document created with ${studyDocumentIds.length} studies. Note: ${researchSections.length - sectionsWithFiles} sections did not have files attached.`, function() {
+                // Reset form
+                form.reset();
+                
+                // Clear research sections
+                const researchContainer = document.getElementById('research-sections-container');
+                if (researchContainer) {
+                    researchContainer.innerHTML = '';
+                    addResearchSection(); // Add one empty section
+                }
+            });
+        } else {
+            showSuccess('Compiled document created successfully', function() {
+                // Reset form
+                form.reset();
+                
+                // Clear research sections
+                const researchContainer = document.getElementById('research-sections-container');
+                if (researchContainer) {
+                    researchContainer.innerHTML = '';
+                    addResearchSection(); // Add one empty section
+                } else {
+                    console.warn('Research sections container not found when trying to clear sections');
+                }
+            });
+        }
         
     } catch (error) {
         hideLoading();
-        showError(error.message);
         console.error('Error creating compiled document:', error);
-                    }
-                }
-                
+        
+        // Provide more detailed error information
+        let errorMessage = error.message;
+        if (error.stack) {
+            console.error('Error stack:', error.stack);
+        }
+        
+        // Check if it's a TypeError with 'null' in the message (common for DOM element issues)
+        if (error instanceof TypeError && error.message.includes('null')) {
+            errorMessage = 'Form field error: ' + error.message + '. Please make sure all required fields are filled out.';
+        }
+        
+        showError(errorMessage);
+    }
+}
+
 /**
  * Helper function to ensure directories exist
  * @param {string} path - Directory path
@@ -820,6 +1098,25 @@ function showSuccess(message, callback) {
         title: 'Success',
         text: message,
         icon: 'success',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#10B981'
+    }).then(result => {
+        if (result.isConfirmed && callback) {
+            callback();
+        }
+    });
+}
+
+/**
+ * Show warning message
+ * @param {string} message Warning message to display
+ * @param {Function} callback Optional callback function to execute on confirmation
+ */
+function showWarning(message, callback) {
+    Swal.fire({
+        title: 'Warning',
+        text: message,
+        icon: 'warning',
         confirmButtonText: 'OK',
         confirmButtonColor: '#10B981'
     }).then(result => {
@@ -1322,20 +1619,64 @@ function setupStudyFileInputs() {
             
             fileInputContainer.addEventListener('drop', (e) => {
                 e.preventDefault();
-                fileInputContainer.classList.remove('drag-over');
+                e.stopPropagation();
+                this.classList.remove('drag-over');
                 
                 if (e.dataTransfer.files.length > 0) {
                     fileInput.files = e.dataTransfer.files;
-                    updateFileSelectedUI(fileId, true, e.dataTransfer.files[0].name);
+                    
+                    // Trigger change event
+                    const event = new Event('change', { bubbles: true });
+                    fileInput.dispatchEvent(event);
                 }
             });
             
             // Handle file selection
             fileInput.addEventListener('change', function() {
                 if (this.files.length > 0) {
-                    updateFileSelectedUI(fileId, true, this.files[0].name);
-                } else {
-                    updateFileSelectedUI(fileId, false);
+                    const fileName = this.files[0].name;
+                    const fileNameDisplay = container.querySelector('.file-name-display');
+                    const fileSize = (this.files[0].size / 1024).toFixed(1);
+                    
+                    if (fileNameDisplay) {
+                        fileNameDisplay.innerHTML = `
+                            <div class="flex items-center">
+                                <i data-lucide="file" class="w-4 h-4 mr-1 text-primary"></i>
+                                <span class="font-medium">${fileName}</span>
+                                <span class="text-xs text-gray-500 ml-1">(${fileSize} KB)</span>
+                            </div>
+                        `;
+                        
+                        // Re-initialize Lucide icons if needed
+                        if (window.lucide) {
+                            window.lucide.createIcons();
+                        }
+                    }
+                    
+                    console.log(`File selected for research section ${fileId}: ${fileName} (${fileSize} KB)`);
+                    
+                    // Also add a visual indication that the file was selected
+                    const uploadContainer = container.querySelector(`#file-upload-container-${fileId}`);
+                    if (uploadContainer) {
+                        uploadContainer.classList.add('border-primary', 'bg-primary-50');
+                        uploadContainer.classList.remove('border-gray-300', 'border-dashed');
+                        uploadContainer.innerHTML = `
+                            <div class="space-y-1 text-center">
+                                <i data-lucide="check-circle" class="mx-auto h-12 w-12 text-success"></i>
+                                <div class="text-sm text-success font-medium">File uploaded successfully</div>
+                                <div class="text-xs text-gray-500">${fileName} (${fileSize} KB)</div>
+                                <button type="button" class="mt-2 px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded" 
+                                    onclick="document.getElementById('file-upload-${fileId}').click()">
+                                    Replace File
+                                </button>
+                            </div>
+                        `;
+                        
+                        // Re-initialize Lucide icons
+                        if (window.lucide) {
+                            window.lucide.createIcons();
+                        }
+                    }
                 }
             });
         }
@@ -1397,7 +1738,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const addStudyBtn = document.getElementById('addStudyBtn');
     if (addStudyBtn) {
         addStudyBtn.addEventListener('click', () => {
-            // ... existing code ...
+            // Add a new research section to the form
+            addResearchSection();
             
             // Setup file inputs for the new study
             setupStudyFileInputs();
@@ -1596,4 +1938,332 @@ function getSelectedDepartmentText() {
     if (!departmentalSelect || departmentalSelect.selectedIndex < 0) return '';
     
     return departmentalSelect.options[departmentalSelect.selectedIndex].text;
+}
+
+/**
+ * Adds a new research section to the compiled document form
+ */
+function addResearchSection() {
+    // Find the sections container
+    const sectionsContainer = document.getElementById('research-sections-container');
+    if (!sectionsContainer) {
+        console.error('Research sections container not found');
+        return;
+    }
+    
+    // Calculate next section ID
+    const existingSections = document.querySelectorAll('.research-section');
+    const nextId = existingSections.length + 1;
+    
+    // Create new section element
+    const newSection = document.createElement('div');
+    newSection.className = 'research-section bg-primary-light border border-emerald-200 rounded-lg p-4 relative';
+    newSection.dataset.sectionId = nextId;
+    
+    // Create the inner HTML for the research section
+    newSection.innerHTML = `
+        <button type="button" class="remove-section-btn absolute top-2 right-2 text-gray-400 hover:text-red-600" title="Remove Section">
+            <i data-lucide="x-circle" class="w-5 h-5"></i>
+        </button>
+        <div class="research-header flex items-center justify-between cursor-pointer" onclick="toggleResearchSection(this)">
+            <h3 class="text-md font-semibold text-primary-dark flex items-center">
+                <i data-lucide="file-text" class="w-5 h-5 mr-2"></i> Research ${nextId}
+                <i data-lucide="chevron-down" class="toggle-icon w-5 h-5 ml-2 text-gray-500"></i>
+            </h3>
+        </div>
+        <div class="research-content space-y-4 mt-3">
+            <div>
+                <label for="study-title-${nextId}" class="block text-sm font-medium text-gray-700">Study Title <span class="text-red-500">*</span></label>
+                <input type="text" id="study-title-${nextId}" name="research[${nextId}][study_title]" 
+                    placeholder="Enter study title" class="research-title form-input study-title-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm" required>
+            </div>
+            <div>
+                <label for="research-abstract-${nextId}" class="block text-sm font-medium text-gray-700">Abstract</label>
+                <textarea id="research-abstract-${nextId}" name="research[${nextId}][abstract]" 
+                    placeholder="Enter abstract" class="research-abstract form-textarea mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm" rows="3"></textarea>
+            </div>
+            <div>
+                <label for="file-upload-${nextId}" class="block text-sm font-medium text-gray-700 mb-1">Attach File</label>
+                <div id="file-upload-container-${nextId}" class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-primary transition-colors duration-200 ease-in-out">
+                    <div class="space-y-1 text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <div class="flex text-sm text-gray-600 justify-center">
+                            <label for="file-upload-${nextId}" class="relative cursor-pointer bg-white rounded-md font-medium text-primary hover:text-primary-dark">
+                                <span>Upload a file</span>
+                                <input id="file-upload-${nextId}" name="research[${nextId}][file]" type="file" 
+                                    class="research-file hidden-file-input" required accept=".pdf" style="opacity: 0; position: absolute; z-index: -1;">
+                            </label>
+                            <p class="pl-1">or drag and drop</p>
+                        </div>
+                        <p class="text-xs text-gray-500">PDF up to 10MB</p>
+                        <p class="file-name-display text-sm text-gray-900 font-medium pt-2" id="file-name-${nextId}"></p>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <button type="button" class="text-xs text-primary hover:text-primary-dark" 
+                        onclick="checkFileInput(${nextId})">Check file status</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add the new section to the container
+    sectionsContainer.appendChild(newSection);
+    
+    // Initialize the icons
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+    
+    // Add event listener for the remove button
+    const removeBtn = newSection.querySelector('.remove-section-btn');
+    if (removeBtn) {
+        removeBtn.addEventListener('click', function() {
+            newSection.remove();
+            // Update the studies list in the preview
+            updateStudiesList();
+        });
+    }
+    
+    // Add file change event listener
+    const fileInput = newSection.querySelector('input[type="file"]');
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            if (this.files.length > 0) {
+                const fileName = this.files[0].name;
+                const fileNameDisplay = newSection.querySelector('.file-name-display');
+                const fileSize = (this.files[0].size / 1024).toFixed(1);
+                
+                if (fileNameDisplay) {
+                    fileNameDisplay.innerHTML = `
+                        <div class="flex items-center">
+                            <i data-lucide="file" class="w-4 h-4 mr-1 text-primary"></i>
+                            <span class="font-medium">${fileName}</span>
+                            <span class="text-xs text-gray-500 ml-1">(${fileSize} KB)</span>
+                        </div>
+                    `;
+                    
+                    // Re-initialize Lucide icons if needed
+                    if (window.lucide) {
+                        window.lucide.createIcons();
+                    }
+                }
+                
+                console.log(`File selected for research section ${nextId}: ${fileName} (${fileSize} KB)`);
+                
+                // Also add a visual indication that the file was selected
+                const uploadContainer = newSection.querySelector(`#file-upload-container-${nextId}`);
+                if (uploadContainer) {
+                    uploadContainer.classList.add('border-primary', 'bg-primary-50');
+                    uploadContainer.classList.remove('border-gray-300', 'border-dashed');
+                    uploadContainer.innerHTML = `
+                        <div class="space-y-1 text-center">
+                            <i data-lucide="check-circle" class="mx-auto h-12 w-12 text-success"></i>
+                            <div class="text-sm text-success font-medium">File uploaded successfully</div>
+                            <div class="text-xs text-gray-500">${fileName} (${fileSize} KB)</div>
+                            <button type="button" class="mt-2 px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded" 
+                                onclick="document.getElementById('file-upload-${nextId}').click()">
+                                Replace File
+                            </button>
+                        </div>
+                    `;
+                    
+                    // Re-initialize Lucide icons
+                    if (window.lucide) {
+                        window.lucide.createIcons();
+                    }
+                }
+            }
+        });
+        
+        // Add drag and drop support
+        const uploadContainer = newSection.querySelector(`#file-upload-container-${nextId}`);
+        if (uploadContainer) {
+            uploadContainer.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadContainer.classList.add('border-primary');
+            });
+            
+            uploadContainer.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadContainer.classList.remove('border-primary');
+            });
+            
+            uploadContainer.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadContainer.classList.remove('border-primary');
+                
+                if (e.dataTransfer.files.length > 0) {
+                    fileInput.files = e.dataTransfer.files;
+                    
+                    // Trigger change event
+                    const event = new Event('change', { bubbles: true });
+                    fileInput.dispatchEvent(event);
+                }
+            });
+        }
+    }
+    
+    console.log(`Added new research section ${nextId}`);
+    
+    // Update the studies list in the preview
+    if (typeof updateStudiesList === 'function') {
+        updateStudiesList();
+    }
+    
+    return newSection;
+}
+
+/**
+ * Debug function to check if a file input has a file
+ * @param {number} sectionId - The section ID
+ */
+function checkFileInput(sectionId) {
+    const fileInput = document.getElementById(`file-upload-${sectionId}`);
+    if (!fileInput) {
+        alert(`File input #file-upload-${sectionId} not found!`);
+        return;
+    }
+    
+    if (fileInput.files && fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        alert(`File selected: ${file.name} (${(file.size/1024).toFixed(1)} KB)`);
+    } else {
+        alert('No file selected yet!');
+        
+        // Try to help the user identify the file input
+        fileInput.classList.remove('sr-only');
+        fileInput.classList.add('border', 'border-red-500', 'p-2', 'block', 'mt-2');
+        
+        setTimeout(() => {
+            fileInput.classList.add('sr-only');
+            fileInput.classList.remove('border', 'border-red-500', 'p-2', 'block', 'mt-2');
+        }, 5000);
+    }
 } 
+
+/**
+ * Validate all research sections before submission
+ * @returns {boolean} True if all sections are valid, false otherwise
+ */
+function validateResearchSections() {
+    const researchSections = document.querySelectorAll('.research-section');
+    let isValid = true;
+    
+    researchSections.forEach((section, index) => {
+        const sectionId = section.getAttribute('data-section-id') || (index + 1);
+        
+        // Check title input
+        const titleInput = section.querySelector('.study-title-input, input[name^="research"][name$="[study_title]"], #study-title-' + sectionId);
+        if (!titleInput || !titleInput.value.trim()) {
+            console.log(`Validation error: Missing title for research section ${sectionId}`);
+            if (titleInput) {
+                titleInput.classList.add('border-red-500');
+                titleInput.classList.remove('border-gray-300');
+            }
+            isValid = false;
+        } else {
+            if (titleInput) {
+                titleInput.classList.remove('border-red-500');
+                titleInput.classList.add('border-gray-300');
+            }
+        }
+        
+        // Check author input
+        const authorInput = section.querySelector('.authors-input, input[name^="research"][name$="[authors]"], #authors-' + sectionId);
+        if (!authorInput || !authorInput.value.trim()) {
+            console.warn(`Warning: No authors specified for research section ${sectionId}`);
+            if (authorInput) {
+                // Add a visual warning but don't make it a validation error
+                authorInput.classList.add('border-yellow-500');
+                authorInput.classList.remove('border-gray-300');
+            }
+            // Don't set isValid = false since authors are helpful but not required
+        } else {
+            if (authorInput) {
+                authorInput.classList.remove('border-yellow-500');
+                authorInput.classList.add('border-gray-300');
+            }
+        }
+        
+        // Check file input
+        const fileUploadInput = section.querySelector('input[type="file"]');
+        const fileNameDisplay = section.querySelector('.file-name-display');
+        
+        if (!fileUploadInput || !fileUploadInput.files || fileUploadInput.files.length === 0) {
+            console.log(`Validation error: Missing file for research section ${sectionId}`);
+            const fileUploadContainer = section.querySelector(`#file-upload-container-${sectionId}`);
+            if (fileUploadContainer) {
+                fileUploadContainer.classList.add('border-red-500');
+                fileUploadContainer.classList.remove('border-gray-300', 'border-dashed');
+            }
+            isValid = false;
+        } else {
+            const fileUploadContainer = section.querySelector(`#file-upload-container-${sectionId}`);
+            if (fileUploadContainer) {
+                fileUploadContainer.classList.remove('border-red-500');
+                fileUploadContainer.classList.add('border-gray-300', 'border-dashed');
+            }
+        }
+    });
+    
+    if (!isValid) {
+        console.log('Validation failed for research sections');
+    }
+    
+    return isValid;
+}
+
+/**
+ * Log all data in study sections for debugging
+ */
+function logStudySectionData() {
+    console.log('--- STUDY SECTION DATA DUMP ---');
+    const sections = document.querySelectorAll('.research-section');
+    
+    sections.forEach((section, index) => {
+        const sectionId = index + 1;
+        console.log(`\nSection ${sectionId} data:`);
+        
+        // Title field
+        const titleInput = section.querySelector('.research-title, input[name^="research"][name$="[study_title]"], #study-title-' + sectionId);
+        console.log(`- Title element:`, titleInput);
+        console.log(`- Title value:`, titleInput ? titleInput.value : 'NOT FOUND');
+        
+        // Abstract field
+        const abstractInput = section.querySelector('.research-abstract, textarea[name^="research"][name$="[abstract]"], #research-abstract-' + sectionId);
+        console.log(`- Abstract element:`, abstractInput);
+        console.log(`- Abstract value:`, abstractInput ? abstractInput.value : 'NOT FOUND');
+        
+        // File input
+        const fileInput = section.querySelector('input[type="file"], .research-file, .hidden-file-input, #file-upload-' + sectionId);
+        console.log(`- File input element:`, fileInput);
+        console.log(`- File selected:`, fileInput && fileInput.files && fileInput.files.length > 0 ? 
+            `${fileInput.files[0].name} (${fileInput.files[0].size} bytes)` : 'NO FILE');
+    });
+    console.log('--- END DATA DUMP ---');
+}
+
+/**
+ * Extract just the department code from the selected department text
+ * Example: "Computer Science (CS)" -> "CS"
+ * @returns {string} The department code or an empty string if not found
+ */
+function getDepartmentCode() {
+    const departmentText = getSelectedDepartmentText();
+    
+    // Try to extract code in parentheses, e.g., "Department Name (CODE)"
+    const codeMatch = departmentText.match(/\(([^)]+)\)/);
+    
+    if (codeMatch && codeMatch[1]) {
+        return codeMatch[1].trim();
+    }
+    
+    // If no parentheses, return the department text or a default
+    return departmentText || '';
+}

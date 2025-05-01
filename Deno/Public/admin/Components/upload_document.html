@@ -1129,33 +1129,33 @@
                 
                 // Update preview elements - with null checks
                 if (previewTitle && titleInput) {
-                    previewTitle.textContent = titleInput.value || 'Title of Document';
+                previewTitle.textContent = titleInput.value || 'Title of Document';
                 }
                 
                 if (previewAuthor && authorInput) {
-                    previewAuthor.textContent = authorInput.value ? `by ${authorInput.value}` : 'by Author Name';
+                previewAuthor.textContent = authorInput.value ? `by ${authorInput.value}` : 'by Author Name';
                 }
                 
                 if (previewPubDate && pubMonthInput && pubYearInput) {
                     const pubDate = (pubMonthInput.value && pubYearInput.value) ? 
                         `${pubMonthInput.value}/${pubYearInput.value}` : 'N/A';
-                    previewPubDate.textContent = pubDate;
+                previewPubDate.textContent = pubDate;
                 }
                 
                 if (previewVolume && volumeInput) {
-                    previewVolume.textContent = volumeInput.value || 'N/A';
+                previewVolume.textContent = volumeInput.value || 'N/A';
                 }
                 
                 if (previewIssue && issueInput) {
-                    previewIssue.textContent = issueInput.value || 'N/A';
+                previewIssue.textContent = issueInput.value || 'N/A';
                 }
                 
                 if (previewCategory && categoryInput) {
-                    previewCategory.textContent = categoryInput.value || 'N/A';
+                previewCategory.textContent = categoryInput.value || 'N/A';
                 }
                 
                 if (previewAddedDate) {
-                    previewAddedDate.textContent = new Date().toLocaleDateString();
+                previewAddedDate.textContent = new Date().toLocaleDateString();
                 }
             }
             
@@ -1192,7 +1192,7 @@
             // Update compiled document preview
             function updateCompiledDocumentPreview() {
                 try {
-                    console.log("Updating compiled document preview");
+                console.log("Updating compiled document preview");
                     
                     // Check if we're in the compiled document tab
                     if (!document.getElementById('compiledDocPreview').classList.contains('active')) {
@@ -1219,26 +1219,26 @@
                     });
                     
                     console.log("Category selected:", compiledCategoryInput ? compiledCategoryInput.value : 'compiledCategoryInput is null');
-                    
-                    // Update category icon
+                
+                // Update category icon
                     if (compiledCategoryInput && compiledCategoryInput.value) {
-                        compiledPreviewIcon.src = `icons/category-icons/${compiledCategoryInput.value.toLowerCase()}.png`;
-                        console.log("Updated icon src to:", compiledPreviewIcon.src);
-                    } else {
+                    compiledPreviewIcon.src = `icons/category-icons/${compiledCategoryInput.value.toLowerCase()}.png`;
+                    console.log("Updated icon src to:", compiledPreviewIcon.src);
+                } else {
                         if (compiledPreviewIcon) {
-                            compiledPreviewIcon.src = 'icons/category-icons/default_category_icon.png';
+                    compiledPreviewIcon.src = 'icons/category-icons/default_category_icon.png';
                         } else {
                             console.error("compiledPreviewIcon element not found");
                         }
-                    }
-                    
-                    // Update title based on category and volume
-                    let title = 'Compiled Document';
+                }
+                
+                // Update title based on category and volume
+                let title = 'Compiled Document';
                     if (compiledCategoryInput && compiledCategoryInput.value) {
-                        title = compiledCategoryInput.value;
+                    title = compiledCategoryInput.value;
                         if (compiledVolumeInput && compiledVolumeInput.value) {
-                            title += ` Volume ${compiledVolumeInput.value}`;
-                        }
+                        title += ` Volume ${compiledVolumeInput.value}`;
+                    }
                         
                         // Check if we should use departmental dropdown or issued no input
                         let issuedNoValue = '';
@@ -1255,34 +1255,34 @@
                         
                         if (issuedNoValue) {
                             title += ` Issue ${issuedNoValue}`;
-                        }
                     }
+                }
                     if (previewMainTitle) {
-                        previewMainTitle.textContent = title;
-                        console.log("Updated title to:", title);
+                previewMainTitle.textContent = title;
+                console.log("Updated title to:", title);
                     } else {
                         console.error("previewMainTitle element not found");
                     }
-                    
-                    // Update publication year
-                    let pubYearText = 'N/A';
+                
+                // Update publication year
+                let pubYearText = 'N/A';
                     if (compiledPubYearStartInput && compiledPubYearEndInput) {
-                        if (compiledPubYearStartInput.value && compiledPubYearEndInput.value) {
-                            pubYearText = `${compiledPubYearStartInput.value} - ${compiledPubYearEndInput.value}`;
-                        } else if (compiledPubYearStartInput.value) {
-                            pubYearText = compiledPubYearStartInput.value;
-                        } else if (compiledPubYearEndInput.value) {
-                            pubYearText = compiledPubYearEndInput.value;
-                        }
+                if (compiledPubYearStartInput.value && compiledPubYearEndInput.value) {
+                    pubYearText = `${compiledPubYearStartInput.value} - ${compiledPubYearEndInput.value}`;
+                } else if (compiledPubYearStartInput.value) {
+                    pubYearText = compiledPubYearStartInput.value;
+                } else if (compiledPubYearEndInput.value) {
+                    pubYearText = compiledPubYearEndInput.value;
+                }
                     }
                     if (previewPubYear) {
-                        previewPubYear.textContent = pubYearText;
-                        console.log("Updated publication year to:", pubYearText);
+                previewPubYear.textContent = pubYearText;
+                console.log("Updated publication year to:", pubYearText);
                     } else {
                         console.error("previewPubYear element not found");
                     }
-                    
-                    // Update volume
+                
+                // Update volume
                     if (previewCompiledVolume) {
                         previewCompiledVolume.textContent = compiledVolumeInput && compiledVolumeInput.value ? compiledVolumeInput.value : 'N/A';
                     } else {
@@ -1304,25 +1304,25 @@
                     } else {
                         console.error("previewIssuedNo element not found");
                     }
-                    
-                    // Update category
+                
+                // Update category
                     if (previewCompiledCategory) {
                         previewCompiledCategory.textContent = compiledCategoryInput && compiledCategoryInput.value ? compiledCategoryInput.value : 'N/A';
                     } else {
                         console.error("previewCompiledCategory element not found");
                     }
-                    
-                    // Update added date
-                    const today = new Date().toLocaleDateString();
+                
+                // Update added date
+                const today = new Date().toLocaleDateString();
                     if (previewAddedDateCompiled) {
-                        previewAddedDateCompiled.textContent = today;
-                        console.log("Updated added date to:", today);
+                previewAddedDateCompiled.textContent = today;
+                console.log("Updated added date to:", today);
                     } else {
                         console.error("previewAddedDateCompiled element not found");
                     }
-                    
-                    // Update studies list
-                    updateStudiesList();
+                
+                // Update studies list
+                updateStudiesList();
                     
                     console.log("Completed updating compiled document preview");
                 } catch (error) {
@@ -1336,7 +1336,7 @@
                 
                 // Clear previous list
                 if (previewStudiesList) {
-                    previewStudiesList.innerHTML = '';
+                previewStudiesList.innerHTML = '';
                 }
                 
                 // Add debug logging
@@ -1345,14 +1345,14 @@
                 // Show "no studies" message if no research sections
                 if (sections.length === 0) {
                     if (previewNoStudiesMsg) {
-                        previewNoStudiesMsg.style.display = 'block';
+                    previewNoStudiesMsg.style.display = 'block';
                     }
                     return;
                 }
                 
                 // Hide "no studies" message
                 if (previewNoStudiesMsg) {
-                    previewNoStudiesMsg.style.display = 'none';
+                previewNoStudiesMsg.style.display = 'none';
                 }
                 
                 // Add each study to the preview
@@ -1442,7 +1442,7 @@
                     
                     // Add to preview
                     if (previewStudiesList) {
-                        previewStudiesList.appendChild(studyItem);
+                    previewStudiesList.appendChild(studyItem);
                     } else {
                         console.error("Preview studies list element not found");
                     }
@@ -1716,8 +1716,8 @@
         document.addEventListener('DOMContentLoaded', function() {
             // No longer need to set up file input change listeners to update eye icons
             // since we removed the eye buttons
-            
-            // Keep the first section expanded, collapse others
+                
+                // Keep the first section expanded, collapse others
             document.querySelectorAll('.research-section').forEach((section, index) => {
                 if (index > 0) { // Skip the first one
                     const content = section.querySelector('.research-content');

@@ -4,6 +4,7 @@ import { permissionsRoutes } from "./permissionsRoutes.ts";
 import { documentRoutes } from "./documentRoutes.ts";
 import { authRoutes } from "./authRoutes.ts";
 import { researchAgendaRoutesArray } from "./researchAgendaRoutes.ts";
+import { compiledDocumentRoutes } from "./compiledDocumentRoutes.ts";
 // author routes are now handled directly in server.ts
 
 // Define the route interface
@@ -24,10 +25,31 @@ const rootHandler = (ctx: any) => {
       documents: "/documents",
       permissions: "/permissions",
       researchAgenda: "/document-research-agenda",
-      authors: "/authors"
+      authors: "/authors",
+      compiledDocuments: "/compiled-documents"
     }
   };
 };
+
+// Map document routes to /api/documents path
+const apiDocumentRoutes = documentRoutes.map(route => {
+  const newPath = route.path.replace(/^\/documents/, '/api/documents');
+  console.log(`Mapping route: ${route.path} → ${newPath}`);
+  return {
+    ...route,
+    path: newPath
+  };
+});
+
+// Map compiled document routes to /api/compiled-documents path
+const apiCompiledDocumentRoutes = compiledDocumentRoutes.map(route => {
+  const newPath = route.path.replace(/^\/compiled-documents/, '/api/compiled-documents');
+  console.log(`Mapping route: ${route.path} → ${newPath}`);
+  return {
+    ...route,
+    path: newPath
+  };
+});
 
 // Combine all routes into a single array
 export const routes: Route[] = [
@@ -36,7 +58,8 @@ export const routes: Route[] = [
   // Other routes
   ...userRoutes,
   ...permissionsRoutes,
-  ...documentRoutes,
+  ...apiDocumentRoutes, // Use the mapped API document routes
+  ...apiCompiledDocumentRoutes, // Use the mapped API compiled document routes
   ...authRoutes,
   ...researchAgendaRoutesArray,
   // authorRoutes are now handled differently

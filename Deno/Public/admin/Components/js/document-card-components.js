@@ -1,495 +1,571 @@
 /**
- * Document Card Components
- * 
- * This file contains the functions for creating document cards
- * both single and compiled document types, including helper functions.
+ * Document card component functions
+ * This file contains functions for creating document cards
  */
 
+// Document card components object to be exported
+window.documentCardComponents = {
+    createDocumentCard,
+    createCompiledDocumentCard,
+    createChildDocumentCard,
+    formatAuthors,
+    formatDate,
+    getTopicColors,
+    getCategoryIcon,
+    formatCategoryName
+};
+
 /**
- * Creates a document card for a single document
- * 
- * @param {Object} doc - The document object
- * @return {HTMLElement} - The document card element
+ * Create a document card element
+ * @param {Object} doc - Document object
+ * @returns {HTMLElement} - The document card element
  */
 function createDocumentCard(doc) {
-    // Format date for display
-    const date = new Date(doc.publication_date);
-    const formattedDate = date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-    });
-
-    // Format authors for display
-    const authorText = doc.authors && doc.authors.length > 0
-        ? doc.authors.map(author => author.full_name).join(', ')
-        : 'Unknown Author';
-
-    // Create HTML for topics/research agenda with colored tags
-    let topicsHtml = '';
-    if (doc.topics && doc.topics.length > 0) {
-        topicsHtml = doc.topics.map(topic => {
-            const color = generateTopicColor(topic.name);
-            return `<span class="topic-tag" style="background-color: ${color}">${topic.name}</span>`;
-        }).join('');
-    } else {
-        topicsHtml = '<span class="no-topics">None</span>';
-    }
-
-    // Ensure consistent display with category
-    const displayCategory = doc.category_name || 'Uncategorized';
-
-    // Create card with flexbox layout
+    console.log(`Creating document card for: ${doc.title || 'Untitled'} (ID: ${doc.id})`);
+    
+    // Create the card element
     const card = document.createElement('div');
     card.className = 'document-card';
-    card.setAttribute('data-id', doc.id);
-    card.setAttribute('data-category', displayCategory);
-    card.setAttribute('data-document-type', doc.document_type || '');
+    card.dataset.documentId = doc.id;
+    card.dataset.documentType = doc.document_type || '';
     
-    card.innerHTML = `
-        <div class="card-header">
-            <div class="document-title">${doc.title}</div>
-            <div class="document-actions">
-                <button class="preview-btn" title="Preview"><i class="fas fa-eye"></i></button>
-                <button class="edit-btn" title="Edit"><i class="fas fa-edit"></i></button>
-                <button class="delete-btn" title="Delete"><i class="fas fa-trash"></i></button>
-            </div>
-        </div>
-        <div class="card-body">
-            <div class="document-meta">
-                <span class="author">${authorText}</span>
-                <span class="date">${formattedDate}</span>
-            </div>
-            <div class="document-abstract">${doc.abstract || 'No abstract available'}</div>
-            <div class="document-footer">
-                <div class="research-agenda">
-                    <div class="section-label">Research Agenda:</div>
-                    <div class="topics-container">${topicsHtml}</div>
-                </div>
-                <div class="document-stats">
-                    <span class="metadata-item"><i class="fas fa-folder"></i> ${displayCategory}</span>
-                    ${doc.document_type && doc.document_type.toUpperCase() !== displayCategory.toUpperCase() ? 
-                      `<span class="metadata-item"><i class="fas fa-file"></i> ${doc.document_type}</span>` : ''}
-                    <span class="metadata-item"><i class="fas fa-file-alt"></i> ${doc.pages || 0} pages</span>
-                </div>
-            </div>
-        </div>
-    `;
-
-    // Add event listeners for actions
-    setupSingleDocumentEventListeners(card, doc.id);
+    // Format authors
+    const authors = formatAuthors(doc.authors);
     
-    return card;
-}
-
-/**
- * Creates a compiled document card (with children)
- * 
- * @param {Object} doc - The document object
- * @param {Array<string>} expandedDocIds - List of expanded document IDs
- * @return {HTMLElement} - The compiled document card element
- */
-function createCompiledDocumentCard(doc, expandedDocIds = []) {
-    const isExpanded = expandedDocIds.includes(doc.id.toString());
+    // Format date
+    const pubDate = formatDate(doc.publish_date || doc.publication_date);
     
-    // Direct mapping for document types to icon paths
-    const iconMapping = {
-        'CONFLUENCE': 'icons/Category-icons/confluence.png',
-        'SYNERGY': 'icons/Category-icons/synergy.png',
-        'THESIS': 'icons/Category-icons/thesis.png',
-        'DISSERTATION': 'icons/Category-icons/dissertation.png'
-    };
+    // Format document type - try category_name first, then document_type
+    const documentType = doc.document_type || '';
+    const category = formatCategoryName(documentType);
     
-    // Category name to icon mapping
-    const categoryMapping = {
-        'Confluence': 'icons/Category-icons/confluence.png',
-        'Synergy': 'icons/Category-icons/synergy.png',
-        'Thesis': 'icons/Category-icons/thesis.png',
-        'Dissertation': 'icons/Category-icons/dissertation.png'
-    };
+    // Generate topic colors
+    const topicColors = getTopicColors(doc.topics);
     
-    // PRIORITIZE CATEGORY NAME FOR ICON SELECTION AND DISPLAY
-    // This ensures consistency with the category filter
-    const displayCategory = doc.category_name || 'Uncategorized';
-    let iconPath;
-    if (displayCategory && categoryMapping[displayCategory]) {
-        // Use category name for icon if available
-        iconPath = categoryMapping[displayCategory];
-    } else {
-        // Fall back to document type if category doesn't match
-        const documentType = doc.document_type ? doc.document_type.toUpperCase() : '';
-        iconPath = iconMapping[documentType] || 'icons/Category-icons/default_category_icon.png';
-    }
-    
-    const card = document.createElement('div');
-    card.className = 'document-card compilation';
-    card.setAttribute('data-id', doc.id);
-    card.setAttribute('data-is-expanded', isExpanded);
-    card.setAttribute('data-document-type', doc.document_type || '');
-    card.setAttribute('data-category', displayCategory);
-    
-    // Format years for compiled documents
-    const years = [];
-    if (doc.start_year) years.push(doc.start_year);
-    if (doc.end_year) years.push(doc.end_year);
-    const yearStr = years.length > 0 ? years.join(' - ') : 'N/A';
-    
-    // Get child count
-    const childCount = doc.children?.length || 0;
-    
+    // Create card HTML
     card.innerHTML = `
         <div class="document-icon">
-            <img src="${iconPath}" alt="${displayCategory}" class="category-icon">
+            <img src="${getCategoryIcon(documentType)}" alt="${category} Icon">
         </div>
         <div class="document-info">
-            <h3 class="document-title">${doc.title}</h3>
-            <p class="document-volume">Volume ${doc.volume || 'N/A'}${doc.issue ? ', Issue ' + doc.issue : ''}</p>
-            <div class="document-metadata">
-                <span class="metadata-item"><i class="far fa-calendar"></i> ${yearStr}</span>
-                <span class="metadata-item"><i class="fas fa-tag"></i> ${displayCategory}</span>
-                ${doc.document_type && doc.document_type.toUpperCase() !== displayCategory.toUpperCase() ? 
-                  `<span class="metadata-item"><i class="fas fa-file-text"></i> ${doc.document_type}</span>` : ''}
-                <span class="metadata-item"><i class="fas fa-book"></i> ${childCount} studies</span>
+            <h3 class="document-title">${doc.title || 'Untitled Document'}</h3>
+            <div class="document-meta">
+                Volume ${doc.volume || ''} ${doc.volume && doc.issue ? '| Issue ' + doc.issue : ''} 
+                <br>Authors: ${authors}
             </div>
-            <button class="toggle-children-btn">
-                <i class="fas fa-chevron-${isExpanded ? 'up' : 'down'}"></i> 
-                ${isExpanded ? 'Hide' : 'Show'} Studies
-            </button>
+            <div class="category-badge ${(documentType || '').toLowerCase()}">${category}</div>
+            ${topicColors}
         </div>
         <div class="document-actions">
-            <button class="action-btn edit-document-btn" title="Edit Compiled Document"><i class="far fa-edit"></i></button>
-            <button class="action-btn delete-document-btn" title="Delete Compiled Document"><i class="far fa-trash-alt"></i></button>
-        </div>
-        <div class="children-container" style="display: ${isExpanded ? 'block' : 'none'}">
-            <!-- Child documents will be loaded here -->
-            <div class="loading-children">Loading studies...</div>
+            <button class="action-btn view-btn" data-document-id="${doc.id}">
+                <i class="fas fa-eye"></i> 
+            </button>
+            <button class="action-btn edit-btn" data-document-id="${doc.id}">
+                <i class="fas fa-edit"></i> 
+            </button>
+            <button class="action-btn delete-btn" data-document-id="${doc.id}">
+                <i class="fas fa-trash"></i> 
+            </button>
         </div>
     `;
+    
+    // Add event listeners
+    setupDocumentCardEventListeners(card, doc);
     
     return card;
 }
 
 /**
- * Creates a card for a child document within a compiled document
- * 
- * @param {Object} child - The child document object
- * @return {HTMLElement} - The child document card element
+ * Create a card for a compiled document
+ * @param {Object} doc - Compiled document object
+ * @param {Array} expandedDocIds - Array of expanded document IDs
+ * @returns {HTMLElement} - Compiled document card element
  */
-function createChildDocumentCard(child) {
-    const date = new Date(child.publication_date);
-    const formattedDate = date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-    });
-
-    // Format authors
-    const authorText = child.authors && child.authors.length > 0
-        ? child.authors.map(author => author.full_name).join(', ')
-        : 'Unknown Author';
-
-    // Create HTML for topics/research agenda with colored tags
-    let topicsHtml = '';
-    if (child.topics && child.topics.length > 0) {
-        topicsHtml = child.topics.map(topic => {
-            const color = generateTopicColor(topic.name);
-            return `<span class="topic-tag" style="background-color: ${color}">${topic.name}</span>`;
-        }).join('');
-    } else {
-        topicsHtml = '<span class="no-topics">None</span>';
-    }
-
-    const childCard = document.createElement('div');
-    childCard.className = 'child-document-card';
-    childCard.setAttribute('data-id', child.id);
+function createCompiledDocumentCard(doc, expandedDocIds = []) {
+    console.log(`Creating compiled document card for: ${doc.title || 'Untitled'} (ID: ${doc.id})`);
     
-    childCard.innerHTML = `
-        <div class="card-header">
-            <div class="document-title">${child.title}</div>
-            <div class="document-actions">
-                <button class="preview-btn" title="Preview"><i class="fas fa-eye"></i></button>
-            </div>
+    // Create a wrapper that will contain both the card and its children
+    const wrapper = document.createElement('div');
+    wrapper.className = 'compiled-document-wrapper';
+    wrapper.dataset.compiledId = doc.id;
+    
+    // Create the card element
+    const card = document.createElement('div');
+    card.className = 'document-card compiled';
+    card.dataset.documentId = doc.id;
+    card.dataset.documentType = doc.document_type || '';
+    
+    // Format date
+    let pubDate = '';
+    if (doc.start_year) {
+        pubDate = doc.start_year + (doc.end_year ? `-${doc.end_year}` : '');
+    } else if (doc.publish_date || doc.publication_date) {
+        pubDate = formatDate(doc.publish_date || doc.publication_date);
+    }
+    
+    // Format document type
+    const documentType = doc.document_type || '';
+    const category = formatCategoryName(documentType);
+    
+    // Check if expanded
+    const isExpanded = expandedDocIds.includes(doc.id);
+    const toggleIndicator = isExpanded ? '▼' : '▶';
+    
+    // Create card HTML with improved display - hide elements if data is missing
+    card.innerHTML = `
+        <div class="document-icon">
+            <img src="${getCategoryIcon(documentType)}" alt="${category} Icon">
         </div>
-        <div class="card-body">
+        <div class="document-info">
+            <h3 class="document-title">
+                <span class="toggle-indicator">${toggleIndicator}</span>
+                ${doc.title || 'Untitled Compilation'}
+            </h3>
             <div class="document-meta">
-                <span class="author">${authorText}</span>
-                <span class="date">${formattedDate}</span>
+                
+                
+                <span class="meta-item"><i class="fas fa-file-alt"></i> ${doc.child_count || 0} document${doc.child_count !== 1 ? 's' : ''}</span>
             </div>
-            <div class="document-abstract">${child.abstract || 'No abstract available'}</div>
-            <div class="document-footer">
-                <div class="research-agenda">
-                    <div class="section-label">Research Agenda:</div>
-                    <div class="topics-container">${topicsHtml}</div>
-                </div>
-                <div class="document-stats">
-                    <span class="metadata-item"><i class="fas fa-folder"></i> ${child.category_name}</span>
-                    <span class="metadata-item"><i class="fas fa-file-alt"></i> ${child.pages || 0} pages</span>
-                </div>
-            </div>
+            
+        </div>
+        <div class="document-actions">
+            <button class="action-btn expand-btn" title="View Child Documents">
+                <i class="fas fa-list"></i>
+            </button>
+            <button class="action-btn edit-btn" title="Edit Compilation">
+                <i class="fas fa-edit"></i>
+            </button>
+            <button class="action-btn delete-btn" title="Delete Compilation">
+                <i class="fas fa-trash"></i>
+            </button>
         </div>
     `;
+    
+    // Add the card to the wrapper
+    wrapper.appendChild(card);
+    
+    // Add event listeners
+    setupCompiledDocumentCardEventListeners(card, doc, isExpanded, expandedDocIds);
+    
+    // Create child container if expanded
+    if (isExpanded) {
+        const childrenContainer = document.createElement('div');
+        childrenContainer.className = 'children-container';
+        childrenContainer.dataset.parent = doc.id;
+        childrenContainer.style.display = 'block';
+        childrenContainer.style.marginTop = '0';
+        childrenContainer.style.marginBottom = '15px';
+        childrenContainer.style.width = '95%';
+        childrenContainer.style.marginLeft = 'auto';
+        
+        // Add children container after card
+        wrapper.appendChild(childrenContainer);
+        
+        // Load child documents
+        fetchAndRenderChildDocuments(doc.id, childrenContainer);
+    }
+    
+    return wrapper;
+}
 
+/**
+ * Create a child document card (for documents within a compilation)
+ * @param {Object} child - Child document object
+ * @returns {HTMLElement} - Child document card element
+ */
+function createChildDocumentCard(child) {
+    const childCard = document.createElement('div');
+    childCard.className = 'child-document-card';
+    childCard.dataset.documentId = child.id;
+    
+    // Add styling to match the screenshot
+    childCard.style.display = 'flex';
+    childCard.style.justifyContent = 'space-between';
+    childCard.style.alignItems = 'center';
+    childCard.style.padding = '10px 15px';
+    childCard.style.margin = '5px 0';
+    childCard.style.borderRadius = '4px';
+    childCard.style.backgroundColor = 'white';
+    childCard.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+    childCard.style.transition = 'all 0.2s ease';
+    
+    // Format authors
+    const authors = formatAuthors(child.authors);
+    
+    // Format date
+    const pubDate = formatDate(child.publish_date || child.publication_date);
+    
+    // Format document type - try category_name first, then document_type
+    const documentType = child.document_type || child.doc_type || '';
+    const category = formatCategoryName(documentType);
+    
+    childCard.innerHTML = `
+        <div class="document-info" style="flex: 1;">
+            <h4 class="document-title" style="margin: 0 0 5px 0; font-size: 16px;">${child.title || 'Untitled Document'}</h4>
+            <div class="document-meta" style="font-size: 13px; color: #666;">
+                 ${authors || 'Unknown Author'}
+            </div>
+        </div>
+        <div class="document-actions" style="display: flex; gap: 8px;">
+            <button class="action-btn view-btn" title="View Document" style="background: #4299e1; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer;">
+                View
+            </button>
+        </div>
+    `;
+    
+    // Add hover effect
+    childCard.addEventListener('mouseover', function() {
+        this.style.backgroundColor = '#f0f7ff';
+        this.style.boxShadow = '0 2px 5px rgba(0,0,0,0.15)';
+    });
+    
+    childCard.addEventListener('mouseout', function() {
+        this.style.backgroundColor = 'white';
+        this.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+    });
+    
+    // Add event listener for view button
+    childCard.querySelector('.view-btn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (typeof showPreviewModal === 'function') {
+            showPreviewModal(child.id);
+        } else {
+            alert(`Preview document: ${child.title}`);
+        }
+    });
+    
     return childCard;
 }
 
 /**
- * Setup event listeners for a single document card
- * 
- * @param {HTMLElement} card - The document card element
- * @param {number|string} documentId - The document ID
+ * Format authors array into a readable string
+ * @param {Array} authors - Array of author objects
+ * @returns {string} - Formatted authors string
  */
-function setupSingleDocumentEventListeners(card, documentId) {
-    // Preview button
-    const previewBtn = card.querySelector('.preview-btn');
-    if (previewBtn) {
-        previewBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            if (typeof window.previewDocument === 'function') {
-                window.previewDocument(documentId);
-            } else if (typeof window.showDocumentPreview === 'function') {
-                fetch(`/api/documents/${documentId}`)
-                    .then(response => response.json())
-                    .then(doc => {
-                        window.showDocumentPreview(doc);
-                    })
-                    .catch(error => {
-                        console.error('Error fetching document for preview:', error);
-                    });
-            }
-        });
+function formatAuthors(authors) {
+    if (!authors || !Array.isArray(authors) || authors.length === 0) {
+        return 'Unknown Author';
     }
     
-    // Edit button
-    const editBtn = card.querySelector('.edit-btn');
-    if (editBtn) {
-        editBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            if (typeof window.editDocument === 'function') {
-                window.editDocument(documentId);
-            }
-        });
-    }
-    
-    // Delete button
-    const deleteBtn = card.querySelector('.delete-btn');
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            if (typeof window.confirmDeleteDocument === 'function') {
-                window.confirmDeleteDocument(documentId);
-            } else if (typeof window.openDeleteConfirmation === 'function') {
-                const documentTitle = card.querySelector('.document-title').textContent;
-                window.openDeleteConfirmation({
-                    id: documentId,
-                    title: documentTitle
-                });
-            }
-        });
-    }
-    
-    // Click on entire card
-    card.addEventListener('click', function() {
-        if (typeof window.showDocumentPreview === 'function') {
-            fetch(`/api/documents/${documentId}`)
-                .then(response => response.json())
-                .then(doc => {
-                    window.showDocumentPreview(doc);
-                })
-                .catch(error => {
-                    console.error('Error fetching document for preview:', error);
-                });
-        }
-    });
+    return authors.map(author => 
+        `${author.first_name || ''} ${author.last_name || ''}`
+    ).join(', ');
 }
 
 /**
- * Setup event listeners for a compiled document card
- * 
- * @param {HTMLElement} card - The compiled document card element
+ * Format date into a readable string
+ * @param {string} date - Date string
+ * @returns {string} - Formatted date string
  */
-function setupCompiledDocumentEventListeners(card) {
-    const documentId = card.getAttribute('data-id');
+function formatDate(date) {
+    if (!date) return 'Unknown Date';
     
-    // Edit button
-    const editBtn = card.querySelector('.edit-document-btn');
-    if (editBtn) {
-        editBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            if (typeof window.editDocument === 'function') {
-                window.editDocument(documentId);
-            }
-        });
-    }
-    
-    // Delete button
-    const deleteBtn = card.querySelector('.delete-document-btn');
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            if (typeof window.openDeleteConfirmation === 'function') {
-                const documentTitle = card.querySelector('.document-title').textContent;
-                window.openDeleteConfirmation({
-                    id: documentId,
-                    title: documentTitle
-                });
-            }
-        });
-    }
-    
-    // Toggle button
-    const toggleBtn = card.querySelector('.toggle-children-btn');
-    if (toggleBtn) {
-        toggleBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            toggleChildrenContainer(card, documentId);
-        });
-    }
-    
-    // Make entire card clickable for toggling
-    card.addEventListener('click', function(e) {
-        // Don't handle clicks on action buttons
-        if (e.target.closest('.document-actions')) {
-            return;
-        }
-        
-        toggleChildrenContainer(card, documentId);
-    });
-    
-    // Setup preview button for each child document card
-    setupChildDocumentEventListeners(card);
-}
-
-/**
- * Toggle children container for a compiled document
- * 
- * @param {HTMLElement} card - The compiled document card
- * @param {string|number} documentId - The document ID
- */
-function toggleChildrenContainer(card, documentId) {
-    const childrenContainer = card.querySelector('.children-container');
-    const toggleBtn = card.querySelector('.toggle-children-btn');
-    
-    if (childrenContainer && toggleBtn) {
-        const isExpanded = childrenContainer.style.display !== 'none';
-        childrenContainer.style.display = isExpanded ? 'none' : 'block';
-        
-        // Update the button text and icon
-        toggleBtn.innerHTML = isExpanded 
-            ? '<i class="fas fa-chevron-down"></i> Show Studies' 
-            : '<i class="fas fa-chevron-up"></i> Hide Studies';
-        
-        // Update the data attribute for tracking expanded state
-        card.setAttribute('data-is-expanded', !isExpanded);
-        
-        // Load children if needed
-        if (!isExpanded && documentId) {
-            if (typeof window.ensureAllChildDocumentsLoaded === 'function') {
-                window.ensureAllChildDocumentsLoaded(documentId, childrenContainer);
-            }
-        }
+    try {
+        return new Date(date).toLocaleDateString();
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return 'Unknown Date';
     }
 }
 
 /**
- * Setup event listeners for child document cards
- * 
- * @param {HTMLElement} compiledCard - The parent compiled document card
+ * Generate colored dots for document topics
+ * @param {Array} topics - Array of topic objects
+ * @returns {string} - HTML for topic colors
  */
-function setupChildDocumentEventListeners(compiledCard) {
-    const childCards = compiledCard.querySelectorAll('.child-document-card');
-    childCards.forEach(childCard => {
-        const childId = childCard.getAttribute('data-id');
-        const previewBtn = childCard.querySelector('.preview-btn');
-        
-        if (previewBtn && childId) {
-            previewBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                if (typeof window.previewDocument === 'function') {
-                    window.previewDocument(childId);
-                }
-            });
-        }
-    });
+function getTopicColors(topics) {
+    if (!topics || !Array.isArray(topics) || topics.length === 0) {
+        return '';
+    }
+    
+    const topicColorHTML = topics.map(topic => {
+        const topicColor = getTopicColor(topic.name);
+        return `<span class="topic-dot" style="background-color: ${topicColor};" title="${topic.name}"></span>`;
+    }).join('');
+    
+    return `<div class="topic-colors">${topicColorHTML}</div>`;
 }
 
 /**
- * Generate a color for a research agenda topic
- * 
- * @param {string} topicName - The name of the topic
- * @return {string} - A hex color code
+ * Get a color for a topic based on its name
+ * @param {string} topicName - Topic name
+ * @returns {string} - CSS color value
  */
-function generateTopicColor(topicName) {
-    // Create a simple hash of the topic name
+function getTopicColor(topicName) {
+    if (!topicName) return '#888888';
+    
+    // Use a hash function to get a consistent color for each topic name
     let hash = 0;
     for (let i = 0; i < topicName.length; i++) {
         hash = topicName.charCodeAt(i) + ((hash << 5) - hash);
     }
     
-    // Convert hash to a hue value (0-360)
-    const hue = hash % 360;
-    
-    // Use HSL to create a vibrant but not too dark color
-    // Saturation and lightness values chosen for readability
-    return `hsl(${hue}, 70%, 65%)`;
-}
-
-/**
- * Helper function to generate research agenda bubbles with different colors
- * 
- * @param {Array} topics - Array of topic objects
- * @return {string} HTML for the topic bubbles
- */
-function getResearchAgendaBubbles(topics) {
-    if (!topics || topics.length === 0) return '<span class="topic-tag no-topics">N/A</span>';
-    
-    // Array of colors for the bubbles
-    const colors = [
-        '#4285F4', '#EA4335', '#FBBC05', '#34A853', // Google colors
-        '#8E44AD', '#3498DB', '#1ABC9C', '#F39C12', // More colors
-        '#D35400', '#2ECC71', '#E74C3C', '#16A085'  // Even more colors
-    ];
-    
-    return topics.map((topic, index) => {
-        const colorIndex = index % colors.length;
-        const bgColor = colors[colorIndex];
-        const textColor = isLightColor(bgColor) ? '#333' : '#fff';
-        
-        return `<span class="topic-tag research-agenda-bubble" style="background-color: ${bgColor}; color: ${textColor};">${topic.name || topic}</span>`;
-    }).join('');
-}
-
-/**
- * Helper function to determine if a color is light or dark
- * 
- * @param {string} color - Hex color code
- * @return {boolean} - True if the color is light
- */
-function isLightColor(color) {
-    // Convert hex to RGB
-    let r, g, b;
-    if (color.length === 7) {
-        r = parseInt(color.substring(1, 3), 16);
-        g = parseInt(color.substring(3, 5), 16);
-        b = parseInt(color.substring(5, 7), 16);
-    } else {
-        return true; // Default to light if invalid color
+    // Convert to hex color
+    let color = '#';
+    for (let i = 0; i < 3; i++) {
+        const value = (hash >> (i * 8)) & 0xFF;
+        color += ('00' + value.toString(16)).slice(-2);
     }
     
-    // Calculate brightness
-    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-    return brightness > 128; // Return true if color is light
+    return color;
 }
 
-// Export all functions for use in other modules
-window.documentCardComponents = {
-    createDocumentCard,
-    createCompiledDocumentCard,
-    createChildDocumentCard,
-    setupSingleDocumentEventListeners,
-    setupCompiledDocumentEventListeners,
-    setupChildDocumentEventListeners,
-    toggleChildrenContainer,
-    generateTopicColor,
-    getResearchAgendaBubbles,
-    isLightColor
-}; 
+/**
+ * Get the icon path for a category
+ * @param {string} category - Category name
+ * @returns {string} - Path to category icon
+ */
+function getCategoryIcon(category) {
+    const iconMap = {
+        'THESIS': 'icons/Category-icons/thesis.png',
+        'Thesis': 'icons/Category-icons/thesis.png',
+        'DISSERTATION': 'icons/Category-icons/dissertation.png',
+        'Dissertation': 'icons/Category-icons/dissertation.png',
+        'CONFLUENCE': 'icons/Category-icons/confluence.png',
+        'Confluence': 'icons/Category-icons/confluence.png',
+        'SYNERGY': 'icons/Category-icons/synergy.png',
+        'Synergy': 'icons/Category-icons/synergy.png'
+    };
+    
+    return iconMap[category] || 'icons/Category-icons/default_category_icon.png';
+}
+
+/**
+ * Format category name for display
+ * @param {string} category - Category name
+ * @returns {string} - Formatted category name
+ */
+function formatCategoryName(category) {
+    if (!category) return 'Uncategorized';
+    
+    // Map from database values to display names
+    const displayMap = {
+        'THESIS': 'Thesis',
+        'DISSERTATION': 'Dissertation',
+        'CONFLUENCE': 'Confluence',
+        'SYNERGY': 'Synergy'
+    };
+    
+    return displayMap[category] || category;
+}
+
+/**
+ * Set up event listeners for a document card
+ * @param {HTMLElement} card - Document card element
+ * @param {Object} doc - Document data
+ */
+function setupDocumentCardEventListeners(card, doc) {
+    // View button
+    card.querySelector('.view-btn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (typeof showPreviewModal === 'function') {
+            showPreviewModal(doc.id);
+        } else {
+            alert(`View document: ${doc.title}`);
+        }
+    });
+    
+    // Edit button
+    card.querySelector('.edit-btn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (typeof showEditModal === 'function') {
+            showEditModal(doc.id);
+        } else {
+            alert(`Edit document: ${doc.title}`);
+        }
+    });
+    
+    // Delete (archive) button
+    card.querySelector('.delete-btn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (window.documentArchive && typeof window.documentArchive.archiveDocument === 'function') {
+            window.documentArchive.archiveDocument(doc.id);
+        } else {
+            alert(`This would archive document: ${doc.title}`);
+        }
+    });
+}
+
+/**
+ * Set up event listeners for compiled document cards
+ * @param {HTMLElement} card - The document card element
+ * @param {Object} doc - Document object
+ * @param {boolean} isExpanded - Whether the card is expanded
+ * @param {Array} expandedDocIds - Array of expanded document IDs
+ */
+function setupCompiledDocumentCardEventListeners(card, doc, isExpanded, expandedDocIds) {
+    // Function to toggle expansion state
+    const toggleExpansion = function(e) {
+        // Stop propagation to prevent multiple triggers
+        e.stopPropagation();
+        
+        // Close any other open containers first
+        document.querySelectorAll('.children-container').forEach(container => {
+            if (container.parentElement !== card.parentElement) {
+                const parentCard = container.previousElementSibling;
+                if (parentCard && parentCard.querySelector('.toggle-indicator')) {
+                    parentCard.querySelector('.toggle-indicator').textContent = '▶';
+                }
+                container.remove();
+                // Update expanded state in array
+                const docId = parseInt(parentCard.dataset.documentId);
+                const idx = expandedDocIds.indexOf(docId);
+                if (idx > -1) expandedDocIds.splice(idx, 1);
+            }
+        });
+        
+        // Toggle expansion
+        if (isExpanded) {
+            // Remove from expanded IDs
+            const index = expandedDocIds.indexOf(doc.id);
+            if (index > -1) {
+                expandedDocIds.splice(index, 1);
+            }
+            
+            // Update UI
+            card.querySelector('.toggle-indicator').textContent = '▶';
+            const childrenContainer = card.parentElement.querySelector(`.children-container[data-parent="${doc.id}"]`);
+            if (childrenContainer) {
+                childrenContainer.remove();
+            }
+        } else {
+            // Add to expanded IDs
+            if (!expandedDocIds.includes(doc.id)) {
+                expandedDocIds.push(doc.id);
+            }
+            
+            // Update UI
+            card.querySelector('.toggle-indicator').textContent = '▼';
+            
+            // Create children container as a sibling after the card
+            const childrenContainer = document.createElement('div');
+            childrenContainer.className = 'children-container';
+            childrenContainer.dataset.parent = doc.id;
+            childrenContainer.style.display = 'block';
+            childrenContainer.style.marginTop = '0';
+            childrenContainer.style.marginBottom = '15px';
+            childrenContainer.style.width = '95%';
+            childrenContainer.style.marginLeft = 'auto';
+            
+            // Insert the container after the card
+            card.parentElement.insertBefore(childrenContainer, card.nextSibling);
+            
+            // Load child documents
+            fetchAndRenderChildDocuments(doc.id, childrenContainer);
+        }
+        
+        // Update the expanded state
+        isExpanded = !isExpanded;
+    };
+    
+    // Make an expansion area element to consolidate click handling
+    const expandAreaSelector = document.createElement('div');
+    expandAreaSelector.className = 'expansion-area';
+    expandAreaSelector.style.cursor = 'pointer';
+    expandAreaSelector.innerHTML = card.querySelector('.document-title').innerHTML;
+    
+    // Replace title with our expansion area
+    card.querySelector('.document-title').innerHTML = '';
+    card.querySelector('.document-title').appendChild(expandAreaSelector);
+    
+    // Set up a single click handler on the expansion area
+    expandAreaSelector.addEventListener('click', toggleExpansion);
+    
+    // Do NOT set up click handler on the expand button - it was causing duplicate triggers
+    const expandBtn = card.querySelector('.expand-btn');
+    if (expandBtn) {
+        expandBtn.addEventListener('click', function(e) {
+            e.stopPropagation(); // Stop propagation to prevent bubbling
+            toggleExpansion(e);  // Directly call the toggle function
+        });
+    }
+    
+    // Set up edit button event
+    const editBtn = card.querySelector('.edit-btn');
+    if (editBtn) {
+        editBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (typeof showCompiledEditModal === 'function') {
+                showCompiledEditModal(doc.id);
+            } else {
+                alert(`Edit compiled document: ${doc.title}`);
+            }
+        });
+    }
+    
+    // Set up delete button event
+    const deleteBtn = card.querySelector('.delete-btn');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (typeof confirmDeleteCompiledDocument === 'function') {
+                confirmDeleteCompiledDocument(doc.id);
+            } else {
+                if (confirm(`Are you sure you want to delete "${doc.title}" and all its child documents?`)) {
+                    alert(`Compiled document ${doc.id} would be deleted`);
+                }
+            }
+        });
+    }
+}
+
+/**
+ * Fetch and render child documents for a compiled document
+ * @param {string|number} compiledDocId - Parent document ID
+ * @param {HTMLElement} container - Container to render child documents in
+ */
+function fetchAndRenderChildDocuments(compiledDocId, container) {
+    // Show loading
+    container.innerHTML = '<div class="loading-children"><i class="fas fa-spinner fa-spin"></i> Loading child documents...</div>';
+    
+    // Set full width styling on the container
+    container.style.width = '100%';
+    container.style.marginLeft = '0';
+    container.style.borderLeft = '4px solid #3498db';
+    container.style.backgroundColor = '#f8f9fa';
+    
+    // Fetch child documents from API
+    fetch(`/api/documents/${compiledDocId}/children`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            // API now returns an object with a "documents" property
+            if (!data || !data.documents || !Array.isArray(data.documents)) {
+                console.error('Invalid child documents data:', data);
+                throw new Error('Invalid data format for child documents');
+            }
+            
+            // Get the documents array from the response
+            const childDocs = data.documents;
+            
+            // Clear container
+            container.innerHTML = '';
+            
+            // If no children, show message
+            if (childDocs.length === 0) {
+                container.innerHTML = '<div class="no-children" style="padding: 15px; text-align: center;">No child documents found</div>';
+                return;
+            }
+            
+            // Create a wrapper for the child documents
+            const childrenWrapper = document.createElement('div');
+            childrenWrapper.className = 'children-wrapper';
+            childrenWrapper.style.width = '100%';
+            childrenWrapper.style.padding = '10px 0';
+            container.appendChild(childrenWrapper);
+            
+            // Render each child document
+            childDocs.forEach(child => {
+                const childCard = createChildDocumentCard(child);
+                childrenWrapper.appendChild(childCard);
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching child documents:', error);
+            container.innerHTML = `<div class="error-message" style="padding: 15px; color: #e74c3c;">Error loading child documents: ${error.message}</div>`;
+        });
+} 

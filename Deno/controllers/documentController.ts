@@ -1,6 +1,7 @@
 import { DocumentModel } from "../models/documentModel.ts";
-import type { Response, Request } from "../deps.ts";
+import type { Request } from "../deps.ts";
 import { client } from "../db/denopost_conn.ts";
+import { fetchDocuments as fetchDocumentsService, fetchChildDocuments as fetchChildDocumentsService } from "../services/documentService.ts";
 
 /**
  * Fetch categories from the database
@@ -41,70 +42,121 @@ export async function fetchCategories(): Promise<Response> {
 }
 
 /**
- * Fetch documents based on query parameters
+ * Handle GET request to fetch documents with filtering and pagination
+ * @param request The fetch request object
+ * @returns Response object with documents data
  */
-export async function fetchDocuments(req: Request): Promise<Response> {
+export async function fetchDocuments(request: Request): Promise<Response> {
   try {
-    const url = new URL(req.url);
-    const searchParams = url.searchParams;
+    console.log("DocumentController: fetchDocuments called");
     
-    // Extract query parameters
-    const category = searchParams.get("category");
-    const page = parseInt(searchParams.get("page") || "1");
-    const size = parseInt(searchParams.get("size") || "20");
-    const sort = searchParams.get("sort") || "latest";
+    // Get URL parameters for pagination and filtering
+    const url = new URL(request.url);
+    const page = parseInt(url.searchParams.get("page") || "1");
+    const size = parseInt(url.searchParams.get("size") || "10");
+    const category = url.searchParams.get("category");
+    const search = url.searchParams.get("search");
+    const sort = url.searchParams.get("sort") || "latest";
     
-    console.log(`Fetching documents with params: category=${category}, page=${page}, size=${size}, sort=${sort}`);
+    console.log(`Fetching documents with page=${page}, size=${size}, category=${category}, sort=${sort}`);
     
-    // TODO: Get actual documents from database
-    // For now, we'll return mock data
-    const mockDocuments = {
-      documents: [
-        {
-          id: 1,
-          title: "Sample Document 1",
-          abstract: "This is a sample abstract for testing",
-          publication_date: "2023-01-01",
-          category_name: "Confluence",
-          document_type: "CONFLUENCE",
-          file_path: "/storage/sample1.pdf",
-          authors: [{ id: 1, full_name: "John Doe" }],
-          topics: [{ id: 1, name: "Science" }],
-          page_count: 10,
-          is_public: true,
-          created_at: "2023-06-05",
-          updated_at: "2023-06-05"
+    // ADDITIONAL DEBUGGING: Check if database client is available
+    if (!client) {
+      console.error("CRITICAL ERROR: Database client is null or undefined in controller");
+      return new Response(JSON.stringify({
+        error: "Database client is not available",
+        documents: [],
+        totalCount: 0,
+        totalPages: 0,
+        currentPage: page
+      }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    
+    // ADDITIONAL DEBUGGING: Try a simple database query to confirm connection
+    try {
+      console.log("Testing database connection with a simple query");
+      const testResult = await client.queryObject("SELECT 1 as test");
+      console.log("Database connection test result:", testResult.rows);
+    } catch (testError) {
+      console.error("Database connection test failed:", testError);
+      return new Response(JSON.stringify({
+        error: "Database connection failed",
+        message: testError.message,
+        documents: [],
+        totalCount: 0,
+        totalPages: 0,
+        currentPage: page
+      }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    
+    // Convert sort parameter to appropriate order
+    let sortField = 'id';
+    let order = 'ASC';
+    
+    if (sort === 'latest') {
+      sortField = 'publication_date';
+      order = 'DESC';
+    } else if (sort === 'earliest') {
+      sortField = 'publication_date';
+      order = 'ASC';
+    }
+    
+    // Use document service to fetch actual documents with the new interface
+    console.log("Calling documentService.fetchDocuments() with options");
+    const result = await fetchDocumentsService({
+      page,
+      limit: size,
+      category,
+      search,
+      sort: sortField,
+      order
+    });
+    
+    console.log(`Documents fetched: ${result.documents.length} documents found`);
+    
+    // Check if we received fewer documents than expected
+    if (result.documents.length === 0 && result.totalCount > 0) {
+      console.warn("No documents returned despite totalCount > 0. This might indicate a database issue.");
+    }
+    
+    // Add structured debug info to the response for troubleshooting
+    const responseWithDebug = {
+      ...result,
+      _debug: {
+        requestParams: {
+          page, size, category, sort
         },
-        {
-          id: 2,
-          title: "Sample Document 2",
-          abstract: "Another sample abstract for testing",
-          publication_date: "2023-02-15",
-          category_name: "Thesis",
-          document_type: "THESIS",
-          file_path: "/storage/sample2.pdf",
-          authors: [{ id: 2, full_name: "Jane Smith" }],
-          topics: [{ id: 2, name: "Technology" }],
-          page_count: 15,
-          is_public: true,
-          created_at: "2023-06-10",
-          updated_at: "2023-06-10"
-        }
-      ],
-      totalCount: 2,
-      totalPages: 1,
-      currentPage: page
+        timestamp: new Date().toISOString(),
+        source: "documentController.ts"
+      }
     };
     
-    return new Response(JSON.stringify(mockDocuments), {
+    // Create and return response
+    return new Response(JSON.stringify(responseWithDebug), {
       status: 200,
-      headers: { "Content-Type": "application/json" }
+      headers: {
+        "Content-Type": "application/json",
+      },
     });
   } catch (error) {
-    console.error("Error fetching documents:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error("Error in document controller:", error);
+    
+    // Return error response
+    return new Response(JSON.stringify({
+      error: true,
+      message: error.message,
+      stack: error.stack
+    }), {
       status: 500,
-      headers: { "Content-Type": "application/json" }
+      headers: {
+        "Content-Type": "application/json",
+      },
     });
   }
 }
@@ -205,6 +257,17 @@ export async function createDocument(req: Request): Promise<Response> {
         // Remove volume and issue if they exist
         delete body.volume;
         delete body.issue;
+      }
+
+      // For Synergy documents, ensure issue is null and department_id is used
+      if (body.document_type === 'SYNERGY') {
+        // Always set issue to null for Synergy documents
+        body.issue = null;
+        
+        // Make sure department_id is present
+        if (!body.department_id) {
+          console.warn('SYNERGY document created without department_id');
+        }
       }
 
       // For research studies in compiled documents, set appropriate category_id if not already set
@@ -326,63 +389,98 @@ export async function deleteDocument(req: Request): Promise<Response> {
 }
 
 /**
- * Get sample documents (used for testing)
+ * Get child documents for a compiled document
+ * @param req - The request object
+ * @returns Response with child documents
  */
-export async function getSampleDocuments(ctx: Context) {
+export async function getChildDocuments(req: Request): Promise<Response> {
   try {
-    // This is sample data for testing
-    const sampleDocuments = [
-      {
-        id: 1,
-        title: "Sample Research Paper",
-        abstract: "This is a sample abstract for a research paper.",
-        publication_date: "2023-01-15",
-        category_name: "Thesis",
-        document_type: "research",
-        file_path: "/files/sample1.pdf",
-        pages: 10,
-        is_public: true,
-        created_at: "2023-01-10T08:30:00Z",
-        updated_at: "2023-01-10T08:30:00Z",
-        authors: [
-          { id: 1, full_name: "John Smith" },
-          { id: 2, full_name: "Jane Doe" }
-        ],
-        topics: [
-          { id: 1, name: "Artificial Intelligence" },
-          { id: 2, name: "Machine Learning" }
-        ]
-      },
-      {
-        id: 2,
-        title: "Advanced Study on Robotics",
-        abstract: "A comprehensive study on modern robotics and its applications.",
-        publication_date: "2022-11-20",
-        category_name: "Dissertation",
-        document_type: "research",
-        file_path: "/files/sample2.pdf",
-        pages: 15,
-        is_public: true,
-        created_at: "2022-11-15T14:45:00Z",
-        updated_at: "2022-11-15T14:45:00Z",
-        authors: [
-          { id: 3, full_name: "Robert Johnson" }
-        ],
-        topics: [
-          { id: 3, name: "Robotics" },
-          { id: 4, name: "Automation" }
-        ]
+    const url = new URL(req.url);
+    const path = url.pathname;
+    const matches = path.match(/\/api\/documents\/(\d+)\/children/);
+    
+    if (!matches || !matches[1]) {
+      return new Response(JSON.stringify({ error: "Invalid document ID" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    
+    const documentId = parseInt(matches[1]);
+    console.log(`Controller: Fetching child documents for parent ID: ${documentId}`);
+    
+    const result = await fetchChildDocumentsService(documentId);
+    
+    // Create a safe version of the documents to avoid serialization issues
+    const safeDocuments = [];
+    
+    for (const doc of result.documents) {
+      // Create a basic safe document object
+      const safeDoc: Record<string, any> = {
+        id: doc.id,
+        title: typeof doc.title === 'string' ? doc.title : '',
+        description: typeof doc.description === 'string' ? doc.description : '',
+        document_type: typeof doc.document_type === 'string' ? doc.document_type : '',
+        volume: typeof doc.volume === 'string' ? doc.volume : '',
+        issue: typeof doc.issue === 'string' ? doc.issue : '',
+        is_compiled: Boolean(doc.is_compiled),
+        parent_compiled_id: doc.parent_compiled_id
+      };
+      
+      // Handle date carefully
+      if (doc.publication_date instanceof Date) {
+        safeDoc.publication_date = doc.publication_date.toISOString();
+      } else {
+        safeDoc.publication_date = null;
       }
-    ];
-
-    ctx.response.body = { 
-      documents: sampleDocuments,
-      totalCount: 2,
-      totalPages: 1,
-      currentPage: 1
+      
+      // Handle authors array
+      safeDoc.authors = [];
+      if (Array.isArray(doc.authors)) {
+        for (const author of doc.authors) {
+          if (author && typeof author === 'object') {
+            safeDoc.authors.push({
+              id: author.id,
+              full_name: typeof author.full_name === 'string' ? author.full_name : ''
+            });
+          }
+        }
+      }
+      
+      // Handle topics array
+      safeDoc.topics = [];
+      if (Array.isArray(doc.topics)) {
+        for (const topic of doc.topics) {
+          if (topic && typeof topic === 'object') {
+            safeDoc.topics.push({
+              id: topic.id,
+              name: typeof topic.name === 'string' ? topic.name : ''
+            });
+          }
+        }
+      }
+      
+      safeDocuments.push(safeDoc);
+    }
+    
+    // Create the final response object
+    const responseObject = {
+      documents: safeDocuments
     };
+    
+    return new Response(JSON.stringify(responseObject), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    });
   } catch (error) {
-    ctx.response.status = 500;
-    ctx.response.body = { error: "Error fetching sample documents: " + error.message };
+    console.error(`Error fetching child documents:`, error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return new Response(JSON.stringify({ 
+      error: "Error fetching child documents",
+      message: errorMessage
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 }

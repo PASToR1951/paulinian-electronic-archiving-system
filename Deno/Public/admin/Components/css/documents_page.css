@@ -366,18 +366,25 @@ td:first-child {
     width: 100%;
 }
 
+/* Category header with flexbox layout */
 .category-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 15px;
+    padding: 0 15px 15px;
+    margin-bottom: 15px;
     border-bottom: 1px solid #e0e0e0;
 }
 
+/* Category header label with archive icon */
 .label {
     font-size: 16px;
-    font-weight: 500;
+    font-weight: 600;
     color: #333;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
 }
 
 .category-inner {
@@ -1393,30 +1400,52 @@ select:focus {
     color: #1976d2;
 }
 
+/* Sort dropdown container */
 .sort-container {
     display: flex;
     align-items: center;
+    margin-left: 10px;
 }
 
-.sort-dropdown {
-    padding: 8px 12px;
-    border: 1px solid #e0e0e0;
+/* Archive container */
+.archive-container {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    margin-right: 10px;
+}
+
+/* Archive button (now icon only) */
+.archive-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
     border-radius: 4px;
-    background-color: white;
-    color: #333;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #555;
+    font-size: 14px;
+    padding: 0;
+}
+
+.archive-btn i {
+    margin: 0;
+}
+
+/* Sort dropdown */
+.sort-dropdown {
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f8f9fa;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
-}
-
-.sort-dropdown:hover {
-    border-color: #1890ff;
-}
-
-.sort-dropdown:focus {
     outline: none;
-    border-color: #1890ff;
-    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
 
 /* Remove the old preview modal styles */
@@ -1713,7 +1742,6 @@ select:focus {
     margin-bottom: 0.5rem;
     color: #333;
     font-weight: 500;
-    font-size: 0.9rem;
 }
 
 #edit-modal input[type="text"],
@@ -2533,4 +2561,186 @@ select:focus {
     font-weight: 500;
     color: #555;
     margin-right: 8px;
+}
+
+/* Archive button active state */
+.archive-btn.active {
+    background-color: #0056b3;
+    border-color: #0056b3;
+    color: white;
+}
+
+/* Archived document card styling */
+.document-card.archived {
+    border-left: 4px solid #ff9800;
+    background-color: #fffaf0;
+}
+
+.document-card.archived .document-title {
+    color: #666;
+}
+
+.archived-date {
+    margin-top: 5px;
+    font-style: italic;
+    color: #666;
+    font-size: 0.9em;
+}
+
+/* Restore button */
+.restore-btn {
+    background-color: #ff9800;
+    color: white;
+    border: none;
+    transition: background-color 0.2s;
+}
+
+.restore-btn:hover {
+    background-color: #e08600;
+}
+
+/* Toast notifications */
+.toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background-color: white;
+    border-radius: 6px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    padding: 12px 20px;
+    min-width: 300px;
+    max-width: 400px;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.toast.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.toast.success {
+    border-left: 4px solid #4caf50;
+}
+
+.toast.error {
+    border-left: 4px solid #f44336;
+}
+
+.toast-content {
+    display: flex;
+    align-items: center;
+}
+
+.toast-content i {
+    font-size: 24px;
+    margin-right: 12px;
+}
+
+.toast.success i {
+    color: #4caf50;
+}
+
+.toast.error i {
+    color: #f44336;
+}
+
+.toast-message {
+    flex-grow: 1;
+    font-size: 14px;
+    color: #333;
+}
+
+.toast-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    width: 100%;
+    background-color: rgba(0,0,0,0.1);
+}
+
+.toast.success .toast-progress {
+    background-color: #4caf50;
+    animation: toast-progress 5s linear forwards;
+}
+
+.toast.error .toast-progress {
+    background-color: #f44336;
+    animation: toast-progress 5s linear forwards;
+}
+
+@keyframes toast-progress {
+    from { width: 100%; }
+    to { width: 0%; }
+}
+
+/* Search container and input */
+.search-container {
+    flex-grow: 1;
+    margin: 0 15px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.search-input-wrapper {
+    position: relative;
+    width: 50%;
+    margin-right: 15px;
+}
+
+/* Search icon */
+.search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #777;
+    font-size: 14px;
+    pointer-events: none; /* Prevent icon from intercepting clicks */
+}
+
+/* Search input */
+.search-input {
+    width: 100%;
+    padding: 6px 10px 6px 32px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.search-input:focus {
+    border-color: #008035;
+    box-shadow: 0 0 0 2px rgba(0, 128, 53, 0.1);
+}
+
+.search-input::placeholder {
+    color: #999;
+}
+
+/* Search highlighting styles */
+.child-document-card.search-match {
+    background-color: #f0f7ff !important;
+    border-left: 3px solid #1890ff !important;
+    box-shadow: 0 2px 8px rgba(24, 144, 255, 0.2) !important;
+    animation: pulse-highlight 2s ease-in-out 1;
+}
+
+.child-document-card .highlight {
+    background-color: #ffff00;
+    color: #000;
+    padding: 0 2px;
+    border-radius: 2px;
+    font-weight: bold;
+}
+
+@keyframes pulse-highlight {
+    0% { box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(24, 144, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(24, 144, 255, 0); }
 }

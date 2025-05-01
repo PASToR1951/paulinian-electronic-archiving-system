@@ -32,6 +32,8 @@ export interface Document {
   created_at?: Date;
   updated_at?: Date;
   deleted_at?: Date;
+  compiled_document_id?: number; // Reference to compiled_documents table (legacy field)
+  compiled_parent_id?: number; // Direct reference to compiled_documents table
 }
 
 /**
@@ -172,9 +174,10 @@ export class DocumentModel {
         `INSERT INTO documents (
           title, description, abstract, publication_date, 
           start_year, end_year, category_id, department_id,
-          file_path, pages, volume, issue, is_public, document_type
+          file_path, pages, volume, issue, is_public, document_type,
+          compiled_parent_id
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
         ) RETURNING *`,
         [
           document.title,
@@ -190,59 +193,82 @@ export class DocumentModel {
           document.volume || null,
           document.issue || null,
           document.is_public || false,
-          document.document_type
+          document.document_type,
+          document.compiled_parent_id || null
         ]
       );
       
       return result.rows[0] || null;
     } catch (error) {
       console.error("Error creating document:", error);
-      return null;
+      throw error;
     }
   }
 
   /**
-   * Update a document
+   * Update a document by ID
    * @param id Document ID
    * @param updates Fields to update
    * @returns Updated document or null if update failed
    */
   static async update(id: number, updates: Partial<Document>): Promise<Document | null> {
     try {
-      // Build SET clause and values dynamically based on provided updates
-      const setValues: string[] = [];
-      const values: any[] = [];
-      let paramCount = 1;
+      // Build update query dynamically based on what fields are provided
+      const updateFields: string[] = [];
+      const queryParams: any[] = [];
+      let paramIndex = 1;
       
-      // Add updated_at to the updates
-      updates.updated_at = new Date();
+      // Map of fields to their parameter indices
+      const fields: Record<string, any> = {
+        title: updates.title,
+        description: updates.description,
+        abstract: updates.abstract,
+        publication_date: updates.publication_date,
+        start_year: updates.start_year,
+        end_year: updates.end_year,
+        category_id: updates.category_id,
+        department_id: updates.department_id,
+        file_path: updates.file_path,
+        pages: updates.pages,
+        volume: updates.volume,
+        issue: updates.issue,
+        is_public: updates.is_public,
+        document_type: updates.document_type,
+        compiled_parent_id: updates.compiled_parent_id
+      };
       
-      Object.entries(updates).forEach(([key, value]) => {
-        if (key !== 'id' && key !== 'created_at' && value !== undefined) {
-          setValues.push(`${key} = $${paramCount}`);
-          values.push(value);
-          paramCount++;
+      // Add fields that are not undefined to the query
+      for (const [field, value] of Object.entries(fields)) {
+        if (value !== undefined) {
+          updateFields.push(`${field} = $${paramIndex}`);
+          queryParams.push(value);
+          paramIndex++;
         }
-      });
-      
-      if (setValues.length === 0) {
-        return await this.getById(id); // Nothing to update
       }
       
-      values.push(id); // Add id as the last parameter
+      // Always add updated_at timestamp
+      updateFields.push(`updated_at = NOW()`);
       
-      const result = await client.queryObject<Document>(
-        `UPDATE documents
-         SET ${setValues.join(', ')}
-         WHERE id = $${paramCount} AND deleted_at IS NULL
+      // If no fields to update, return the current document
+      if (updateFields.length === 0) {
+        return this.getById(id);
+      }
+      
+      // Add document ID as the last parameter
+      queryParams.push(id);
+      
+      const result = await client.queryObject(
+        `UPDATE documents 
+         SET ${updateFields.join(', ')} 
+         WHERE id = $${paramIndex} AND deleted_at IS NULL
          RETURNING *`,
-        values
+        queryParams
       );
       
-      return result.rows[0] || null;
+      return result.rows.length > 0 ? result.rows[0] : null;
     } catch (error) {
       console.error("Error updating document:", error);
-      return null;
+      throw error;
     }
   }
 

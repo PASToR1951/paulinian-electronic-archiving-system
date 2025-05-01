@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8" />
-    <title>Paulinian electronic Archiving System</title>
+    <title>Paulinian Electronic Archiving System</title>
     <link href="./Components/css/webflow-style.css" rel="stylesheet" type="text/css" />
     <link href="https://fonts.googleapis.com" rel="preconnect" />
     <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous" />
@@ -12,33 +12,238 @@
     <script type="text/javascript">!function (o, c) { var n = c.documentElement, t = " w-mod-"; n.className += t + "js", ("ontouchstart" in o || o.DocumentTouch && c instanceof DocumentTouch) && (n.className += t + "touch") }(window, document);</script>
     <link href="images/favicon.png" rel="shortcut icon" type="image/x-icon" />
     <link href="images/untitled-20design-2-.png" rel="apple-touch-icon" />
+
+    <style>
+        /* Styles for the body with animated gradient background */
+        body {
+            /* Remove default margin and hide overflow to ensure full background coverage */
+            margin: 0;
+            overflow: hidden;
+            /* Define the gradient background */
+            background: linear-gradient(-25deg, #FFD700, #228B22, #FFD700, #228B22);
+            /* Set the size of the background */
+            background-size: 400% 400%;
+            /* Apply the gradient animation */
+            animation: gradient 15s ease infinite;
+            /* Ensure body takes full viewport height */
+            height: 100vh;
+            /* Use flexbox to center the content vertically and horizontally */
+            display: flex;
+            /* Changed to column to stack header and login form */
+            flex-direction: column;
+            justify-content: center; /* Center content vertically */
+            align-items: center; /* Center content horizontally */
+            /* Added a fallback background color */
+            background-color: #ffd700; /* Gold */
+        }
+
+        /* Keyframes for the gradient animation */
+        @keyframes gradient {
+            0% {
+                /* Starting background position */
+                background-position: 0% 50%;
+            }
+            50% {
+                /* Mid-point background position */
+                background-position: 100% 50%;
+            }
+            100% {
+                /* Ending background position (same as start for looping) */
+                background-position: 0% 50%;
+            }
+        }
+
+        /* Style for the login container */
+        .login-container {
+            background-color: rgba(255, 255, 255, 0.9); /* Semi-transparent white background */
+            padding: 40px;
+            border-radius: 15px; /* Rounded corners */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); /* Soft shadow */
+            text-align: center;
+            max-width: 400px; /* Max width for the form */
+            width: 90%; /* Responsive width */
+            box-sizing: border-box; /* Include padding in width */
+            /* Added margin-top to give space below the header */
+            margin-top: 20px;
+        }
+
+        /* Style for the header container above the form - Using Flexbox for logo and text side-by-side */
+        .header-container {
+            text-align: center;
+            margin-bottom: 30px; /* Space below the header */
+            color: #fff; /* White text color */
+            font-family: sans-serif;
+            display: flex; /* Use flexbox */
+            align-items: center; /* Vertically align items in the center */
+            justify-content: center; /* Horizontally center the content */
+            /* Added some padding for better spacing */
+            padding: 0 20px;
+        }
+
+        /* Style for the logo placeholder */
+        .header-container .logo-placeholder {
+            width: 80px; /* Adjusted size for side-by-side */
+            height: 80px; /* Adjusted size for side-by-side */
+            background-color: #fff; /* Solid white background for placeholder */
+            border-radius: 50%; /* Keep it round */
+            /* Adjusted margin for spacing between logo and text */
+            margin-right: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5em; /* Adjusted font size */
+            color: #333; /* Darker color for 'Logo' text */
+            border: 2px solid #228B22; /* Solid border matching the green */
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); /* Added shadow to the logo */
+            /* Ensure logo doesn't shrink */
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        /* Style for the header text */
+        .header-container h1 {
+            margin: 0; /* Remove default margin */
+            font-size: 1.5em; /* Adjusted font size */
+            font-weight: bold;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); /* Subtle text shadow */
+            /* Allow text to wrap if needed */
+            flex-grow: 1;
+            text-align: left; /* Align text to the left */
+        }
+
+        /* Style for the login form heading */
+        .login-container h2 {
+            margin-top: 0;
+            margin-bottom: 30px;
+            color: #333;
+            font-family: sans-serif; /* Use a common sans-serif font */
+        }
+
+        /* Style for form groups (input and label) */
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left; /* Align labels and inputs to the left */
+        }
+
+        /* Style for labels */
+        .form-group label {
+            display: block; /* Make label a block element */
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+            font-family: sans-serif;
+            font-size: 0.9em;
+        }
+
+        /* Style for input fields */
+        .form-group input[type="text"],
+        .form-group input[type="password"] {
+            width: 100%; /* Full width */
+            padding: 12px 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px; /* Rounded input fields */
+            font-size: 1em;
+            box-sizing: border-box; /* Include padding and border in the element's total width and height */
+            transition: border-color 0.3s ease; /* Smooth transition for focus effect */
+        }
+
+        /* Style for input fields on focus */
+        .form-group input[type="text"]:focus,
+        .form-group input[type="password"]:focus {
+            outline: none; /* Remove default outline */
+            border-color: #228B22; /* Highlight border on focus */
+            box-shadow: 0 0 8px rgba(34, 139, 34, 0.3); /* Add a subtle shadow on focus */
+        }
+
+        /* Style for the submit button */
+        .login-container button,
+        .login-container input[type="submit"] {
+            width: 100%; /* Full width button */
+            padding: 12px 20px;
+            background-color: #228B22; /* Green background */
+            color: white;
+            border: none;
+            border-radius: 8px; /* Rounded button */
+            font-size: 1.1em;
+            cursor: pointer; /* Indicate it's clickable */
+            transition: background-color 0.3s ease, transform 0.1s ease; /* Smooth transition and slight press effect */
+            font-family: sans-serif;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        /* Style for the submit button on hover */
+        .login-container button:hover,
+        .login-container input[type="submit"]:hover {
+            background-color: #1a6b1a; /* Darker green on hover */
+        }
+
+        /* Style for the submit button when active (being clicked) */
+        .login-container button:active,
+        .login-container input[type="submit"]:active {
+            transform: scale(0.98); /* Slightly shrink the button */
+        }
+
+        /* Style for links within the form (e.g., forgot password) */
+        .login-container a {
+            color: #228B22;
+            text-decoration: none;
+            font-size: 0.9em;
+            margin-top: 15px;
+            display: inline-block; /* Allow margin-top */
+            font-family: sans-serif;
+            transition: color 0.3s ease;
+        }
+
+        /* Style for links on hover */
+        .login-container a:hover {
+            text-decoration: underline;
+            color: #1a6b1a;
+        }
+
+        /* Override any Webflow styles as needed */
+        .w-users-userformbutton {
+            background-color: #228B22 !important;
+        }
+        
+        .form-error {
+            margin-top: 15px;
+            color: #e74c3c;
+            font-family: sans-serif;
+        }
+    </style>
 </head>
 
 <body>
-    <div class="w-users-userformpagewrap full-page-wrapper"><a href="/" class="form-page-logo-link w-inline-block"><img
-                src="../images/spud_logo_s.png" loading="lazy" alt=""
-                class="form-page-logo" /></a>
-        <div class="w-users-userloginformwrapper admin-form-card">
-            <form id="login-form" method="post" action="/login" onsubmit="return false;">
-                <div class="w-users-userformheader form-card-header">
-                    <h2 class="heading h3">Log in</h2>
-                    <p class="paragraph small">Fill in your log in details below.</p>
-                </div>
-                
+    <div class="header-container">
+        <div class="logo-placeholder">
+            <img src="images/spud_logo_s.png" loading="lazy" alt="SPUP Logo" style="max-width: 100%; max-height: 100%;" />
+        </div>
+        <h1>Paulinian Electronic Archiving System (PeAS)</h1>
+    </div>
+
+    <div class="login-container">
+        <h2>Log In</h2>
+        <form id="login-form" method="post" action="/login" onsubmit="return false;">
+            <div class="form-group">
+                <label for="wf-log-in-id">School ID</label>
                 <input maxlength="256" placeholder="Your school ID" name="school_id" id="wf-log-in-id"
-                    class="text-field w-input" type="text" autoComplete="username" required />
+                    class="text-field" type="text" autoComplete="username" required />
+            </div>
+            <div class="form-group">
+                <label for="wf-log-in-password">Password</label>
                 <input maxlength="256" placeholder="Your password" name="Password" id="wf-log-in-password"
-                    class="text-field w-input" type="password" required />
-                <input type="submit" data-wait="Please wait..." class="w-users-userformbutton button w-button"
-                    value="Log In" />
-            </form>
-            <div style="display:none" data-wf-user-form-error="true"
-                class="w-users-userformerrorstate form-error w-form-fail">
-                <div class="user-form-error-msg"
-                    wf-login-form-general-error-error="We're having trouble logging you in. Please try again, or contact us if you continue to have problems."
-                    wf-login-form-invalid-email_or_password-error="Invalid school ID or password. Please try again.">
-                    We're having trouble logging you in. Please try again, or contact us if you continue to have
-                    problems.</div>
+                    class="text-field" type="password" required />
+            </div>
+            <input type="submit" data-wait="Please wait..." class="w-users-userformbutton button"
+                value="Log In" />
+        </form>
+        <div style="display:none" data-wf-user-form-error="true" class="form-error w-form-fail">
+            <div class="user-form-error-msg"
+                wf-login-form-general-error-error="We're having trouble logging you in. Please try again, or contact us if you continue to have problems."
+                wf-login-form-invalid-email_or_password-error="Invalid school ID or password. Please try again.">
+                We're having trouble logging you in. Please try again, or contact us if you continue to have
+                problems.
             </div>
         </div>
     </div>

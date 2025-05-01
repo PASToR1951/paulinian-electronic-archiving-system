@@ -5,15 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Documents Page</title>
-    <link rel="stylesheet" href="css/common.css">
+   
     <link rel="stylesheet" href="css/documents_page.css">
     <link rel="stylesheet" href="css/side_bar.css">
     <link rel="stylesheet" href="css/navbar_header.css">
-    <link rel="stylesheet" href="css/page_header.css">
+ 
     <link rel="stylesheet" href="css/pdf-modal.css">
     <link rel="stylesheet" href="css/preview.css">
-    <link rel="stylesheet" href="css/document-cards.css">
-    <link rel="stylesheet" href="css/compiled-document-modal.css">
+  
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   </head>
 
 <body>
@@ -27,14 +27,29 @@
     <div class="docs-container">
         <div class="category-container">
             <div class="category-header">
-                <div class="label">Categories</div>
-                <div class="sort-container">
-                    <select id="sort-order" class="sort-dropdown">
-                        <option value="latest">Latest to Earliest</option>
-                        <option value="earliest">Earliest to Latest</option>
-                    </select>
+                <div class="label">
+                    Categories
+                    <button id="archive-btn" class="archive-btn" title="View Archived Documents">
+                        <i class="fas fa-archive"></i>
+                    </button>
+                </div>
+                
+                <div class="search-container">
+                    <div class="search-input-wrapper">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="search-documents" class="search-input" placeholder="Search documents...">
+                    </div>
+                
+                    <div class="sort-container">
+                        <select id="sort-order" class="sort-dropdown">
+                            <option value="latest">Latest to Earliest</option>
+                            <option value="earliest">Earliest to Latest</option>
+                        </select>
+                    </div>
                 </div>
             </div>
+            
+            <!-- Category filter icons instead of dropdown -->
             <div class="category-inner">
                 <!-- All category to show all documents -->
                 <div class="category" data-category="All">
@@ -58,6 +73,16 @@
                     </div>
                 </div>
 
+                <div class="category" data-category="Synergy">
+                    <div class="category-icon">
+                        <img src="icons/Category-icons/synergy.png" alt="Synergy Icon" class="category-png-icon">
+                    </div>
+                    <div class="category-details">
+                        <div class="category-name">Synergy</div>
+                        <div class="category-file-count">0 files</div>
+                    </div>
+                </div>
+
                 <div class="category" data-category="Dissertation">
                     <div class="category-icon">
                         <img src="icons/Category-icons/dissertation.png" alt="Dissertation Icon" class="category-png-icon">
@@ -77,16 +102,7 @@
                         <div class="category-file-count">0 files</div>
                     </div>
                 </div>
-
-                <div class="category" data-category="Synergy">
-                    <div class="category-icon">
-                        <img src="icons/Category-icons/synergy.png" alt="Synergy Icon" class="category-png-icon">
-                    </div>
-                    <div class="category-details">
-                        <div class="category-name">Synergy</div>
-                        <div class="category-file-count">0 files</div>
-                    </div>
-                </div>
+                
             </div>
         </div>
 
@@ -422,11 +438,22 @@
     <!-- Load modular JS files instead of single document-page.js -->
     <script src="js/document-utils.js"></script>
     <script src="js/document-card-components.js"></script>
+    <script src="js/document-filters.js"></script>
     <script src="js/document-list.js"></script>
     <script src="js/document-preview.js"></script>
     <script src="js/document-edit.js"></script>
     <script src="js/compiled-document-edit.js"></script>
+    <script src="js/document-archive.js"></script>
     <script src="js/side_bar.js"></script>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // Initialize archive functionality
+        if (window.documentArchive && typeof window.documentArchive.initializeArchive === 'function') {
+          window.documentArchive.initializeArchive();
+        }
+      });
+    </script>
 </body>
 
 </html>

@@ -253,16 +253,14 @@
                      <div id="editAuthorIdError" class="ad-id-error"></div> </div>
 
                 <div class="mb-4">
-                    <label for="editFirstName" class="ad-form-label">First Name</label>
-                    <input type="text" id="editFirstName" class="ad-form-input" required>
+                    <label for="editSpudId" class="ad-form-label">SPUD ID</label>
+                    <input type="text" id="editSpudId" class="ad-form-input">
+                    <div class="text-xs text-gray-500 mt-1">Unique identifier displayed to users</div>
                 </div>
+
                 <div class="mb-4">
-                    <label for="editMiddleName" class="ad-form-label">Middle Name (Optional)</label>
-                    <input type="text" id="editMiddleName" class="ad-form-input">
-                </div>
-                <div class="mb-4">
-                    <label for="editLastName" class="ad-form-label">Last Name</label>
-                    <input type="text" id="editLastName" class="ad-form-input" required>
+                    <label for="editFullName" class="ad-form-label">Full Name</label>
+                    <input type="text" id="editFullName" class="ad-form-input" required>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -313,61 +311,8 @@
 
     <script>
         // --- Sample Author Data ---
-        const authors = [
-             {
-                id: 'A001', firstName: 'Evelyn', middleName: 'M.', lastName: 'Reed',
-                department: 'Physics', affiliation: 'University of Science',
-                email: 'e.reed@uos.edu', linkedin: 'https://linkedin.com/in/evelynreed',
-                bio: 'Dr. Reed specializes in theoretical physics and quantum mechanics.',
-                profilePicUrl: '', // Example of no profile pic URL
-                worksCount: 5,
-                works: [
-                    { title: 'Quantum Entanglement Dynamics', category: 'Synergy', researchAgenda: 'Quantum Computing', year: 2023, url: '#' },
-                    { title: 'Advanced Particle Accelerators', category: 'Synthesis', researchAgenda: 'High Energy Physics', year: 2021, url: '#' },
-                    { title: 'String Theory Models', category: 'Dissertation', researchAgenda: 'Theoretical Physics', year: 2019, url: '#' },
-                    { title: 'Cosmological Constant Problem', category: 'Synergy', researchAgenda: 'Cosmology', year: 2018, url: '#' },
-                    { title: 'Neutrino Oscillation Patterns', category: 'Synthesis', researchAgenda: 'Particle Physics', year: 2017, url: '#' }
-                ]
-            },
-            {
-                id: 'A002', firstName: 'Kenji', middleName: '', lastName: 'Tanaka',
-                department: 'Computer Science', affiliation: 'Tech Institute',
-                email: 'k.tanaka@tech.edu', linkedin: 'https://linkedin.com/in/kenjitanaka',
-                bio: 'Professor Tanaka focuses on machine learning and distributed systems.',
-                profilePicUrl: 'https://placehold.co/100x100/e2e8f0/333?text=KT', // Example with profile pic URL
-                worksCount: 7,
-                works: [
-                    { title: 'Machine Learning for NLP', category: 'Synergy', researchAgenda: 'Artificial Intelligence', year: 2024, url: '#' },
-                    { title: 'Distributed Systems Architecture', category: 'Synthesis', researchAgenda: 'Cloud Computing', year: 2022, url: '#' },
-                    { title: 'Cybersecurity Trends', category: 'Thesis', researchAgenda: 'Network Security', year: 2020, url: '#' },
-                    { title: 'Blockchain Scalability Solutions', category: 'Synergy', researchAgenda: 'Distributed Ledger Tech', year: 2019, url: '#' },
-                    { title: 'Algorithm Efficiency Analysis', category: 'Synthesis', researchAgenda: 'Theoretical CS', year: 2018, url: '#' },
-                    { title: 'Quantum Computing Algorithms', category: 'Dissertation', researchAgenda: 'Quantum Computing', year: 2017, url: '#' },
-                    { title: 'Edge Computing Paradigms', category: 'Synergy', researchAgenda: 'IoT & Edge', year: 2016, url: '#' }
-                ]
-            },
-             {
-                id: 'A003', firstName: 'Maria', middleName: 'Isabel', lastName: 'Garcia',
-                department: 'Biology', affiliation: 'Life Sciences Center',
-                email: 'm.garcia@lifesci.org', linkedin: '', // Example of empty LinkedIn
-                bio: 'Researching genomics and gene editing technologies.',
-                profilePicUrl: 'https://placehold.co/100x100/dbeafe/1e40af?text=MG',
-                worksCount: 2,
-                works: [
-                    { title: 'CRISPR Gene Editing Applications', category: 'Synergy', researchAgenda: 'Genomics', year: 2023, url: '#' },
-                    { title: 'Cellular Metabolism Pathways', category: 'Synthesis', researchAgenda: 'Molecular Biology', year: 2021, url: '#' }
-                ]
-            },
-            { // Added another author for testing filters
-                id: 'A012', firstName: 'Ahmed', middleName: '', lastName: 'Al-Farsi',
-                department: 'Computer Science', affiliation: 'Tech Institute',
-                email: 'a.alfarsi@tech.edu', linkedin: 'https://linkedin.com/in/ahmedalfarsi',
-                bio: 'Expert in database systems and cloud infrastructure.',
-                profilePicUrl: '',
-                worksCount: 0, // Example with zero works
-                works: []
-            },
-        ];
+        // This will be replaced with data from the API
+        let authors = [];
 
         // --- DOM Element References ---
         const searchInput = document.getElementById('searchInput');
@@ -388,11 +333,16 @@
 
         // --- Constants ---
         const DEFAULT_PROFILE_PIC = 'https://static.vecteezy.com/system/resources/previews/023/021/708/original/author-sign-theatre-icon-illustration-vector.jpg'; // New default placeholder
+        const API_URL = '/api/authors/all'; // API endpoint for authors
 
         // --- Populate Author Filter Dropdowns ---
         function populateAuthorFilters() {
             const departments = new Set();
             const affiliations = new Set();
+
+            // Clear existing options except the default "All"
+            departmentFilter.innerHTML = '<option value="">All Departments</option>';
+            affiliationFilter.innerHTML = '<option value="">All Affiliations</option>';
 
             authors.forEach(author => {
                 if (author.department) departments.add(author.department);
@@ -413,6 +363,249 @@
                 option.value = affil;
                 option.textContent = affil;
                 affiliationFilter.appendChild(option);
+            });
+        }
+
+        // --- Fetch Departments from API ---
+        async function fetchDepartments() {
+            try {
+                const response = await fetch('/api/departments');
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status} ${response.statusText}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error("Error fetching departments:", error);
+                return [];
+            }
+        }
+
+        // --- Populate Department Filter from API ---
+        async function populateDepartmentFilter() {
+            // Clear existing options except the default "All"
+            departmentFilter.innerHTML = '<option value="">All Departments</option>';
+            
+            try {
+                const departments = await fetchDepartments();
+                
+                // Add each department as an option
+                departments.forEach(dept => {
+                    const option = document.createElement('option');
+                    option.value = dept.department_name;
+                    option.textContent = `${dept.department_name} (${dept.code})`;
+                    departmentFilter.appendChild(option);
+                });
+            } catch (error) {
+                console.error("Error populating department filter:", error);
+            }
+        }
+
+        // --- Populate Affiliation Filter from Frontend Data ---
+        function populateAffiliationFilter() {
+            // Clear existing options except the default "All"
+            affiliationFilter.innerHTML = '<option value="">All Affiliations</option>';
+            
+            // Use a Set to collect unique affiliations from the authors array
+            const affiliations = new Set();
+            
+            // Collect all non-empty affiliations
+            authors.forEach(author => {
+                if (author.affiliation) affiliations.add(author.affiliation);
+            });
+            
+            // Add each affiliation as an option
+            affiliations.forEach(affiliation => {
+                const option = document.createElement('option');
+                option.value = affiliation;
+                option.textContent = affiliation;
+                affiliationFilter.appendChild(option);
+            });
+            
+            console.log(`Populated affiliation filter with ${affiliations.size} unique affiliations from frontend data`);
+        }
+
+        // --- Fetch Author Works from API ---
+        async function fetchAuthorWorks(authorId) {
+            try {
+                console.log(`Fetching works for author ID: ${authorId}`);
+                
+                // Fetch works from the API
+                const response = await fetch(`/api/authors/${authorId}/works`);
+                
+                // Handle both successful and error responses
+                const data = await response.json().catch(e => {
+                    console.warn(`Error parsing JSON for author ${authorId}:`, e);
+                    return { works: [], worksCount: 0 };
+                });
+                
+                // If response was not ok, log the error but continue with empty works
+                if (!response.ok) {
+                    console.warn(`API returned error for author ${authorId}: ${response.status} ${response.statusText}`);
+                    console.warn("Error details:", data.error || "No error details provided");
+                    return { works: [], worksCount: 0 };
+                }
+                
+                console.log(`Loaded ${data.worksCount} works for author ID: ${authorId}`);
+                
+                // Return the works array and count
+                return { 
+                    works: data.works || [], 
+                    worksCount: data.worksCount || 0 
+                };
+            } catch (error) {
+                console.error(`Error fetching works for author ${authorId}:`, error);
+                // Return empty data on error instead of throwing
+                return { works: [], worksCount: 0 };
+            }
+        }
+
+        // --- Fetch Authors from API ---
+        async function fetchAuthors() {
+            try {
+                // Show loading indicator
+                authorListContainer.innerHTML = '<div class="flex justify-center items-center py-8"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div></div>';
+                
+                // Fetch authors from the API
+                const response = await fetch(API_URL);
+                
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                // Update the global authors array
+                authors = data.authors || [];
+                
+                console.log(`Loaded ${authors.length} authors from the API`);
+                
+                // Fetch departments from API and populate affiliations from frontend data
+                await populateDepartmentFilter();
+                populateAffiliationFilter();
+                
+                // Render authors first (for faster initial display)
+                renderAuthors(authors);
+                
+                // Then fetch works for each author (this will happen in the background)
+                const workFetchPromises = authors.map(async (author) => {
+                    if (author.id) {
+                        try {
+                            const worksData = await fetchAuthorWorks(author.id);
+                            
+                            // Update the author object with works data
+                            const authorIndex = authors.findIndex(a => a.id === author.id);
+                            if (authorIndex !== -1) {
+                                authors[authorIndex].works = worksData.works;
+                                authors[authorIndex].worksCount = worksData.worksCount;
+                                
+                                // Update the UI to reflect the new works count
+                                updateAuthorWorksUI(author.id, worksData.works, worksData.worksCount);
+                            }
+                        } catch (error) {
+                            console.error(`Error fetching works for author ${author.id}:`, error);
+                        }
+                    }
+                });
+                
+                // Wait for all work fetches to complete
+                await Promise.all(workFetchPromises);
+                
+                // Re-render the author list to ensure all works are properly displayed
+                renderAuthors(authors);
+                
+            } catch (error) {
+                console.error('Error fetching authors:', error);
+                authorListContainer.innerHTML = `
+                    <div class="text-center text-red-600 py-8">
+                        <p class="text-xl mb-2">Error loading authors</p>
+                        <p>${error.message}</p>
+                        <button class="mt-4 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700" onclick="fetchAuthors()">Try Again</button>
+                    </div>
+                `;
+            }
+        }
+
+        // --- Update UI for an author's works (after fetching) ---
+        function updateAuthorWorksUI(authorId, works, worksCount) {
+            console.log(`Updating UI for author ${authorId} with ${worksCount} works`);
+            
+            // Find all instances of this author's cards (there might be multiple due to filtering)
+            const authorCards = document.querySelectorAll(`.ad-author-card[data-author-id="${authorId}"]`);
+            
+            if (authorCards.length === 0) {
+                console.warn(`No author cards found for author ID: ${authorId}`);
+                return;
+            }
+            
+            authorCards.forEach((card, cardIndex) => {
+                // Update the toggle button area
+                const toggleContainer = card.querySelector('.ad-toggle-container');
+                if (toggleContainer) {
+                    // Format the toggle button HTML based on works count
+                    if (worksCount > 0) {
+                        toggleContainer.innerHTML = `
+                            <button id="toggle-${authorId}-${cardIndex}" class="ad-toggle-button inline-flex items-center py-1 px-3 rounded-md bg-green-100 hover:bg-green-200 text-xs text-green-800 font-medium focus:outline-none focus:ring-1 focus:ring-green-300" onclick="toggleWorks('works-${authorId}-${cardIndex}', 'toggle-${authorId}-${cardIndex}', 'workFilters-${authorId}-${cardIndex}', '${authorId}', ${cardIndex})">
+                                ${worksCount} Work${worksCount !== 1 ? 's' : ''} <span class="arrow ml-1">&#x25BC;</span>
+                            </button>
+                        `;
+                    } else {
+                        // Check if there's already a no-works message container
+                        const noWorksContainer = card.querySelector('.no-works-container');
+                        if (!noWorksContainer) {
+                            // Replace the toggle container with a no works message
+                            toggleContainer.parentNode.innerHTML = `
+                                <div class="flex justify-center bg-gray-50 py-2 border-t border-gray-200 rounded-b-lg no-works-container"> 
+                                    <span class="text-xs text-gray-500 italic">No works listed</span>
+                                </div>
+                            `;
+                        }
+                    }
+                } else if (worksCount > 0) {
+                    // If no toggle container exists but we have works, we need to add one
+                    const cardContent = card.querySelector('.p-4.flex-grow');
+                    if (cardContent) {
+                        // Add toggle container after the card content
+                        const toggleContainerDiv = document.createElement('div');
+                        toggleContainerDiv.className = 'ad-toggle-container flex justify-center bg-gray-50 border-t border-gray-200 rounded-b-lg';
+                        toggleContainerDiv.innerHTML = `
+                            <button id="toggle-${authorId}-${cardIndex}" class="ad-toggle-button inline-flex items-center py-1 px-3 rounded-md bg-green-100 hover:bg-green-200 text-xs text-green-800 font-medium focus:outline-none focus:ring-1 focus:ring-green-300" onclick="toggleWorks('works-${authorId}-${cardIndex}', 'toggle-${authorId}-${cardIndex}', 'workFilters-${authorId}-${cardIndex}', '${authorId}', ${cardIndex})">
+                                ${worksCount} Work${worksCount !== 1 ? 's' : ''} <span class="arrow ml-1">&#x25BC;</span>
+                            </button>
+                        `;
+                        card.appendChild(toggleContainerDiv);
+                    }
+                }
+                
+                // Update the works container with actual works
+                const worksContainer = card.querySelector(`#worksContainer-${authorId}-${cardIndex}`);
+                if (worksContainer) {
+                    if (works.length > 0) {
+                        let worksHtml = '<div class="space-y-2">';
+                        works.forEach(work => {
+                            // Log each work to console for debugging
+                            console.log("Rendering work:", work);
+                            
+                            worksHtml += `
+                                <div class="ad-work-card">
+                                    <div class="flex justify-between items-center text-xs text-gray-500 mb-1">
+                                        <span class="font-medium">${work.category || 'N/A'}</span>
+                                        <span class="font-medium">${work.year || 'N/A'}</span>
+                                    </div>
+                                    <a href="${work.url || '#'}" target="_blank" rel="noopener noreferrer" class="ad-work-title-link block text-sm mb-1">${work.title || 'Untitled'}</a>
+                                    <p class="text-xs text-gray-600"><span class="font-medium">Agenda:</span> ${work.researchAgenda || 'N/A'}</p>
+                                </div>`;
+                        });
+                        worksHtml += '</div>';
+                        worksContainer.innerHTML = worksHtml;
+                        
+                        // Update filters if works are available
+                        populateWorkFilters(authorId, cardIndex);
+                    } else {
+                        worksContainer.innerHTML = '<p class="text-sm text-gray-500 italic px-4">No works listed.</p>';
+                    }
+                } else {
+                    console.warn(`Works container not found for author ${authorId}, card index ${cardIndex}`);
+                }
             });
         }
 
@@ -491,8 +684,8 @@
                     worksHtml += `
                         <div class="ad-work-card">
                             <div class="flex justify-between items-center text-xs text-gray-500 mb-1">
-                                <span>${work.category || 'N/A'}</span>
-                                <span>${work.year || 'N/A'}</span>
+                                <span class="font-medium">${work.category || 'N/A'}</span>
+                                <span class="font-medium">${work.year || 'N/A'}</span>
                             </div>
                             <a href="${work.url || '#'}" target="_blank" rel="noopener noreferrer" class="ad-work-title-link block text-sm mb-1">${work.title || 'Untitled'}</a>
                             <p class="text-xs text-gray-600"><span class="font-medium">Agenda:</span> ${work.researchAgenda || 'N/A'}</p>
@@ -535,8 +728,8 @@
                             initialWorksHtml += `
                                 <div class="ad-work-card">
                                     <div class="flex justify-between items-center text-xs text-gray-500 mb-1">
-                                        <span>${work.category || 'N/A'}</span>
-                                        <span>${work.year || 'N/A'}</span>
+                                        <span class="font-medium">${work.category || 'N/A'}</span>
+                                        <span class="font-medium">${work.year || 'N/A'}</span>
                                     </div>
                                     <a href="${work.url || '#'}" target="_blank" rel="noopener noreferrer" class="ad-work-title-link block text-sm mb-1">${work.title || 'Untitled'}</a>
                                     <p class="text-xs text-gray-600"><span class="font-medium">Agenda:</span> ${work.researchAgenda || 'N/A'}</p>
@@ -545,20 +738,19 @@
                         initialWorksHtml += '</div>';
                     }
 
-                    // Format author name (with middle initial if present)
-                    const middleInitial = author.middleName ? ` ${author.middleName.charAt(0)}. ` : ' ';
-                    const fullName = `${author.firstName}${middleInitial}${author.lastName}`;
-
                     // Use author's profile picture URL or the new default placeholder
                     const profilePic = author.profilePicUrl || DEFAULT_PROFILE_PIC;
                     const profilePicPlaceholder = DEFAULT_PROFILE_PIC; // Use the constant for the fallback as well
 
+                    // Calculate works count
+                    const worksCount = author.works?.length || author.worksCount || 0;
+
                     // Construct the inner HTML of the author card
                     card.innerHTML = `
-                        <div class="p-4 flex-grow"> <div class="flex justify-between items-start mb-4"> <div class="flex items-start flex-grow pr-4"> <img src="${profilePic}" alt="Profile picture of ${fullName}" class="w-10 h-10 rounded-full mr-3 flex-shrink-0 object-cover border border-gray-300" onerror="this.src='${profilePicPlaceholder}'; this.onerror=null;">
+                        <div class="p-4 flex-grow"> <div class="flex justify-between items-start mb-4"> <div class="flex items-start flex-grow pr-4"> <img src="${profilePic}" alt="Profile picture of ${author.full_name}" class="w-10 h-10 rounded-full mr-3 flex-shrink-0 object-cover border border-gray-300" onerror="this.src='${profilePicPlaceholder}'; this.onerror=null;">
                                     <div class="flex-grow"> <div class="flex items-baseline mb-1">
-                                            <h3 class="text-lg font-semibold text-green-700 mr-2">${fullName}</h3>
-                                            <span class="text-xs text-gray-500">(${author.id})</span>
+                                            <h3 class="text-lg font-semibold text-green-700 mr-2">${author.full_name}</h3>
+                                            <span class="text-xs text-gray-500">(${author.spud_id || 'No ID'})</span>
                                         </div>
                                         <div class="text-sm text-gray-600">
                                             <span>${author.department || 'No Department'}</span>
@@ -582,13 +774,19 @@
                                      <select id="workCategoryFilter-${author.id}-${index}" class="ad-work-filter-select" onchange="filterAndRenderWorks('${author.id}', ${index})"><option value="">All Categories</option></select>
                                      <select id="workAgendaFilter-${author.id}-${index}" class="ad-work-filter-select" onchange="filterAndRenderWorks('${author.id}', ${index})"><option value="">All Agendas</option></select>
                                      <select id="workYearFilter-${author.id}-${index}" class="ad-work-filter-select" onchange="filterAndRenderWorks('${author.id}', ${index})"><option value="">All Years</option></select>
+                                     <button onclick="refreshAuthorWorks('${author.id}', ${index})" class="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 rounded px-2 py-1 flex-shrink-0 ml-auto">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        Refresh
+                                     </button>
                                 </div>
                                 <div id="${worksContainerId}" class="px-4">${initialWorksHtml}</div>
                             </div>
                         </div>
 
-                        ${author.worksCount > 0 ? `
-                        <div class="ad-toggle-container flex justify-center bg-gray-50 border-t border-gray-200 rounded-b-lg"> <button id="${toggleButtonId}" class="ad-toggle-button inline-flex items-center py-1 px-3 rounded-md bg-green-100 hover:bg-green-200 text-xs text-green-800 font-medium focus:outline-none focus:ring-1 focus:ring-green-300" onclick="toggleWorks('${worksSectionId}', '${toggleButtonId}', '${workFiltersId}', '${author.id}', ${index})"> ${author.worksCount} Work${author.worksCount !== 1 ? 's' : ''} <span class="arrow ml-1">&#x25BC;</span> </button>
+                        ${worksCount > 0 ? `
+                        <div class="ad-toggle-container flex justify-center bg-gray-50 border-t border-gray-200 rounded-b-lg"> <button id="${toggleButtonId}" class="ad-toggle-button inline-flex items-center py-1 px-3 rounded-md bg-green-100 hover:bg-green-200 text-xs text-green-800 font-medium focus:outline-none focus:ring-1 focus:ring-green-300" onclick="toggleWorks('${worksSectionId}', '${toggleButtonId}', '${workFiltersId}', '${author.id}', ${index})"> ${worksCount} Work${worksCount !== 1 ? 's' : ''} <span class="arrow ml-1">&#x25BC;</span> </button>
                         </div>
                         ` : `
                         <div class="flex justify-center bg-gray-50 py-2 border-t border-gray-200 rounded-b-lg"> <span class="text-xs text-gray-500 italic">No works listed</span>
@@ -614,9 +812,8 @@
             const selectedAffiliation = affiliationFilter.value;
 
             const filtered = authors.filter(author => {
-                // Combine name parts for searching
-                const fullName = `${author.firstName} ${author.middleName || ''} ${author.lastName}`.toLowerCase();
-                const nameMatch = fullName.includes(searchTerm);
+                // Search in full_name
+                const nameMatch = author.full_name.toLowerCase().includes(searchTerm);
 
                 // Check department match (allow empty filter)
                 const departmentMatch = !selectedDepartment || author.department === selectedDepartment;
@@ -644,9 +841,8 @@
             editAuthorOriginalIdHidden.value = author.id; // Set hidden input with original ID
             editAuthorIdError.textContent = ''; // Clear any previous ID error messages
 
-            document.getElementById('editFirstName').value = author.firstName || '';
-            document.getElementById('editMiddleName').value = author.middleName || '';
-            document.getElementById('editLastName').value = author.lastName || '';
+            document.getElementById('editSpudId').value = author.spud_id || '';
+            document.getElementById('editFullName').value = author.full_name || '';
             document.getElementById('editDepartment').value = author.department || '';
             document.getElementById('editAffiliation').value = author.affiliation || '';
             document.getElementById('editEmail').value = author.email || '';
@@ -657,11 +853,24 @@
             profilePicFileInput.value = ''; // Clear any previously selected file in the input
             profilePicUrlHidden.value = author.profilePicUrl || ''; // Store the current/original URL
 
-            // Set the preview image source using the new default placeholder
+            // Set the preview image source using the current URL or default placeholder
             const currentPic = author.profilePicUrl || DEFAULT_PROFILE_PIC;
             profilePicPreview.src = currentPic;
-            profilePicPreview.onerror = () => { // Add fallback for the preview image itself
-                profilePicPreview.src = DEFAULT_PROFILE_PIC; // Use the constant placeholder on error
+            profilePicPreview.onerror = () => { 
+                profilePicPreview.src = DEFAULT_PROFILE_PIC; 
+                console.log("Error loading profile image, using default");
+            };
+
+            // Update preview when a new file is selected
+            profilePicFileInput.onchange = function() {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        profilePicPreview.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
             };
 
             // Display the modal
@@ -795,76 +1004,147 @@
                 return;
             }
 
-            const selectedFile = profilePicFileInput.files[0];
-            let profilePicValue = profilePicUrlHidden.value; // Start with the original URL
+            // Show a loading indicator in the form
+            const saveButton = editForm.querySelector('button[type="submit"]');
+            const originalButtonText = saveButton.innerHTML;
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<span class="inline-block animate-spin mr-2">↻</span> Saving...';
 
-            // --- Frontend Simulation of File Handling ---
-            // In a real app, you would upload the file *before* or *during* the database save.
-            // The backend would handle storing the file and returning its new URL.
-            if (selectedFile) {
-                console.log("New profile picture file selected:", selectedFile.name);
-                // ** CJ Diri: File Upload Logic Needed **
-                // Here you would typically call another function to upload `selectedFile`
-                // to your server/storage (e.g., S3, Google Cloud Storage).
-                // The server would return the new URL for the image.
-                // For demo: Use a placeholder or keep the old URL.
-                // Example: profilePicValue = await uploadProfilePicture(selectedFile);
-                // For now, we just update the preview:
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    profilePicPreview.src = e.target.result;
+            try {
+                // Handle profile picture upload if a new file is selected
+                const selectedFile = profilePicFileInput.files[0];
+                let profilePicUrl = profilePicUrlHidden.value; // Start with existing URL
+                
+                if (selectedFile) {
+                    console.log("Uploading new profile picture:", selectedFile.name);
+                    
+                    // Create form data for file upload
+                    const formData = new FormData();
+                    formData.append('file', selectedFile);
+                    formData.append('storagePath', 'storage/authors/profile-pictures');
+                    
+                    // Upload the file
+                    const uploadResponse = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (!uploadResponse.ok) {
+                        const errorData = await uploadResponse.json();
+                        throw new Error(`Failed to upload profile picture: ${errorData.error || uploadResponse.statusText}`);
+                    }
+                    
+                    // Get the file path from the response
+                    const uploadResult = await uploadResponse.json();
+                    profilePicUrl = uploadResult.filePath;
+                    console.log("Profile picture uploaded successfully:", profilePicUrl);
+                    
+                    // Show the uploaded image in the preview
+                    profilePicPreview.src = profilePicUrl;
                 }
-                reader.readAsDataURL(selectedFile);
-                // profilePicValue = ''; // Or set to a placeholder indicating upload needed
+
+                // Create an updated author object with values from the form
+                const updatedAuthorData = {
+                    id: originalId, // Original ID for the API call
+                    newId: newId !== originalId ? newId : undefined, // Only include if changing
+                    spud_id: document.getElementById('editSpudId').value.trim(),
+                    full_name: document.getElementById('editFullName').value.trim(),
+                    department: document.getElementById('editDepartment').value.trim(),
+                    affiliation: document.getElementById('editAffiliation').value.trim(),
+                    email: document.getElementById('editEmail').value.trim(),
+                    linkedin: document.getElementById('editLinkedin').value.trim(),
+                    profilePicUrl: profilePicUrl, // Use the new profile pic URL if uploaded
+                    bio: document.getElementById('editBio').value.trim()
+                };
+
+                // Call the API to update the author in the database
+                const response = await fetch(`/api/authors/${originalId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updatedAuthorData)
+                });
+
+                // Parse the response
+                const result = await response.json();
+
+                if (!response.ok) {
+                    // Handle error response
+                    console.error("API error:", result.error || response.statusText);
+                    alert(`Error saving author: ${result.error || response.statusText}`);
+                    
+                    // Reset button
+                    saveButton.disabled = false;
+                    saveButton.innerHTML = originalButtonText;
+                    return;
+                }
+
+                console.log("Server response:", result);
+
+                // Create an updated author object for the frontend
+                const updatedAuthorForUI = {
+                    id: updatedAuthorData.newId || updatedAuthorData.id,
+                    spud_id: updatedAuthorData.spud_id,
+                    full_name: updatedAuthorData.full_name,
+                    department: updatedAuthorData.department,
+                    affiliation: updatedAuthorData.affiliation,
+                    email: updatedAuthorData.email,
+                    linkedin: updatedAuthorData.linkedin,
+                    bio: updatedAuthorData.bio,
+                    profilePicUrl: profilePicUrl,
+                    // Keep works data from original author object
+                    worksCount: authors[authorIndex].worksCount,
+                    works: authors[authorIndex].works
+                };
+
+                // Update the author data in the main `authors` array
+                if (updatedAuthorData.newId) {
+                    // If ID changed, remove old entry and add new one
+                    authors.splice(authorIndex, 1);
+                    authors.push(updatedAuthorForUI);
+                } else {
+                    // Otherwise just update in place
+                    authors[authorIndex] = updatedAuthorForUI;
+                }
+
+                // Check if the affiliation is new and add it to the dropdown if needed
+                if (updatedAuthorData.affiliation) {
+                    // Get current affiliations from the dropdown
+                    const currentAffiliations = Array.from(affiliationFilter.options).map(opt => opt.value);
+                    
+                    // If this affiliation isn't in the dropdown yet (and isn't the empty option)
+                    if (updatedAuthorData.affiliation && 
+                        !currentAffiliations.includes(updatedAuthorData.affiliation) &&
+                        updatedAuthorData.affiliation !== '') {
+                        
+                        console.log(`Adding new affiliation to dropdown: ${updatedAuthorData.affiliation}`);
+                        
+                        // Create and add the new option
+                        const option = document.createElement('option');
+                        option.value = updatedAuthorData.affiliation;
+                        option.textContent = updatedAuthorData.affiliation;
+                        affiliationFilter.appendChild(option);
+                    }
+                }
+
+                // Re-render the author list to reflect the changes
+                renderAuthors(authors);
+                
+                // Show success message
+                alert("Author information updated successfully!");
+                
+                // Close the modal
+                closeEditModal();
+
+            } catch (error) {
+                console.error("Error updating author:", error);
+                alert(`Error: ${error.message || "Unknown error occurred"}`);
+                
+                // Reset button
+                saveButton.disabled = false;
+                saveButton.innerHTML = originalButtonText;
             }
-            // --- End Frontend Simulation ---
-
-
-            // Create an updated author object with values from the form
-            const updatedAuthorData = {
-                id: newId, // Use the validated new ID
-                firstName: document.getElementById('editFirstName').value.trim(),
-                middleName: document.getElementById('editMiddleName').value.trim(),
-                lastName: document.getElementById('editLastName').value.trim(),
-                department: document.getElementById('editDepartment').value.trim(),
-                affiliation: document.getElementById('editAffiliation').value.trim(),
-                email: document.getElementById('editEmail').value.trim(),
-                linkedin: document.getElementById('editLinkedin').value.trim(),
-                profilePicUrl: profilePicValue, // Use the determined profile picture URL
-                bio: document.getElementById('editBio').value.trim(),
-                // Keep non-editable data (works) from the original object
-                worksCount: authors[authorIndex].worksCount,
-                works: authors[authorIndex].works,
-            };
-
-            // --- Step 1: Update Frontend Immediately ---
-            // Update the author data in the main `authors` array for instant UI refresh
-            authors[authorIndex] = updatedAuthorData;
-            // Re-render the author list to reflect the changes visually right away
-            renderAuthors(authors); // Render all authors to ensure correct display if ID changed
-            console.log("Frontend UI updated immediately for author:", newId);
-            // --- End Frontend Update ---
-
-
-            // --- Step 2: Attempt to Save to Backend ---
-            // Call the asynchronous function to simulate saving to the database
-            const saveSuccess = await saveAuthorToDatabase(updatedAuthorData);
-            // --- End Backend Save Attempt ---
-
-
-            // Close the modal regardless of backend save success for this demo.
-            // In a real app, you might keep the modal open and show an error if saving failed.
-            if (saveSuccess) {
-                 console.log("Data for author", newId, "processed for backend save.");
-            } else {
-                 console.error("Backend save failed for author", newId, ". Frontend changes were still applied.");
-                 // Optionally revert frontend changes here if backend save fails critically
-                 // authors[authorIndex] = originalAuthorData; // Need to store original data first
-                 // renderAuthors(authors);
-                 // alert("Critical error: Could not save changes to the database. Please try again.");
-            }
-
-            closeEditModal(); // Close the modal
         });
 
         // --- Collapse/Toggle Functions for Works Section ---
@@ -933,9 +1213,48 @@
         // --- Initial Setup ---
         // Run when the DOM is fully loaded
         document.addEventListener('DOMContentLoaded', () => {
-            populateAuthorFilters(); // Populate the main filter dropdowns
-            renderAuthors(authors); // Render the initial list of all authors
+            fetchAuthors(); // Fetch authors from the API
         });
+
+        // --- Manually Refresh Author Works ---
+        async function refreshAuthorWorks(authorId, authorIndex) {
+            // Show loading indicator in the works container
+            const worksContainer = document.getElementById(`worksContainer-${authorId}-${authorIndex}`);
+            if (worksContainer) {
+                worksContainer.innerHTML = `
+                    <div class="flex justify-center py-4">
+                        <div class="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-green-500"></div>
+                        <span class="ml-2 text-sm text-gray-600">Refreshing works...</span>
+                    </div>
+                `;
+            }
+            
+            try {
+                // Explicitly fetch works for this author
+                const worksData = await fetchAuthorWorks(authorId);
+                
+                // Update the author object with works data
+                const authorIndex = authors.findIndex(a => a.id === authorId);
+                if (authorIndex !== -1) {
+                    authors[authorIndex].works = worksData.works;
+                    authors[authorIndex].worksCount = worksData.worksCount;
+                    
+                    // Update the UI to reflect the new works count
+                    updateAuthorWorksUI(authorId, worksData.works, worksData.worksCount);
+                    
+                    console.log(`Refreshed works for author ${authorId}: found ${worksData.worksCount} works`);
+                }
+            } catch (error) {
+                console.error(`Error refreshing works for author ${authorId}:`, error);
+                if (worksContainer) {
+                    worksContainer.innerHTML = `
+                        <div class="text-center text-red-500 py-2">
+                            <p>Error refreshing works: ${error.message}</p>
+                        </div>
+                    `;
+                }
+            }
+        }
     </script>
     <script>
         fetch('side_bar.html')

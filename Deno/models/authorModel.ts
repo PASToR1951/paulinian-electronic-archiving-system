@@ -105,12 +105,12 @@ export class AuthorModel {
   }
 
   /**
-   * Update an author
-   * @param id Author ID
-   * @param updates Fields to update
-   * @returns Updated author or null if update failed
+   * Update an author's data
+   * @param authorId The ID of the author to update
+   * @param updateData The data to update
+   * @returns The updated author, or null if not found
    */
-  static async update(id: string, updates: Partial<Author>): Promise<Author | null> {
+  static async update(authorId: string, updateData: Partial<Author>): Promise<Author | null> {
     try {
       // Build SET clause and values dynamically based on provided updates
       const setValues: string[] = [];
@@ -118,9 +118,9 @@ export class AuthorModel {
       let paramCount = 1;
       
       // Add updated_at to the updates
-      updates.updated_at = new Date();
+      updateData.updated_at = new Date();
       
-      Object.entries(updates).forEach(([key, value]) => {
+      Object.entries(updateData).forEach(([key, value]) => {
         if (key !== 'id' && key !== 'created_at' && value !== undefined) {
           setValues.push(`${key} = $${paramCount}`);
           values.push(value);
@@ -129,10 +129,10 @@ export class AuthorModel {
       });
       
       if (setValues.length === 0) {
-        return await this.getById(id); // Nothing to update
+        return await this.getById(authorId); // Nothing to update
       }
       
-      values.push(id); // Add id as the last parameter
+      values.push(authorId); // Add id as the last parameter
       
       const result = await client.queryObject<Author>(
         `UPDATE authors
@@ -146,6 +146,27 @@ export class AuthorModel {
     } catch (error) {
       console.error("Error updating author:", error);
       return null;
+    }
+  }
+
+  /**
+   * Update an author's ID
+   * @param oldId The current ID of the author
+   * @param newId The new ID to set
+   * @returns Boolean indicating success
+   */
+  static async updateId(oldId: string, newId: string): Promise<boolean> {
+    try {
+      // Update the ID in the database
+      const result = await client.queryObject(
+        `UPDATE authors SET id = $1 WHERE id = $2 RETURNING *`,
+        [newId, oldId]
+      );
+      
+      return result.rows.length > 0;
+    } catch (error) {
+      console.error(`Error updating author ID from ${oldId} to ${newId}:`, error);
+      throw error;
     }
   }
 
