@@ -23,6 +23,8 @@ export interface Document {
   is_compiled?: boolean;
   child_count?: number;
   parent_compiled_id?: number | null;
+  start_year?: number;
+  end_year?: number;
 }
 
 interface Author {
@@ -63,6 +65,27 @@ export interface CompiledDocument {
 }
 
 /**
+ * Normalize document type to ensure it's a valid enum value
+ * @param documentType The document type to normalize
+ * @returns A valid uppercase document type enum value
+ */
+function normalizeDocumentType(documentType: string): string {
+  // Convert to uppercase
+  const upperType = documentType.toUpperCase();
+  
+  // Check if it's one of the valid enum values
+  const validTypes = ['THESIS', 'DISSERTATION', 'CONFLUENCE', 'SYNERGY'];
+  
+  if (validTypes.includes(upperType)) {
+    return upperType;
+  }
+  
+  // If not valid, map to a suitable default based on context
+  console.warn(`Invalid document_type "${documentType}" normalized to default "CONFLUENCE"`);
+  return 'CONFLUENCE';
+}
+
+/**
  * Fetches documents from the database with filtering, sorting, and pagination
  * Handles both regular and compiled documents in a single query
  */
@@ -70,7 +93,7 @@ export async function fetchDocuments(
   options: DocumentOptions = {}
 ): Promise<DocumentsResponse> {
   try {
-    console.log(`Fetching documents with options: ${JSON.stringify(options)}`);
+    console.log(`[DB] Fetching documents with options: ${JSON.stringify(options)}`);
     
     const {
       page = 1,
@@ -111,7 +134,8 @@ export async function fetchDocuments(
     // For category filtering in documents
     let categoryDocWhereClause = '';
     if (category && category !== 'All') {
-      categoryDocWhereClause = `AND d.document_type = $${paramIndex}::document_type`;
+      // Use text comparison instead of direct type casting
+      categoryDocWhereClause = `AND LOWER((d.document_type)::TEXT) = LOWER($${paramIndex})`;
       params.push(category);
       paramIndex++;
     }
@@ -119,7 +143,9 @@ export async function fetchDocuments(
     // For category filtering in compiled documents
     let categoryCompWhereClause = '';
     if (category && category !== 'All') {
-      categoryCompWhereClause = `AND cd.category ILIKE $${paramIndex}`;
+      // Use text comparison without direct type casting
+      categoryCompWhereClause = `AND (LOWER((cd.category)::TEXT) = LOWER($${paramIndex-1}) OR cd.category ILIKE $${paramIndex})`;
+      // Only add a new parameter for the LIKE clause
       params.push(`%${category}%`);
       paramIndex++;
     }
@@ -134,69 +160,67 @@ export async function fetchDocuments(
           COALESCE(d.title, 'Untitled Document')::TEXT as title,
           COALESCE(d.description, '')::TEXT as description,
         d.publication_date, 
-        d.document_type,
+        (d.document_type)::TEXT as document_type,
           COALESCE(d.volume, '')::TEXT as volume,
           COALESCE(d.issue, '')::TEXT as issue,
+          NULL as start_year,
+          NULL as end_year,
           'document'::TEXT as doc_source,
           false as is_parent,
+          false as is_compiled,
+          d.compiled_parent_id as parent_id,
           (
             SELECT COUNT(*) 
             FROM compiled_document_items cdi 
             WHERE cdi.compiled_document_id = d.id
           )::BIGINT as child_count,
-          NULL::BIGINT as parent_id
+          d.deleted_at
       FROM 
         documents d
       WHERE 
-          NOT EXISTS (
-            SELECT 1 
-            FROM compiled_document_items cdi 
-            WHERE cdi.document_id = d.id
-          )
+          -- Only include documents without compiled_parent_id for main document list
+          d.compiled_parent_id IS NULL
+          -- Exclude archived documents
+          AND d.deleted_at IS NULL
           ${categoryDocWhereClause}
           ${searchWhereClause}
           
         UNION ALL
         
-        -- Compiled documents from compiled_documents table with DISTINCT ON to avoid duplicates  
-        SELECT DISTINCT ON (cd.category, cd.volume, cd.start_year, cd.end_year)
+        -- Compiled documents from the compiled_documents table directly
+        SELECT
           cd.id,
-          CASE 
-            WHEN cd.category IS NOT NULL THEN 
-              CONCAT(cd.category, ' Vol. ', 
-                CASE WHEN cd.volume IS NOT NULL THEN CAST(cd.volume AS TEXT) ELSE '' END,
-                CASE 
-                  WHEN cd.start_year IS NOT NULL AND cd.end_year IS NOT NULL 
-                  THEN CONCAT(' (', cd.start_year, '-', cd.end_year, ')')
-                  WHEN cd.start_year IS NOT NULL 
-                  THEN CONCAT(' (', cd.start_year, ')')
-                  ELSE ''
-                END
-              )
-            ELSE 'Compiled Publication'
-          END::TEXT as title,
+          CONCAT(
+            COALESCE(cd.category, ''),
+            ' Vol. ',
+            COALESCE(CAST(cd.volume AS TEXT), ''),
+            CASE 
+              WHEN cd.start_year IS NOT NULL AND cd.end_year IS NOT NULL THEN CONCAT(' (', cd.start_year, '-', cd.end_year, ')')
+              WHEN cd.start_year IS NOT NULL THEN CONCAT(' (', cd.start_year, ')')
+              ELSE ''
+            END
+          )::TEXT as title,
           ''::TEXT as description,
           NULL as publication_date,
-          'CONFLUENCE'::document_type as document_type,
-          CASE WHEN cd.volume IS NOT NULL THEN CAST(cd.volume AS TEXT) ELSE NULL END as volume,
-          CASE WHEN cd.issue_number IS NOT NULL THEN CAST(cd.issue_number AS TEXT) ELSE NULL END as issue,
+          (COALESCE(cd.category, 'CONFLUENCE'))::TEXT as document_type,
+          COALESCE(CAST(cd.volume AS TEXT), '')::TEXT as volume,
+          COALESCE(CAST(cd.issue_number AS TEXT), '')::TEXT as issue,
+          cd.start_year,
+          cd.end_year,
           'compiled'::TEXT as doc_source,
           true as is_parent,
+          true as is_compiled,
+          NULL::BIGINT as parent_id,
           (
             SELECT COUNT(*) 
             FROM compiled_document_items cdi 
             WHERE cdi.compiled_document_id = cd.id
           )::BIGINT as child_count,
-          NULL::BIGINT as parent_id
+          NULL::TIMESTAMP as deleted_at
         FROM 
           compiled_documents cd
         WHERE 
-          EXISTS (
-            SELECT 1 
-            FROM compiled_document_items cdi 
-            WHERE cdi.compiled_document_id = cd.id
-          )
-          ${categoryCompWhereClause}
+          1=1 ${categoryCompWhereClause}
       ),
       count_query AS (
         SELECT COUNT(*) as total_count FROM combined_docs
@@ -214,12 +238,50 @@ export async function fetchDocuments(
       LIMIT ${limit} OFFSET ${(page - 1) * limit}
     `;
     
-    console.log(`Executing combined query with params:`, params);
+    console.log(`[DB] Executing combined query with params:`, params);
+    // Output full SQL for debugging
+    console.log(`[DB] FULL SQL QUERY:\n${query}`);
     
     const result = await client.queryObject(query, params);
-    console.log(`Query returned ${result.rowCount} rows`);
+    console.log(`[DB] Query returned ${result.rowCount} rows`);
     
-    if (result.rowCount === 0) {
+    // Check the first few results for deleted_at values
+    if (result.rows && result.rows.length > 0) {
+      console.log(`[DB] First 3 results from database:`);
+      result.rows.slice(0, 3).forEach((row: any, index) => {
+        console.log(`[DB] Row ${index}:`, {
+          id: row.id, 
+          title: row.title?.substring(0, 30) + '...',
+          is_compiled: row.is_compiled,
+          deleted_at: row.deleted_at,
+          deleted_at_type: typeof row.deleted_at
+        });
+      });
+    }
+    
+    // If no results in the combined query, check if we have compiled documents in the database
+    if (result.rowCount === undefined || result.rowCount === 0 || result.rowCount < 5) {
+      console.log(`[DB] Few or no results returned (${result.rowCount ?? 0}), checking for compiled documents separately...`);
+      
+      // Direct query to check if we have compiled documents in the database
+      const compiledCheckQuery = `
+        SELECT cd.id, cd.category, cd.volume, cd.start_year, cd.end_year, d.deleted_at 
+        FROM compiled_documents cd
+        LEFT JOIN documents d ON d.id = cd.id 
+        LIMIT 10
+      `;
+      
+      const compiledCheck = await client.queryObject(compiledCheckQuery);
+      console.log(`[DB] Found ${compiledCheck.rowCount ?? 0} compiled documents in direct check:`, 
+        compiledCheck.rows?.map((r: any) => ({ 
+          id: r.id, 
+          category: r.category, 
+          deleted: r.deleted_at ? 'Yes' : 'No' 
+        })) || []
+      );
+    }
+    
+    if (!result.rowCount) {
       return {
         documents: [],
         totalCount: 0,
@@ -236,24 +298,11 @@ export async function fetchDocuments(
     const documents: Document[] = [];
     
     for (const row of result.rows as any[]) {
-      console.log(`Processing ${row.doc_source} row:`, row);
-      
-      // Check if matched_child_documents exists and safely handle it
-      if (row.matched_child_documents) {
-        console.log('Row has matched_child_documents field, safely handling it');
-        // Just log it for debugging but don't use it directly to avoid serialization issues
-        try {
-          if (typeof row.matched_child_documents === 'string') {
-            console.log('matched_child_documents is a string');
-          } else if (Array.isArray(row.matched_child_documents)) {
-            console.log(`matched_child_documents is an array with ${row.matched_child_documents.length} items`);
-          } else if (typeof row.matched_child_documents === 'object') {
-            console.log('matched_child_documents is an object');
-          }
-        } catch (matchedError) {
-          console.error('Error processing matched_child_documents:', matchedError);
-        }
-      }
+      console.log(`[DB] Processing ${row.doc_source} row ID=${row.id}:`, {
+        deleted_at: row.deleted_at,
+        deleted_at_type: typeof row.deleted_at,
+        title: row.title?.substring(0, 30)
+      });
       
       // Create base document object
       const doc: Document = {
@@ -268,15 +317,25 @@ export async function fetchDocuments(
         topics: [],
         is_compiled: row.is_parent === true,
         child_count: parseInt(String(row.child_count || '0'), 10),
-        parent_compiled_id: row.parent_id
+        parent_compiled_id: row.parent_id,
+        start_year: row.start_year ? parseInt(String(row.start_year), 10) : undefined,
+        end_year: row.end_year ? parseInt(String(row.end_year), 10) : undefined
       };
+      
+      // Also add deleted_at explicitly for use in filtering
+      (doc as any).deleted_at = row.deleted_at;
+      
+      // Log if this document has deleted_at set
+      if (row.deleted_at) {
+        console.warn(`[DB] WARNING: Document ${doc.id} has deleted_at=${row.deleted_at} but is still included in results!`);
+      }
       
       // Add a doc_type property for frontend compatibility
       (doc as any).doc_type = row.document_type || '';
       
       // Skip child documents with no children if we're filtering by category
       if (doc.is_compiled && doc.child_count === 0 && category && category !== 'All') {
-        console.log(`Skipping empty compiled document ${doc.id} (${doc.title}) when filtering by category`);
+        console.log(`[DB] Skipping empty compiled document ${doc.id} (${doc.title}) when filtering by category`);
         continue;
       }
       
@@ -296,7 +355,7 @@ export async function fetchDocuments(
             full_name: author.full_name || '',
           }));
         } catch (error) {
-          console.error(`Error fetching authors for document ${doc.id}:`, error);
+          console.error(`[DB] Error fetching authors for document ${doc.id}:`, error);
           doc.authors = [];
         }
         
@@ -315,12 +374,18 @@ export async function fetchDocuments(
             name: topic.name || '',
           }));
         } catch (error) {
-          console.error(`Error fetching topics for document ${doc.id}:`, error);
+          console.error(`[DB] Error fetching topics for document ${doc.id}:`, error);
           doc.topics = [];
         }
       }
       
       documents.push(doc);
+    }
+    
+    // Add one final check for deleted documents
+    const deletedCount = documents.filter(doc => (doc as any).deleted_at).length;
+    if (deletedCount > 0) {
+      console.warn(`[DB] WARNING: Found ${deletedCount} documents with deleted_at set in final document array!`);
     }
     
     return {
@@ -330,7 +395,7 @@ export async function fetchDocuments(
       currentPage: page,
     };
   } catch (error) {
-    console.error('Error fetching documents:', error);
+    console.error('[DB] Error fetching documents:', error);
     return {
       documents: [],
       totalCount: 0,
@@ -350,8 +415,44 @@ export async function fetchChildDocuments(compiledDocId: number | string): Promi
   try {
     console.log(`Fetching child documents for compiled document ID: ${compiledDocId}`);
     
+    // First try to get child documents using the compiled_parent_id field (preferred method)
+    const primaryQuery = `
+      SELECT 
+        d.id, 
+        d.title,
+        d.description,
+        d.publication_date, 
+        d.document_type,
+        d.volume,
+        d.issue,
+        d.compiled_parent_id as parent_compiled_id
+      FROM 
+        documents d
+      WHERE 
+        d.compiled_parent_id = $1
+        AND d.deleted_at IS NULL
+      ORDER BY
+        d.publication_date DESC, d.id ASC
+    `;
+    
+    console.log(`Executing primary query using compiled_parent_id`);
+    const primaryResult = await client.queryObject(primaryQuery, [compiledDocId]);
+    console.log(`Primary query returned ${primaryResult.rowCount} rows`);
+    
+    // If we find documents using the primary method, use them
+    if (primaryResult.rowCount && primaryResult.rowCount > 0) {
+      console.log(`Found ${primaryResult.rowCount} child documents using compiled_parent_id`);
+      
+      // Process these results
+      const documents = await processChildDocuments(primaryResult.rows as any[]);
+      return { documents };
+    }
+    
+    // If no results from primary method, fall back to junction table
+    console.log(`No results using compiled_parent_id, falling back to junction table`);
+    
     // Query to get child documents for a compiled document using compiled_document_items
-    const query = `
+    const fallbackQuery = `
       SELECT 
         d.id, 
         d.title,
@@ -367,118 +468,95 @@ export async function fetchChildDocuments(compiledDocId: number | string): Promi
         compiled_document_items cdi ON d.id = cdi.document_id
       WHERE 
         cdi.compiled_document_id = $1
+        AND d.deleted_at IS NULL
       ORDER BY
         d.publication_date DESC, d.id ASC
     `;
     
-    console.log(`Executing query: ${query}`);
-    console.log(`Query parameters: [${compiledDocId}]`);
-    
-    const result = await client.queryObject(query, [compiledDocId]);
-    console.log(`Query returned ${result.rowCount} rows`);
-    
-    if (result.rowCount === 0) {
-      // If we didn't find any children through the junction table, try the compiled_parent_id field
-      const fallbackQuery = `
-        SELECT 
-          d.id, 
-          d.title,
-          d.description,
-          d.publication_date, 
-          d.document_type,
-          d.volume,
-          d.issue,
-          d.compiled_parent_id as parent_compiled_id
-        FROM 
-          documents d
-        WHERE 
-          d.compiled_parent_id = $1
-        ORDER BY
-          d.publication_date DESC, d.id ASC
-      `;
-      
-      console.log(`No children found via junction table. Trying fallback query with compiled_parent_id`);
-      const fallbackResult = await client.queryObject(fallbackQuery, [compiledDocId]);
-      console.log(`Fallback query returned ${fallbackResult.rowCount} rows`);
-      
-      if (fallbackResult.rowCount === 0) {
-        console.log(`No child documents found for compiled document ID: ${compiledDocId}`);
-        return { documents: [] };
-      }
-      
-      // Use the fallback results
-      result.rows = fallbackResult.rows;
-      result.rowCount = fallbackResult.rowCount;
-    }
+    console.log(`Executing fallback query using junction table`);
+    const fallbackResult = await client.queryObject(fallbackQuery, [compiledDocId]);
+    console.log(`Fallback query returned ${fallbackResult.rowCount} rows`);
     
     // Process documents to include authors and topics
-    const documents: Document[] = [];
-    for (const row of result.rows as any[]) {
-      // Convert to Document structure
-      const doc: Document = {
-        id: row.id,
-        title: row.title || '',
-        description: row.description || '',
-        publication_date: row.publication_date ? new Date(row.publication_date) : null,
-        document_type: row.document_type || '',
-        volume: row.volume || '',
-        issue: row.issue || '',
-        authors: [],
-        topics: [],
-        is_compiled: false,
-        parent_compiled_id: parseInt(String(row.parent_compiled_id), 10) || null
-      };
-      
-      // Add doc_type for frontend compatibility
-      (doc as any).doc_type = row.document_type || '';
-      
-      // Fetch authors for this document
-      try {
-        const authorsQuery = `
-          SELECT a.id, a.full_name
-          FROM authors a
-          JOIN document_authors da ON a.id = da.author_id
-          WHERE da.document_id = $1
-        `;
-        const authorsResult = await client.queryObject(authorsQuery, [doc.id]);
-        
-        doc.authors = (authorsResult.rows as any[]).map(author => ({
-          id: author.id,
-          full_name: author.full_name || ''
-        }));
-      } catch (error) {
-        console.error(`Error fetching authors for document ${doc.id}:`, error);
-        doc.authors = [];
-      }
-      
-      // Fetch topics for this document
-      try {
-        const topicsQuery = `
-          SELECT ra.id, ra.name
-          FROM research_agenda ra
-          JOIN document_research_agenda dra ON ra.id = dra.research_agenda_id
-          WHERE dra.document_id = $1
-        `;
-        const topicsResult = await client.queryObject(topicsQuery, [doc.id]);
-        
-        doc.topics = (topicsResult.rows as any[]).map(topic => ({
-          id: topic.id,
-          name: topic.name || ''
-        }));
-      } catch (error) {
-        console.error(`Error fetching topics for document ${doc.id}:`, error);
-        doc.topics = [];
-      }
-      
-      documents.push(doc);
-    }
-    
-    console.log(`Returning ${documents.length} child documents with details`);
+    const documents = await processChildDocuments(fallbackResult.rows as any[]);
     return { documents };
   } catch (error) {
     console.error(`Error fetching child documents for compiled document ID ${compiledDocId}:`, error);
     return { documents: [] };
   }
+}
+
+/**
+ * Helper function to process child document rows into full document objects
+ * @param rows Database result rows
+ * @returns Array of processed document objects
+ */
+async function processChildDocuments(rows: any[]): Promise<Document[]> {
+  const documents: Document[] = [];
+  
+  for (const row of rows) {
+    // Convert to Document structure
+    const doc: Document = {
+      id: row.id,
+      title: row.title || '',
+      description: row.description || '',
+      publication_date: row.publication_date ? new Date(row.publication_date) : null,
+      document_type: row.document_type || '',
+      volume: row.volume || '',
+      issue: row.issue || '',
+      authors: [],
+      topics: [],
+      is_compiled: false,
+      parent_compiled_id: parseInt(String(row.parent_compiled_id), 10) || null,
+      start_year: row.start_year ? parseInt(String(row.start_year), 10) : undefined,
+      end_year: row.end_year ? parseInt(String(row.end_year), 10) : undefined
+    };
+    
+    // Add doc_type for frontend compatibility
+    (doc as any).doc_type = row.document_type || '';
+    
+    // Fetch authors for this document
+    try {
+      const authorsQuery = `
+        SELECT a.id, a.full_name
+        FROM authors a
+        JOIN document_authors da ON a.id = da.author_id
+        WHERE da.document_id = $1
+      `;
+      const authorsResult = await client.queryObject(authorsQuery, [doc.id]);
+      
+      doc.authors = (authorsResult.rows as any[]).map(author => ({
+        id: author.id,
+        full_name: author.full_name || ''
+      }));
+    } catch (error) {
+      console.error(`Error fetching authors for document ${doc.id}:`, error);
+      doc.authors = [];
+    }
+    
+    // Fetch topics for this document
+    try {
+      const topicsQuery = `
+        SELECT ra.id, ra.name
+        FROM research_agenda ra
+        JOIN document_research_agenda dra ON ra.id = dra.research_agenda_id
+        WHERE dra.document_id = $1
+      `;
+      const topicsResult = await client.queryObject(topicsQuery, [doc.id]);
+      
+      doc.topics = (topicsResult.rows as any[]).map(topic => ({
+        id: topic.id,
+        name: topic.name || ''
+      }));
+    } catch (error) {
+      console.error(`Error fetching topics for document ${doc.id}:`, error);
+      doc.topics = [];
+    }
+    
+    documents.push(doc);
+  }
+  
+  return documents;
 }
 
 /**
@@ -499,74 +577,96 @@ export async function createCompiledDocument(
   documentIds: number[] = []
 ): Promise<number> {
   try {
-    console.log("-------------------------------------------");
-    console.log("📊 DATABASE: CREATING COMPILED DOCUMENT");
-    console.log("-------------------------------------------");
-    console.log(`📚 Category: ${compiledDoc.category || 'N/A'}`);
-    console.log(`📚 Volume: ${compiledDoc.volume || 'N/A'}`);
-    console.log(`📚 Year Range: ${compiledDoc.start_year || 'N/A'} - ${compiledDoc.end_year || 'N/A'}`);
-    console.log(`📚 Document IDs to link: ${documentIds.length > 0 ? documentIds.join(', ') : 'None'}`);
+    console.log(`Creating compiled document: ${JSON.stringify(compiledDoc)}`);
     
-    // Insert into compiled_documents table
-    const insertQuery = `
-      INSERT INTO compiled_documents (
-        start_year, end_year, volume, issue_number, department, category
-      ) VALUES (
-        $1, $2, $3, $4, $5, $6
-      ) RETURNING id
-    `;
+    // Start a transaction
+    await client.queryArray("BEGIN");
     
-    const result = await client.queryObject(insertQuery, [
-      compiledDoc.start_year || null,
-      compiledDoc.end_year || null,
-      compiledDoc.volume || null,
-      compiledDoc.issue_number || null,
-      compiledDoc.department || null,
-      compiledDoc.category || null
-    ]);
-    
-    // Safe type handling for the result
-    if (!result.rows.length) {
-      throw new Error("Failed to create compiled document - no ID returned");
-    }
-    
-    const row = result.rows[0] as Record<string, unknown>;
-    if (row.id === undefined) {
-      throw new Error("Failed to create compiled document - invalid ID returned");
-    }
-    
-    const compiledDocId = typeof row.id === 'bigint' ? Number(row.id) : Number(row.id);
-    
-    console.log(`Created compiled document with ID: ${compiledDocId}`);
-    console.log(`Successfully inserted into compiled_documents table with ID ${compiledDocId}`);
-    
-    // Associate document IDs with the compiled document if provided
-    if (documentIds.length > 0) {
-      console.log(`Adding ${documentIds.length} documents to compilation ${compiledDocId} via junction table`);
-      let successCount = 0;
-      let failCount = 0;
+    try {
+      // Generate a title for logging purposes
+      const documentTitle = `${compiledDoc.category || 'Compiled Document'} Vol. ${compiledDoc.volume || '1'}${compiledDoc.start_year ? ` (${compiledDoc.start_year})` : ''}`;
       
-      for (const docId of documentIds) {
-        try {
-          await addDocumentToCompilation(compiledDocId, docId);
-          successCount++;
-        } catch (error) {
-          console.error(`Failed to link document ${docId} to compilation ${compiledDocId}:`, error);
-          failCount++;
-        }
+      // Create the compiled document directly without creating a documents entry
+      const compiledQuery = `
+        INSERT INTO compiled_documents (
+          start_year, 
+          end_year, 
+          volume, 
+          issue_number, 
+          department, 
+          category,
+          created_at
+        ) 
+        VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
+        RETURNING id
+      `;
+      
+      const compiledParams = [
+        compiledDoc.start_year || null,
+        compiledDoc.end_year || null,
+        compiledDoc.volume || null,
+        compiledDoc.issue_number || null,
+        compiledDoc.department || null,
+        compiledDoc.category || 'CONFLUENCE'
+      ];
+      
+      const compiledResult = await client.queryObject(compiledQuery, compiledParams);
+      
+      if (!compiledResult.rows || compiledResult.rows.length === 0) {
+        throw new Error("Failed to create compiled document entry");
       }
       
-      console.log("-------------------------------------------");
-      console.log("📊 DATABASE: JUNCTION TABLE SUMMARY");
-      console.log("-------------------------------------------");
-      console.log(`✅ Successfully linked: ${successCount} documents`);
-      console.log(`❌ Failed to link: ${failCount} documents`);
-      console.log("-------------------------------------------");
-    } else {
-      console.log("No documents to link - skipping junction table operations");
+      const row = compiledResult.rows[0] as Record<string, unknown>;
+      const compiledDocId = typeof row.id === 'bigint' ? Number(row.id) : Number(row.id);
+      
+      console.log(`Successfully inserted into compiled_documents table with ID ${compiledDocId}`);
+      
+      // Associate document IDs with the compiled document if provided
+      if (documentIds.length > 0) {
+        console.log(`Setting compiled_parent_id for ${documentIds.length} documents to compilation ${compiledDocId}`);
+        let successCount = 0;
+        let failCount = 0;
+        
+        for (const docId of documentIds) {
+          try {
+            // Update the compiled_parent_id in the documents table
+            const updateQuery = `
+              UPDATE documents 
+              SET compiled_parent_id = $1
+              WHERE id = $2
+            `;
+            
+            await client.queryObject(updateQuery, [compiledDocId, docId]);
+            
+            // Also add to the junction table for backward compatibility
+            await addDocumentToCompilation(compiledDocId, docId);
+            
+            successCount++;
+          } catch (error) {
+            console.error(`Failed to link document ${docId} to compilation ${compiledDocId}:`, error);
+            failCount++;
+          }
+        }
+        
+        console.log("-------------------------------------------");
+        console.log("📊 DATABASE: DOCUMENT LINKING SUMMARY");
+        console.log("-------------------------------------------");
+        console.log(`✅ Successfully linked: ${successCount} documents`);
+        console.log(`❌ Failed to link: ${failCount} documents`);
+        console.log("-------------------------------------------");
+      } else {
+        console.log("No documents to link - skipping parent ID updates");
+      }
+      
+      // Commit the transaction
+      await client.queryArray("COMMIT");
+      
+      return compiledDocId;
+    } catch (error) {
+      // Rollback in case of any error
+      await client.queryArray("ROLLBACK");
+      throw error;
     }
-    
-    return compiledDocId;
   } catch (error) {
     console.error("Error creating compiled document:", error);
     throw error;

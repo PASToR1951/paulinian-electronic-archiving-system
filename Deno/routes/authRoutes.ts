@@ -148,10 +148,14 @@ const logout = async (ctx: RouterContext<any, any, any>) => {
     // If we have a token, try to delete it from the database
     if (token) {
       try {
-        // Log the token (safely)
-        const tokenStart = token.substring(0, 8);
-        const tokenEnd = token.length > 16 ? token.substring(token.length - 8) : '';
-        console.log(`Processing logout for token: ${tokenStart}...${tokenEnd}`);
+        // Log the token (safely) - adding type checking for string
+        if (typeof token === 'string') {
+          const tokenStart = token.substring(0, 8);
+          const tokenEnd = token.length > 16 ? token.substring(token.length - 8) : '';
+          console.log(`Processing logout for token: ${tokenStart}...${tokenEnd}`);
+        } else {
+          console.log(`Processing logout for non-string token type: ${typeof token}`);
+        }
         
         // Try to delete the token from the database
         const success = await sessionService.deleteSessionToken(token);

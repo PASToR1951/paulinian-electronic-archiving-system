@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archived Documents</title>
+   
+    <link rel="stylesheet" href="css/archive_documents.css">
+    <link rel="stylesheet" href="css/side_bar.css">
+    <link rel="stylesheet" href="css/navbar_header.css">
+ 
+    <!-- Add loading indicator styles -->
+    <style>
+        .loading-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #666;
+            font-size: 16px;
+            gap: 10px;
+            background-color: rgba(255,255,255,0.8);
+            border-radius: 8px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .loading-indicator i {
+            color: #008035;
+            font-size: 24px;
+        }
+        
+        .document-cards-container.loading {
+            position: relative;
+            min-height: 200px;
+        }
+        
+        .error-message {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            color: #e74c3c;
+            text-align: center;
+        }
+        
+        .error-message i {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .no-docs {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 50px 20px;
+            color: #666;
+            text-align: center;
+        }
+        
+        .no-docs i {
+            margin-bottom: 20px;
+            color: #999;
+        }
+        
+        .no-docs p {
+            margin: 5px 0;
+        }
+        
+        .no-docs .small {
+            font-size: 14px;
+            color: #999;
+        }
+    </style>
+  
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  </head>
+
+<body class="archive-mode">
+     <!-- Navbar container -->
+    <div id="navbar-header"></div>
+  <!-- Sidebar container -->
+  <div id="sidebar-container"></div>
+  
+ 
+
+  <!-- Archive banner -->
+  <div class="archive-banner">
+    <div class="archive-actions">
+      <button id="return-to-docs" class="btn btn-primary" onclick="returnToDocuments()">
+        <i class="fas fa-arrow-left"></i> Return to Documents
+      </button>
+    </div>
+  </div>
+
+  <!-- Rest of your HTML content -->
+    <div class="docs-container">
+        <div class="category-container">
+            <div class="category-header archive-header">
+                <div class="label">
+                    <span>Archived Documents</span>
+                </div>
+                
+                <div class="search-container">
+                    <div class="search-input-wrapper">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="search-documents" class="search-input" placeholder="Search archived documents...">
+                    </div>
+                
+                    <div class="sort-container">
+                        <select id="sort-order" class="sort-dropdown">
+                            <option value="latest">Latest to Earliest</option>
+                            <option value="earliest">Earliest to Latest</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Category filter icons instead of dropdown -->
+            <div class="category-inner">
+                <!-- All category to show all documents -->
+                <div class="category" data-category="All">
+                    <div class="category-icon">
+                        <img src="icons/Category-icons/default_category_icon.png" alt="All Icon" class="category-png-icon">
+                    </div>
+                    <div class="category-details">
+                        <div class="category-name">All</div>
+                        <div class="category-file-count">0 files</div>
+                    </div>
+                </div>
+                
+                <!-- Categories remain static, but file counts will update dynamically -->
+                <div class="category" data-category="Confluence">
+                    <div class="category-icon">
+                        <img src="icons/Category-icons/confluence.png" alt="Confluence Icon" class="category-png-icon">
+                    </div>
+                    <div class="category-details">
+                        <div class="category-name">Confluence</div>
+                        <div class="category-file-count">0 files</div>
+                    </div>
+                </div>
+
+                <div class="category" data-category="Synergy">
+                    <div class="category-icon">
+                        <img src="icons/Category-icons/synergy.png" alt="Synergy Icon" class="category-png-icon">
+                    </div>
+                    <div class="category-details">
+                        <div class="category-name">Synergy</div>
+                        <div class="category-file-count">0 files</div>
+                    </div>
+                </div>
+
+                <div class="category" data-category="Dissertation">
+                    <div class="category-icon">
+                        <img src="icons/Category-icons/dissertation.png" alt="Dissertation Icon" class="category-png-icon">
+                    </div>
+                    <div class="category-details">
+                        <div class="category-name">Dissertation</div>
+                        <div class="category-file-count">0 files</div>
+                    </div>
+                </div>
+
+                <div class="category" data-category="Thesis">
+                    <div class="category-icon">
+                        <img src="icons/Category-icons/thesis.png" alt="Thesis Icon" class="category-png-icon">
+                    </div>
+                    <div class="category-details">
+                        <div class="category-name">Thesis</div>
+                        <div class="category-file-count">0 files</div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+
+        <div id="documents-container" class="document-cards-container archive-mode">
+            <div id="no-docs-message" class="no-docs">No archived documents found</div>
+        </div>
+
+        <div class="pagination">
+            <div id="entries-info" class="entries-info"></div>
+            <div id="page-links" class="page-links"></div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="success-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+                <path fill="#4caf50" d="M44,24c0,11.045-8.955,20-20,20S4,35.045,4,24S12.955,4,24,4S44,12.955,44,24z"></path>
+                <path fill="#ccff90" d="M34.602,14.602L21,28.199l-5.602-5.598l-2.797,2.797L21,33.801l16.398-16.402L34.602,14.602z"></path>
+            </svg>
+            <h2>Restored successfully!</h2>
+            <p>The document has been restored and is now accessible to users.</p>
+        </div>
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        fetch('./side_bar.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('sidebar-container').innerHTML = data;
+                
+                // Initialize sidebar functionality after loading
+                if (typeof highlightActiveSidebarLink === 'function') {
+                  highlightActiveSidebarLink();
+                }
+                
+                // Setup logout if it exists
+                if (typeof setupLogout === 'function') {
+                  setupLogout();
+                }
+            })
+            .catch(error => console.error('Error loading sidebar:', error));
+
+        fetch('./navbar_header.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('navbar-header').innerHTML = data;
+            })
+            .catch(error => console.error('Error loading navbar:', error));
+            
+        // Setup return to documents button
+        const returnBtn = document.getElementById('return-to-docs');
+        if (returnBtn) {
+          returnBtn.addEventListener('click', function() {
+            window.location.href = 'documents_list.html';
+          });
+        }
+      });
+      
+      // Function to return to regular documents page
+      function returnToDocuments() {
+        window.location.href = 'documents_list.html';
+      }
+    </script>
+
+    <!-- Load modular JS files -->
+    <script src="js/document-utils.js"></script>
+    <script src="js/archive-list.js"></script>
+    <script src="js/side_bar.js"></script>
+</body>
+
+</html> 

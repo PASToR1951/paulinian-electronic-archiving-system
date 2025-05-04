@@ -13,7 +13,7 @@ function filterByCategory(categoryName) {
     console.log(`Filtering by category: ${categoryName}`);
     
     // Check if we're clicking the already active category
-    const isActiveCategory = document.querySelector(`.category[data-category="${categoryName}"].active`) !== null;
+    const isActiveCategory = document.querySelector(`.category-card[data-category="${categoryName}"].active`) !== null;
     
     if (isActiveCategory) {
         // If clicking the active category, clear the filter and set to All
@@ -21,12 +21,12 @@ function filterByCategory(categoryName) {
         currentCategoryFilter = null;
         
         // Remove active class from all categories
-        document.querySelectorAll('.category').forEach(btn => {
+        document.querySelectorAll('.category-card').forEach(btn => {
             btn.classList.remove('active');
         });
         
         // Set "All" category as active
-        document.querySelector('.category[data-category="All"]').classList.add('active');
+        document.querySelector('.category-card[data-category="All"]').classList.add('active');
     } else {
         // Convert display category names to document_type ENUM values for API
         const categoryTypeMap = {
@@ -43,7 +43,7 @@ function filterByCategory(categoryName) {
         console.log(`Mapped category from ${categoryName} to ${currentCategoryFilter}`);
         
         // Update active category styling
-        document.querySelectorAll('.category').forEach(btn => {
+        document.querySelectorAll('.category-card').forEach(btn => {
             btn.classList.toggle('active', btn.getAttribute('data-category') === categoryName);
         });
     }
@@ -62,7 +62,7 @@ function filterByCategory(categoryName) {
 function setupCategoryFilters() {
     console.log('Setting up category filters');
     
-    document.querySelectorAll('.category').forEach(btn => {
+    document.querySelectorAll('.category-card').forEach(btn => {
         btn.addEventListener('click', () => {
             const category = btn.getAttribute('data-category');
             filterByCategory(category);
@@ -108,7 +108,7 @@ function updateCategoryCounts(categories) {
     });
     
     // Update the "All" category count
-    const allCountElement = document.querySelector('.category[data-category="All"] .category-file-count');
+    const allCountElement = document.querySelector('.category-card[data-category="All"] .category-count');
     if (allCountElement) {
         allCountElement.textContent = `${totalDocs} files`;
     }
@@ -126,7 +126,7 @@ function updateCategoryCounts(categories) {
         // Use the display name mapped from document_type
         const displayName = typeDisplayMap[category.name] || category.name;
         console.log(`Updating count for category: ${category.name} -> ${displayName} with count: ${category.count}`);
-        const countElement = document.querySelector(`.category[data-category="${displayName}"] .category-file-count`);
+        const countElement = document.querySelector(`.category-card[data-category="${displayName}"] .category-count`);
         if (countElement) {
             countElement.textContent = `${category.count} ${category.count === 1 ? 'file' : 'files'}`;
         } else {
@@ -176,7 +176,7 @@ function setupPaginationControls() {
  * @param {number} totalPages - Total number of pages
  */
 function updatePagination(totalPages) {
-    console.log(`Updating pagination for ${totalPages} total pages`);
+    console.log(`Updating pagination for ${totalPages} total pages, current page: ${currentPage}`);
     
     const pageLinks = document.getElementById('page-links');
     if (!pageLinks) return;
@@ -191,39 +191,86 @@ function updatePagination(totalPages) {
     
     // Previous button
     const prevButton = document.createElement('button');
-    prevButton.classList.add('page-link', 'prev');
+    prevButton.classList.add('page-link', 'prev-button');
     prevButton.innerHTML = '<i class="fas fa-chevron-left"></i>';
     prevButton.disabled = currentPage === 1;
     prevButton.setAttribute('data-page', Math.max(1, currentPage - 1));
+    prevButton.setAttribute('aria-label', 'Previous page');
+    prevButton.title = 'Previous page';
     pageLinks.appendChild(prevButton);
     
     // Determine which page numbers to show
     let startPage = Math.max(1, currentPage - 2);
     let endPage = Math.min(totalPages, startPage + 4);
     
+    // Adjust start page if we're near the end
     if (endPage - startPage < 4) {
         startPage = Math.max(1, endPage - 4);
+    }
+    
+    // First page button (if not in range)
+    if (startPage > 1) {
+        const firstPageButton = document.createElement('button');
+        firstPageButton.classList.add('page-link', 'page-number');
+        firstPageButton.textContent = '1';
+        firstPageButton.setAttribute('data-page', 1);
+        pageLinks.appendChild(firstPageButton);
+        
+        // Add ellipsis if there's a gap
+        if (startPage > 2) {
+            const ellipsis = document.createElement('span');
+            ellipsis.classList.add('page-ellipsis');
+            ellipsis.textContent = '...';
+            pageLinks.appendChild(ellipsis);
+        }
     }
     
     // Page number buttons
     for (let i = startPage; i <= endPage; i++) {
         const pageButton = document.createElement('button');
-        pageButton.classList.add('page-link');
+        pageButton.classList.add('page-link', 'page-number');
         if (i === currentPage) {
             pageButton.classList.add('active');
         }
         pageButton.textContent = i;
         pageButton.setAttribute('data-page', i);
+        pageButton.setAttribute('aria-label', `Page ${i}`);
+        pageButton.title = `Go to page ${i}`;
+        if (i === currentPage) {
+            pageButton.setAttribute('aria-current', 'page');
+        }
         pageLinks.appendChild(pageButton);
+    }
+    
+    // Last page button (if not in range)
+    if (endPage < totalPages) {
+        // Add ellipsis if there's a gap
+        if (endPage < totalPages - 1) {
+            const ellipsis = document.createElement('span');
+            ellipsis.classList.add('page-ellipsis');
+            ellipsis.textContent = '...';
+            pageLinks.appendChild(ellipsis);
+        }
+        
+        const lastPageButton = document.createElement('button');
+        lastPageButton.classList.add('page-link', 'page-number');
+        lastPageButton.textContent = totalPages;
+        lastPageButton.setAttribute('data-page', totalPages);
+        pageLinks.appendChild(lastPageButton);
     }
     
     // Next button
     const nextButton = document.createElement('button');
-    nextButton.classList.add('page-link', 'next');
+    nextButton.classList.add('page-link', 'next-button');
     nextButton.innerHTML = '<i class="fas fa-chevron-right"></i>';
     nextButton.disabled = currentPage === totalPages;
     nextButton.setAttribute('data-page', Math.min(totalPages, currentPage + 1));
+    nextButton.setAttribute('aria-label', 'Next page');
+    nextButton.title = 'Next page';
     pageLinks.appendChild(nextButton);
+    
+    // Update entries info
+    updateEntriesInfo();
 }
 
 /**
@@ -308,9 +355,22 @@ function getCurrentPage() {
 function setupSearchInput() {
     const searchInput = document.getElementById('search-documents');
     if (searchInput) {
+        // Function to toggle search icon visibility
+        const toggleSearchIcon = () => {
+            const searchIcon = document.querySelector('.search-icon');
+            if (searchIcon) {
+                searchIcon.style.opacity = searchInput.value.trim() ? '0' : '1';
+                searchIcon.style.visibility = searchInput.value.trim() ? 'hidden' : 'visible';
+            }
+        };
+        
+        // Check icon visibility on input changes
         searchInput.addEventListener('input', function() {
             currentSearchQuery = this.value.trim();
             currentPage = 1; // Reset to first page when searching
+            
+            // Toggle search icon visibility
+            toggleSearchIcon();
             
             if (window.documentList && window.documentList.loadDocuments) {
                 // Store the search query so we can process it after loading documents
@@ -320,6 +380,9 @@ function setupSearchInput() {
                 window.documentList.loadDocuments(1, true);
             }
         });
+        
+        // Also check on initial load
+        toggleSearchIcon();
     }
 }
 
@@ -337,7 +400,7 @@ function getCurrentSearchQuery() {
 function resetFilters() {
     // Reset category filter
     currentCategoryFilter = null;
-    document.querySelectorAll('.category').forEach(btn => {
+    document.querySelectorAll('.category-card').forEach(btn => {
         btn.classList.remove('active');
     });
     

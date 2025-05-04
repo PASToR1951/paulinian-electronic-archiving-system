@@ -25,8 +25,15 @@ window.compiledDocumentEdit = {
     // Function to confirm deletion of a compiled document
     confirmDeleteCompiledDocument: function(documentId) {
         console.log(`Confirming deletion of compiled document ${documentId}`);
-        if (confirm(`Are you sure you want to delete this compiled document and all its children?`)) {
-            alert(`Delete functionality for compiled document ${documentId} is coming soon.`);
+        // Check if archiveDocument function exists in the documentArchive namespace
+        if (window.documentArchive && typeof window.documentArchive.archiveDocument === 'function') {
+            // Use the existing archiveDocument function which already handles compiled documents
+            window.documentArchive.archiveDocument(documentId);
+        } else {
+            // Fallback to a basic confirmation if archiveDocument is not available
+            if (confirm(`Are you sure you want to delete this compiled document and all its children?`)) {
+                alert(`Unable to delete. Archive functionality is not available.`);
+            }
         }
     }
 };

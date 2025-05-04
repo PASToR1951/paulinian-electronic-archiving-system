@@ -4,110 +4,178 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>System Logs</title>
-    <link rel="stylesheet" href="css/admin_logs.css">
     <link rel="stylesheet" href="css/side_bar.css">
     <link rel="stylesheet" href="css/navbar_header.css">
-    <link rel="stylesheet" href="css/logs_layout.css">
+    <link rel="stylesheet" href="css/admin_logs.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide-react@0.292.0/dist/umd/lucide-react.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        // Use 'Inter' font
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    
   </head>
-<body>
-    <div id="side-bar"> 
+  <body>
+    <!-- Sidebar container -->
+  <div id="sidebar-container"></div>
   
+  <!-- Navbar container -->
+  <div id="navbar-header"></div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <div class="bg-white shadow-md rounded-lg overflow-hidden log-card">
+            <div class="p-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                    <svg class="lucide lucide-download h-5 w-5 mr-2 text-purple-600" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                    Downloads
+                </h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead>
+                        <tr>
+                            <th class="w-16">NO</th>
+                            <th>TIMESTAMP</th>
+                            <th>USER</th>
+                            <th>FILE</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        <tr>
+                            <td class="text-center text-gray-500">1</td>
+                            <td>2024-12-20 10:05:00</td>
+                            <td class="font-medium text-gray-700">Jane Doe</td>
+                            <td class="italic">thesis.pdf</td>
+                        </tr>
+                        <tr>
+                            <td class="text-center text-gray-500">2</td>
+                            <td>2024-12-21 14:30:15</td>
+                            <td class="font-medium text-gray-700">John Doe</td>
+                            <td class="italic">project_brief.docx</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg overflow-hidden log-card">
+            <div class="p-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                    <svg class="lucide lucide-log-in h-5 w-5 mr-2 text-green-600" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+                    User Logins
+                </h2>
+            </div>
+             <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead>
+                        <tr>
+                            <th class="w-16">NO</th>
+                            <th>TIMESTAMP</th>
+                            <th>USER</th>
+                            <th>STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        <tr>
+                            <td class="text-center text-gray-500">1</td>
+                            <td>2024-12-20 10:00:00</td>
+                            <td class="font-medium text-gray-700">John Doe</td>
+                            <td>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                    Success
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-center text-gray-500">2</td>
+                            <td>2024-12-20 09:55:15</td>
+                            <td class="font-medium text-gray-700">Jane Doe</td>
+                            <td>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                    Failed
+                                </span>
+                            </td>
+                        </tr>
+                         </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg overflow-hidden log-card lg:col-span-2"> <div class="p-4 border-b border-gray-200">
+                 <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                    <svg class="lucide lucide-save h-5 w-5 mr-2 text-blue-600" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    Saved Documents
+                </h2>
+            </div>
+             <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead>
+                        <tr>
+                            <th class="w-16">NO</th>
+                            <th>TIMESTAMP</th>
+                            <th>USER</th>
+                            <th>DOCUMENT</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        <tr>
+                           <td class="text-center text-gray-500">1</td>
+                            <td>2024-12-20 10:10:00</td>
+                            <td class="font-medium text-gray-700">John Doe</td>
+                            <td class="italic">research_paper.pdf</td>
+                        </tr>
+                        <tr>
+                           <td class="text-center text-gray-500">2</td>
+                            <td>2024-12-21 11:05:30</td>
+                            <td class="font-medium text-gray-700">Jane Doe</td>
+                            <td class="italic">meeting_notes_v2.txt</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          fetch('./side_bar.html')
+              .then(response => response.text())
+              .then(data => {
+                  document.getElementById('sidebar-container').innerHTML = data;
+                  
+                  // Initialize sidebar functionality after loading
+                  if (typeof highlightActiveSidebarLink === 'function') {
+                    highlightActiveSidebarLink();
+                  }
+                  
+                  // Setup logout if it exists
+                  if (typeof setupLogout === 'function') {
+                    setupLogout();
+                  }
+              })
+              .catch(error => console.error('Error loading sidebar:', error));
   
-    <div id="navbar-header"> 
-    
-    </div>
-    
-    <div class="logs-container">
-        
-        <!-- User Logins Section -->
-        <div class="logs-section user-logins">
-            <h2>User Logins</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>No</th>
-                        <th>Timestamp</th>
-                        <th>User</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>1</td>
-                        <td>2024-12-20 10:00:00</td>
-                        <td>JohnDoe</td>
-                        <td style="color: green;">Success</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Downloads Section -->
-        <div class="logs-section">
-            <h2>Downloads</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>No</th>
-                        <th>Timestamp</th>
-                        <th>User</th>
-                        <th>File</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>1</td>
-                        <td>2024-12-20 10:05:00</td>
-                        <td>JaneDoe</td>
-                        <td>thesis.pdf</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Saved Documents Section -->
-        <div class="logs-section">
-            <h2>Saved Documents</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>No</th>
-                        <th>Timestamp</th>
-                        <th>User</th>
-                        <th>Document</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>1</td>
-                        <td>2024-12-20 10:10:00</td>
-                        <td>JohnDoe</td>
-                        <td>research_paper.pdf</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    
-
-    <script>
-        fetch('./side_bar.html')
-          .then(response => response.text())
-          .then(data => {
-            document.getElementById('side-bar').innerHTML = data;
-          })
-          .catch(error => console.error('Error loading sidebar:', error));
-    </script>
-    
-    <script>
-        fetch('./navbar_header.html')
-          .then(response => response.text())
-          .then(data => {
-            document.getElementById('navbar-header').innerHTML = data;
-          })
-          .catch(error => console.error('Error loading navbar:', error));
-    </script>
+          fetch('./navbar_header.html')
+              .then(response => response.text())
+              .then(data => {
+                  document.getElementById('navbar-header').innerHTML = data;
+              })
+              .catch(error => console.error('Error loading navbar:', error));
+        });
+      </script>
 </body>
 </html>
+

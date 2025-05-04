@@ -14,6 +14,8 @@
     <link rel="stylesheet" href="css/preview.css">
   
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+
   </head>
 
 <body>
@@ -29,9 +31,6 @@
             <div class="category-header">
                 <div class="label">
                     Categories
-                    <button id="archive-btn" class="archive-btn" title="View Archived Documents">
-                        <i class="fas fa-archive"></i>
-                    </button>
                 </div>
                 
                 <div class="search-container">
@@ -49,61 +48,64 @@
                 </div>
             </div>
             
-            <!-- Category filter icons instead of dropdown -->
-            <div class="category-inner">
-                <!-- All category to show all documents -->
-                <div class="category" data-category="All">
+            <!-- Redesigned category section with card layout -->
+            <div class="category-cards-wrapper">
+                <!-- All category -->
+                <div class="category-card" data-category="All">
                     <div class="category-icon">
-                        <img src="icons/Category-icons/default_category_icon.png" alt="All Icon" class="category-png-icon">
+                        <img src="icons/Category-icons/default_category_icon.png" alt="All Icon">
                     </div>
-                    <div class="category-details">
+                    <div class="category-info">
                         <div class="category-name">All</div>
-                        <div class="category-file-count">0 files</div>
+                        <div class="category-count">0 files</div>
                     </div>
                 </div>
                 
-                <!-- Categories remain static, but file counts will update dynamically -->
-                <div class="category" data-category="Confluence">
+                <!-- Confluence category -->
+                <div class="category-card" data-category="Confluence">
                     <div class="category-icon">
-                        <img src="icons/Category-icons/confluence.png" alt="Confluence Icon" class="category-png-icon">
+                        <img src="icons/Category-icons/confluence.png" alt="Confluence Icon">
                     </div>
-                    <div class="category-details">
+                    <div class="category-info">
                         <div class="category-name">Confluence</div>
-                        <div class="category-file-count">0 files</div>
+                        <div class="category-count">0 files</div>
                     </div>
                 </div>
 
-                <div class="category" data-category="Synergy">
+                <!-- Synergy category -->
+                <div class="category-card" data-category="Synergy">
                     <div class="category-icon">
-                        <img src="icons/Category-icons/synergy.png" alt="Synergy Icon" class="category-png-icon">
+                        <img src="icons/Category-icons/synergy.png" alt="Synergy Icon">
                     </div>
-                    <div class="category-details">
+                    <div class="category-info">
                         <div class="category-name">Synergy</div>
-                        <div class="category-file-count">0 files</div>
+                        <div class="category-count">0 files</div>
                     </div>
                 </div>
 
-                <div class="category" data-category="Dissertation">
+                <!-- Dissertation category -->
+                <div class="category-card" data-category="Dissertation">
                     <div class="category-icon">
-                        <img src="icons/Category-icons/dissertation.png" alt="Dissertation Icon" class="category-png-icon">
+                        <img src="icons/Category-icons/dissertation.png" alt="Dissertation Icon">
                     </div>
-                    <div class="category-details">
+                    <div class="category-info">
                         <div class="category-name">Dissertation</div>
-                        <div class="category-file-count">0 files</div>
+                        <div class="category-count">0 files</div>
                     </div>
                 </div>
 
-                <div class="category" data-category="Thesis">
+                <!-- Thesis category -->
+                <div class="category-card" data-category="Thesis">
                     <div class="category-icon">
-                        <img src="icons/Category-icons/thesis.png" alt="Thesis Icon" class="category-png-icon">
+                        <img src="icons/Category-icons/thesis.png" alt="Thesis Icon">
                     </div>
-                    <div class="category-details">
+                    <div class="category-info">
                         <div class="category-name">Thesis</div>
-                        <div class="category-file-count">0 files</div>
+                        <div class="category-count">0 files</div>
                     </div>
                 </div>
-                
             </div>
+
         </div>
 
         <div id="documents-container" class="document-cards-container">
@@ -443,17 +445,9 @@
     <script src="js/document-preview.js"></script>
     <script src="js/document-edit.js"></script>
     <script src="js/compiled-document-edit.js"></script>
-    <script src="js/document-archive.js"></script>
     <script src="js/side_bar.js"></script>
 
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        // Initialize archive functionality
-        if (window.documentArchive && typeof window.documentArchive.initializeArchive === 'function') {
-          window.documentArchive.initializeArchive();
-        }
-      });
-    </script>
+
 </body>
 
 </html>

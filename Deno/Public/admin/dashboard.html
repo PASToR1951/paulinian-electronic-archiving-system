@@ -4,20 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard</title>
-  <!-- Load all CSS first with absolute paths -->
-  <link rel="stylesheet" href="Components/css/dashboard.css">
-  <link rel="stylesheet" href="Components/css/page_header.css">
-  <link rel="stylesheet" href="Components/css/side_bar.css">
-  <link rel="stylesheet" href="Components/css/navbar_header.css">
-  <link rel="stylesheet" href="Components/css/chart.css">
+  <!-- Load all CSS with correct paths -->
+  <link rel="stylesheet" href="/admin/Components/css/dashboard.css">
+  <link rel="stylesheet" href="/admin/Components/css/side_bar.css">
+  <link rel="stylesheet" href="/admin/Components/css/navbar_header.css">
+  <link rel="stylesheet" href="/admin/Components/css/chart.css">
   <!-- Then load JavaScript -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="/Components/js/dashboard.js"></script>
+  <script src="/admin/Components/js/dashboard.js"></script>
   <script src="/admin/Components/js/side_bar.js"></script>
 </head>
 <body>
   
-    <div id="side-bar"> 
+    <div id="sidebar-container"> 
   
     </div>
   
@@ -162,36 +161,36 @@
       <div class="works-summary">
         <div class="works-by-type">
           <div class="work-count">
-            <span class="count">Loading...</span>
-            <span class="label">Works</span>
             <div class="work-icon confluence">
                 <img src="/admin/Components/icons/Category-icons/confluence.png" alt="Confluence Icon"> 
             </div>
             <span class="work-type confluence-text">Confluence</span>
-        </div>
-        <div class="work-count">
             <span class="count">Loading...</span>
             <span class="label">Works</span>
+        </div>
+        <div class="work-count">
             <div class="work-icon dissertation">
                 <img src="/admin/Components/icons/Category-icons/dissertation.png" alt="Dissertation Icon">
             </div>
             <span class="work-type dissertation-text">Dissertation</span>
-        </div>
-        <div class="work-count">
             <span class="count">Loading...</span>
             <span class="label">Works</span>
+        </div>
+        <div class="work-count">
             <div class="work-icon thesis">
                 <img src="/admin/Components/icons/Category-icons/thesis.png" alt="Thesis Icon">
             </div>
             <span class="work-type thesis-text">Thesis</span>
-        </div>
-        <div class="work-count">
             <span class="count">Loading...</span>
             <span class="label">Works</span>
+        </div>
+        <div class="work-count">
             <div class="work-icon synergy">
                 <img src="/admin/Components/icons/Category-icons/synergy.png" alt="Synergy Icon">
             </div>
             <span class="work-type synergy-text">Synergy</span>
+            <span class="count">Loading...</span>
+            <span class="label">Works</span>
         </div>
         </div>
         <div class="total-works">
@@ -400,30 +399,39 @@
     });
   }
 
-  // Fix capitalization in the path (Components, not components)
-  fetch('./Components/side_bar.html')
-      .then(response => response.text())
-      .then(data => {
-          document.getElementById('side-bar').innerHTML = data;
-          // Add event listeners to the logout buttons after sidebar is loaded
-          setTimeout(() => {
-            const logoutButtons = document.querySelectorAll('.logout-btn, a[href="javascript:void(0)"][onclick*="handleLogout"]');
-            logoutButtons.forEach(btn => {
-              btn.removeEventListener('click', window.handleLogout);
-              btn.addEventListener('click', window.handleLogout);
-              console.log('Logout button found and listener attached in dashboard');
-            });
-          }, 100);
-      })
-      .catch(error => console.error('Error loading sidebar:', error));
+  // Use the correct paths to load sidebar and navbar
+  fetch('/admin/Components/side_bar.html')
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Failed to load sidebar: ${response.status}`);
+      }
+      return response.text();
+    })
+    .then(data => {
+      document.getElementById('sidebar-container').innerHTML = data;
+      // Add event listeners to the logout buttons after sidebar is loaded
+      setTimeout(() => {
+        const logoutButtons = document.querySelectorAll('.logout-btn, a[href="javascript:void(0)"][onclick*="handleLogout"]');
+        logoutButtons.forEach(btn => {
+          btn.removeEventListener('click', window.handleLogout);
+          btn.addEventListener('click', window.handleLogout);
+          console.log('Logout button found and listener attached in dashboard');
+        });
+      }, 100);
+    })
+    .catch(error => console.error('Error loading sidebar:', error));
 
-  // Also fix this capitalization
-  fetch('./Components/navbar_header.html')
-      .then(response => response.text())
-      .then(data => {
-          document.getElementById('navbar-header').innerHTML = data;
-      })
-      .catch(error => console.error('Error loading navbar:', error));
+  fetch('/admin/Components/navbar_header.html')
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Failed to load navbar: ${response.status}`);
+      }
+      return response.text();
+    })
+    .then(data => {
+      document.getElementById('navbar-header').innerHTML = data;
+    })
+    .catch(error => console.error('Error loading navbar:', error));
 </script>
 
 

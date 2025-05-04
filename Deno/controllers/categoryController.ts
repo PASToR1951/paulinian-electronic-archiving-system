@@ -20,9 +20,14 @@ export async function getCategories(ctx: Context) {
         document_type as name, 
         COUNT(*) as count
       FROM 
-        documents 
+        documents d
       WHERE 
         deleted_at IS NULL
+        -- Exclude compiled documents (parents) by checking if they exist in the compiled_documents table
+        AND NOT EXISTS (
+          SELECT 1 FROM compiled_documents cd
+          WHERE cd.id = d.id
+        )
       GROUP BY 
         document_type
       ORDER BY 

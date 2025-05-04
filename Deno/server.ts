@@ -24,6 +24,7 @@ import { getDocumentAuthors } from "./controllers/documentAuthorController.ts";
 import { AuthorModel } from "./models/authorModel.ts";
 import { DocumentModel } from "./models/documentModel.ts";
 import { ResearchAgendaModel } from "./models/researchAgendaModel.ts";
+import { router as archivedDocsRouter } from "./api/archived-docs.ts"; // Import archived documents router
 
 // -----------------------------
 // SECTION: Configuration
@@ -129,125 +130,112 @@ router.get("/api/category", async (ctx) => {
   ctx.response.body = await response.json();
 });
 
-// Get documents with sorting and filtering
+// Add document routes directly
 router.get("/api/documents", async (ctx) => {
   try {
+    // Extract query parameters
     const url = new URL(ctx.request.url);
-    const page = parseInt(url.searchParams.get("page") || "1");
-    const limit = parseInt(url.searchParams.get("size") || "10");
+    const rawPage = url.searchParams.get("page") || "1";
+    const rawLimit = url.searchParams.get("size") || "10";
     const sort = url.searchParams.get("sort") || "latest";
     const category = url.searchParams.get("category") || null;
     const search = url.searchParams.get("search") || null;
     
-    let order = 'DESC';
-    let orderBy = 'created_at';
+    console.log(`[SERVER] Document request: page=${rawPage}, size=${rawLimit}, sort=${sort}, category=${category || 'All'}, search=${search || 'none'}`);
     
-    console.log(`Handling /api/documents request with params: category=${category}, page=${page}, limit=${limit}, sort=${sort}, order=${order}, search=${search}`);
+    // Validate page and limit parameters
+    const page = parseInt(rawPage);
+    const limit = parseInt(rawLimit);
     
-    // Determine sort column and direction
-    switch (sort) {
-      case 'latest':
-        orderBy = 'created_at';
-        order = 'DESC';
-        break;
-      case 'earliest':
-        orderBy = 'created_at';
-        order = 'ASC';
-        break;
-      case 'title_asc':
-        orderBy = 'title';
-        order = 'ASC';
-        break;
-      case 'title_desc':
-        orderBy = 'title';
-        order = 'DESC';
-        break;
-      case 'author_asc':
-      case 'author_desc':
-        // Author sorting requires a join, handled in the query below
-        orderBy = 'author';
-        order = sort === 'author_asc' ? 'ASC' : 'DESC';
-        break;
+    if (isNaN(page) || page < 1) {
+      ctx.response.status = 400;
+      ctx.response.body = { error: "Invalid page parameter" };
+      return;
     }
     
-    // Construct the SQL query based on parameters
-    let queryBase = '';
-    let countQueryBase = '';
-    const params: any[] = [];
-    
-    if (orderBy === 'author') {
-      // When sorting by author, we need a join with the authors table
-      queryBase = `
-        SELECT DISTINCT d.*
-        FROM documents d
-        LEFT JOIN document_authors da ON d.id = da.document_id
-        LEFT JOIN authors a ON da.author_id = a.id
-        WHERE d.deleted_at IS NULL
-      `;
-      countQueryBase = `
-        SELECT COUNT(DISTINCT d.id)
-        FROM documents d
-        LEFT JOIN document_authors da ON d.id = da.document_id
-        LEFT JOIN authors a ON da.author_id = a.id
-        WHERE d.deleted_at IS NULL
-      `;
-    } else {
-      // Standard query for other sorting options
-      queryBase = "SELECT * FROM documents WHERE deleted_at IS NULL";
-      countQueryBase = "SELECT COUNT(*) FROM documents WHERE deleted_at IS NULL";
+    if (isNaN(limit) || limit < 1 || limit > 50) {
+      ctx.response.status = 400;
+      ctx.response.body = { error: "Invalid limit parameter" };
+      return;
     }
     
-    // Add category filter if specified
-    if (category && category !== "All") {
-      queryBase += " AND document_type = $1";
-      countQueryBase += " AND document_type = $1";
-      params.push(category.toUpperCase());
+    const response = await fetchDocuments({
+      page,
+      limit,
+      category,
+      search,
+      sort: sort === "latest" ? "publication_date" : "publication_date",
+      order: sort === "latest" ? "DESC" : "ASC"
+    });
+    
+    console.log(`[SERVER] Got ${response.documents?.length || 0} documents from database`);
+    
+    // Detailed logging
+    if (response.documents && response.documents.length > 0) {
+      console.log(`[SERVER] First few documents from DB:`);
+      response.documents.slice(0, 3).forEach(doc => {
+        console.log(`[SERVER] Document ID=${doc.id}, Title="${doc.title}", is_compiled=${doc.is_compiled}, deleted_at=${doc.deleted_at || 'NULL'}`);
+      });
     }
     
-    // Add search filter if specified
-    if (search) {
-      const searchParam = `%${search}%`;
-      if (params.length > 0) {
-        queryBase += ` AND (title ILIKE $${params.length + 1} OR description ILIKE $${params.length + 1})`;
-        countQueryBase += ` AND (title ILIKE $${params.length + 1} OR description ILIKE $${params.length + 1})`;
+    // Make sure all documents are filtered to exclude deleted items
+    if (response.documents) {
+      console.log(`[SERVER] Starting to filter ${response.documents.length} documents`);
+      
+      // Check for compiled documents that might be deleted
+      const filteredDocuments = response.documents.filter(doc => {
+        // Debug
+        console.log(`[SERVER] Filtering document ID=${doc.id}, deleted_at=${doc.deleted_at || 'NULL'}, is_compiled=${doc.is_compiled}`);
+        
+        // If document has deleted_at timestamp, it should be filtered out
+        if (doc.deleted_at) {
+          console.warn(`[SERVER] Filtering out document ${doc.id} with deleted_at set: ${doc.deleted_at}`);
+          return false;
+        }
+        
+        // For compiled documents, check the delete status differently
+        if (doc.is_compiled === true) {
+          console.log(`[SERVER] Special check for compiled document ${doc.id}, deleted_at=${doc.deleted_at || 'NULL'}`);
+          // Only filter out if we know for sure it's deleted
+          if (doc.deleted_at !== null && doc.deleted_at !== undefined) {
+            console.warn(`[SERVER] Filtering out compiled document ${doc.id} with deleted_at set`);
+            return false;
+          }
+          // If deleted_at is null/undefined, keep the document
+          console.log(`[SERVER] Keeping compiled document ${doc.id} (deleted_at is ${doc.deleted_at === null ? 'null' : 'undefined'})`);
+          return true;
+        }
+        
+        console.log(`[SERVER] Keeping regular document ${doc.id} (no deleted_at)`);
+        return true;
+      });
+      
+      // Log any discrepancies
+      if (filteredDocuments.length !== response.documents.length) {
+        console.warn(`[SERVER] Filtered out ${response.documents.length - filteredDocuments.length} deleted documents that were incorrectly returned`);
       } else {
-        queryBase += " AND (title ILIKE $1 OR description ILIKE $1)";
-        countQueryBase += " AND (title ILIKE $1 OR description ILIKE $1)";
+        console.log(`[SERVER] No documents were filtered out`);
       }
-      params.push(searchParam);
+      
+      // Replace documents with filtered list
+      response.documents = filteredDocuments;
     }
     
-    // Add ORDER BY clause
-    if (orderBy === 'author') {
-      queryBase += ` ORDER BY a.full_name ${order}, d.title ASC`;
-    } else {
-      queryBase += ` ORDER BY ${orderBy} ${order}`;
-    }
-    
-    // Add pagination
-    const offset = (page - 1) * limit;
-    queryBase += ` LIMIT ${limit} OFFSET ${offset}`;
-    
-    // Execute count query first to get total documents
-    const countResult = await client.queryObject(countQueryBase, params);
-    const totalDocuments = parseInt(countResult.rows[0].count.toString());
-    const totalPages = Math.ceil(totalDocuments / limit);
-    
-    // Execute main query
-    const result = await client.queryObject(queryBase, params);
-    const documents = result.rows;
-    
-    // Return results with pagination info
+    // Return the data
     ctx.response.body = {
-      documents,
-      totalDocuments,
-      totalPages,
-      currentPage: page
+      documents: response.documents,
+      totalPages: response.totalPages,
+      totalDocuments: response.totalCount,
+      page
     };
+    console.log(`[SERVER] Finished processing request, returning ${response.documents?.length || 0} documents`);
   } catch (error) {
-    console.error("Error fetching documents:", error);
+    console.error("[SERVER] Error fetching documents:", error);
     ctx.response.status = 500;
-    ctx.response.body = { error: "Failed to fetch documents" };
+    ctx.response.body = {
+      error: "Failed to fetch documents",
+      details: error instanceof Error ? error.message : "Unknown error"
+    };
   }
 });
 
@@ -545,7 +533,7 @@ router.get("/api/compiled-documents/:compiledDocId/sync-authors", async (ctx) =>
     const childDocs = childDocsResponse.documents;
 
     if (!childDocs || childDocs.length === 0) {
-      ctx.response.status = 200;
+    ctx.response.status = 200;
       ctx.response.body = { 
         message: 'No child documents found for this compiled document',
         compiledDocId,
@@ -698,8 +686,8 @@ router.post("/api/document-research-agenda/link", async (ctx) => {
     );
     
     if (result.success) {
-      ctx.response.status = 200;
-      ctx.response.body = { 
+    ctx.response.status = 200;
+    ctx.response.body = { 
         message: `Linked ${result.linkedIds.length} research agenda items to document ${body.document_id}`,
         linked_items: result.linkedIds
       };
@@ -717,131 +705,271 @@ router.post("/api/document-research-agenda/link", async (ctx) => {
   }
 });
 
-// Get archived documents
-router.get("/api/documents/archived", async (ctx) => {
+// API endpoint to fetch archived documents
+router.get("/api/archived-docs", async (ctx) => {
   try {
+    // Extract query parameters
     const url = new URL(ctx.request.url);
-    const page = parseInt(url.searchParams.get("page") || "1");
-    const limit = parseInt(url.searchParams.get("limit") || "10");
+    const rawPage = url.searchParams.get("page") || "1";
+    const rawLimit = url.searchParams.get("limit") || "10";
     const sort = url.searchParams.get("sort") || "latest";
-    const category = url.searchParams.get("category") || null;
-    const search = url.searchParams.get("search") || null;
+    let category = url.searchParams.get("category") || null;
     
-    let order = 'DESC';
-    let orderBy = 'deleted_at'; // Default sort by archive date
+    console.log(`[ARCHIVE API] Raw request parameters: page=${rawPage}, limit=${rawLimit}, sort=${sort}, category=${category}`);
     
-    // Determine sort column and direction
-    switch (sort) {
-      case 'latest':
-        orderBy = 'deleted_at';
-        order = 'DESC';
-        break;
-      case 'earliest':
-        orderBy = 'deleted_at';
-        order = 'ASC';
-        break;
-      case 'title_asc':
-        orderBy = 'title';
-        order = 'ASC';
-        break;
-      case 'title_desc':
-        orderBy = 'title';
-        order = 'DESC';
-        break;
-      case 'author_asc':
-      case 'author_desc':
-        orderBy = 'author';
-        order = sort === 'author_asc' ? 'ASC' : 'DESC';
-        break;
+    // Clean up category parameter
+    if (category === "" || category === "All" || category === "undefined" || category === "null") {
+      category = null;
     }
     
-    // Construct the SQL query
-    let queryBase = '';
-    let countQueryBase = '';
-    const params: any[] = [];
+    // Validate parameters
+    const page = parseInt(rawPage);
+    const limit = parseInt(rawLimit);
     
-    if (orderBy === 'author') {
-      // When sorting by author, we need a join with the authors table
-      queryBase = `
-        SELECT DISTINCT d.*
-        FROM documents d
-        LEFT JOIN document_authors da ON d.id = da.document_id
-        LEFT JOIN authors a ON da.author_id = a.id
-        WHERE d.deleted_at IS NOT NULL
-      `;
-      countQueryBase = `
-        SELECT COUNT(DISTINCT d.id)
-        FROM documents d
-        LEFT JOIN document_authors da ON d.id = da.document_id
-        LEFT JOIN authors a ON da.author_id = a.id
-        WHERE d.deleted_at IS NOT NULL
-      `;
-    } else {
-      // Standard query for other sorting options
-      queryBase = "SELECT * FROM documents WHERE deleted_at IS NOT NULL";
-      countQueryBase = "SELECT COUNT(*) FROM documents WHERE deleted_at IS NOT NULL";
+    if (isNaN(page) || page < 1) {
+      ctx.response.status = 400;
+      ctx.response.body = { error: "Invalid page parameter" };
+      return;
     }
     
-    // Add category filter if specified
-    if (category && category !== "All") {
-      queryBase += " AND document_type = $1";
-      countQueryBase += " AND document_type = $1";
-      params.push(category.toUpperCase());
+    if (isNaN(limit) || limit < 1 || limit > 100) {
+      ctx.response.status = 400;
+      ctx.response.body = { error: "Invalid limit parameter" };
+      return;
     }
     
-    // Add search filter if specified
-    if (search) {
-      const searchParam = `%${search}%`;
-      if (params.length > 0) {
-        queryBase += ` AND (title ILIKE $${params.length + 1} OR description ILIKE $${params.length + 1})`;
-        countQueryBase += ` AND (title ILIKE $${params.length + 1} OR description ILIKE $${params.length + 1})`;
-      } else {
-        queryBase += " AND (title ILIKE $1 OR description ILIKE $1)";
-        countQueryBase += " AND (title ILIKE $1 OR description ILIKE $1)";
-      }
-      params.push(searchParam);
-    }
+    console.log(`[ARCHIVE API] Using page=${page}, limit=${limit}, sort=${sort}, category=${category || 'All'}`);
     
-    // Add ORDER BY clause
-    if (orderBy === 'author') {
-      queryBase += ` ORDER BY a.full_name ${order}, d.title ASC`;
-    } else {
-      queryBase += ` ORDER BY ${orderBy} ${order}`;
-    }
-    
-    // Add pagination
+    // Calculate offset for pagination
     const offset = (page - 1) * limit;
-    queryBase += ` LIMIT ${limit} OFFSET ${offset}`;
     
-    // Execute count query first to get total documents
-    const countResult = await client.queryObject(countQueryBase, params);
-    const totalDocuments = parseInt(countResult.rows[0].count.toString());
-    const totalPages = Math.ceil(totalDocuments / limit);
+    // First get all archived compiled documents - these are the "packages"
+    const compiledQuery = `
+      SELECT 
+        cd.id,
+        d.title,
+        d.document_type,
+        d.description,
+        d.publication_date,
+        d.deleted_at,
+        cd.volume,
+        cd.start_year,
+        cd.end_year,
+        cd.category,
+        cd.issue_number,
+        TRUE as is_compiled,
+        TRUE as is_package,
+        (
+          SELECT COUNT(*) 
+          FROM compiled_document_items cdi
+          JOIN documents child ON child.id = cdi.document_id
+          WHERE cdi.compiled_document_id = cd.id
+        ) as total_children_count,
+        (
+          SELECT COUNT(*) 
+          FROM compiled_document_items cdi
+          JOIN documents child ON child.id = cdi.document_id
+          WHERE cdi.compiled_document_id = cd.id
+          AND child.deleted_at IS NOT NULL
+        ) as archived_children_count
+      FROM 
+        compiled_documents cd
+      JOIN 
+        documents d ON d.id = cd.id
+      WHERE 
+        (d.deleted_at IS NOT NULL OR cd.deleted_at IS NOT NULL)
+        ${category ? 
+          "AND (LOWER((d.document_type)::TEXT) = LOWER($1) OR LOWER((cd.category)::TEXT) = LOWER($1))" : ""}
+      ORDER BY 
+        COALESCE(d.deleted_at, cd.deleted_at) DESC
+    `;
     
-    // Execute main query
-    const result = await client.queryObject(queryBase, params);
-    const documents = result.rows;
+    const compiledParams = category ? [category] : [];
+    console.log(`[ARCHIVE API] Executing compiled query with params:`, compiledParams);
     
-    // For each document, fetch the authors
-    for (const doc of documents) {
-      const authorsResult = await client.queryObject(
-        "SELECT a.* FROM authors a JOIN document_authors da ON a.id = da.author_id WHERE da.document_id = $1",
-        [doc.id]
-      );
-      doc.authors = authorsResult.rows;
+    const compiledResult = await client.queryObject(compiledQuery, compiledParams);
+    const compiledDocs = compiledResult.rows || [];
+    
+    console.log(`[ARCHIVE API] Found ${compiledDocs.length} archived compiled documents (packages)`);
+    
+    // Debug info - log all compiled docs
+    compiledDocs.forEach((doc, index) => {
+      console.log(`[ARCHIVE API] Compiled document ${index}: id=${doc.id}, title=${doc.title}, docs deleted_at=${doc.deleted_at}, is_compiled=${doc.is_compiled}`);
+    });
+    
+    // Get IDs of all archived compiled documents to use in our exclusion query
+    const archivedCompiledIds = compiledDocs.map((doc: any) => doc.id);
+    const compiledIdsStr = archivedCompiledIds.length > 0 
+      ? archivedCompiledIds.join(',') 
+      : "-1"; // Use -1 if there are no compiled docs to avoid SQL error
+    
+    // Format compiled documents
+    for (const doc of compiledDocs) {
+      if (!doc || typeof doc !== 'object') continue;
+      
+      // Make sure is_compiled and is_package flags are properly set to true
+      (doc as any).is_compiled = true;
+      (doc as any).is_package = true;
+      
+      // Format title for compiled documents if needed
+      if ((doc as any).category) {
+        const categoryName = (doc as any).category;
+        const volume = (doc as any).volume;
+        const issueNumber = (doc as any).issue_number;
+        const startYear = (doc as any).start_year;
+        const endYear = (doc as any).end_year;
+        
+        // Only build a formatted title if the existing title doesn't have the proper format
+        const currentTitle = (doc as any).title || '';
+        if (!currentTitle.includes('Vol.')) {
+          let formattedTitle = categoryName;
+          
+          if (volume) {
+            formattedTitle += ` Vol. ${volume}`;
+          }
+          
+          if (issueNumber) {
+            formattedTitle += `, Issue No. ${issueNumber}`;
+          }
+          
+          if (startYear) {
+            formattedTitle += ` (${startYear}${endYear ? `-${endYear}` : ''})`;
+          }
+          
+          (doc as any).title = formattedTitle;
+        }
+      }
+      
+      // Add children counter for the UI
+      (doc as any).child_count = (doc as any).archived_children_count || 0;
     }
     
-    // Return results with pagination info
-    ctx.response.body = {
-      documents,
-      totalDocuments,
-      totalPages,
-      currentPage: page
+    // Get child documents to display
+    const childDocumentsQuery = `
+      SELECT 
+        d.id,
+        d.title,
+        d.document_type,
+        d.description,
+        d.publication_date,
+        d.deleted_at,
+        cdi.compiled_document_id as parent_compiled_id,
+        pd.title as parent_title,
+        FALSE as is_compiled,
+        TRUE as is_child
+      FROM 
+        documents d
+      JOIN 
+        compiled_document_items cdi ON d.id = cdi.document_id
+      JOIN
+        documents pd ON pd.id = cdi.compiled_document_id
+      WHERE 
+        d.deleted_at IS NOT NULL
+        AND cdi.compiled_document_id IN (${compiledIdsStr})
+        ${category ? "AND LOWER((d.document_type)::TEXT) = LOWER($1)" : ""}
+      ORDER BY 
+        d.deleted_at DESC, d.title ASC
+    `;
+    
+    const childDocParams = category ? [category] : [];
+    let childDocs = [];
+    
+    if (archivedCompiledIds.length > 0) {
+      console.log(`[ARCHIVE API] Executing child docs query with params:`, childDocParams);
+      const childDocResult = await client.queryObject(childDocumentsQuery, childDocParams);
+      childDocs = childDocResult.rows || [];
+      console.log(`[ARCHIVE API] Found ${childDocs.length} child documents of archived compiled documents`);
+    }
+    
+    // Get archived regular documents, excluding child documents of archived compiled documents
+    const regDocQuery = `
+      SELECT 
+        d.id,
+        d.title,
+        d.document_type,
+        d.description,
+        d.publication_date,
+        d.deleted_at,
+        d.volume,
+        d.issue,
+        FALSE as is_compiled,
+        FALSE as is_child,
+        (
+          SELECT cdi.compiled_document_id
+          FROM compiled_document_items cdi
+          JOIN documents pd ON pd.id = cdi.compiled_document_id AND pd.deleted_at IS NULL
+          WHERE cdi.document_id = d.id
+          LIMIT 1
+        ) as parent_compiled_id,
+        (
+          SELECT pd.title
+          FROM compiled_document_items cdi
+          JOIN documents pd ON pd.id = cdi.compiled_document_id AND pd.deleted_at IS NULL
+          WHERE cdi.document_id = d.id
+          LIMIT 1
+        ) as parent_title
+      FROM 
+        documents d
+      WHERE 
+        d.deleted_at IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1
+          FROM compiled_document_items cdi
+          WHERE cdi.document_id = d.id
+          AND cdi.compiled_document_id IN (${compiledIdsStr})
+        )
+        ${category ? "AND LOWER((d.document_type)::TEXT) = LOWER($1)" : ""}
+      ORDER BY 
+        d.deleted_at DESC
+    `;
+    
+    const regDocParams = category ? [category] : [];
+    console.log(`[ARCHIVE API] Executing regular docs query with params:`, regDocParams);
+    const regDocResult = await client.queryObject(regDocQuery, regDocParams);
+    const regDocs = regDocResult.rows || [];
+    
+    console.log(`[ARCHIVE API] Found ${regDocs.length} archived regular documents`);
+    
+    // Identify orphaned children (children whose parents are not archived)
+    for (const doc of regDocs) {
+      if (!doc || typeof doc !== 'object') continue;
+      
+      // Mark as child document if it has a parent_compiled_id
+      if ((doc as any).parent_compiled_id) {
+        (doc as any).is_child = true;
+      }
+    }
+    
+    // Combine all documents
+    const allDocuments = [...compiledDocs, ...childDocs, ...regDocs];
+    
+    // Count total documents for pagination
+    const totalCount = allDocuments.length;
+    const totalPages = Math.ceil(totalCount / limit) || 1;
+    
+    // Apply pagination
+    const paginatedDocuments = allDocuments.slice(offset, offset + limit);
+    
+    console.log(`[ARCHIVE API] Returning ${paginatedDocuments.length} archived documents (page ${page} of ${totalPages})`);
+    
+    // Return data with expected field names for client compatibility
+    ctx.response.status = 200;
+    ctx.response.body = { 
+      documents: paginatedDocuments,
+      totalDocuments: totalCount,
+      total_pages: totalPages,  // Match the field name expected by the client
+      current_page: page,       // Match the field name expected by the client
+      limit,
+      category: category || 'All'
     };
+    
   } catch (error) {
-    console.error("Error fetching archived documents:", error);
+    console.error("[ARCHIVE API] Error fetching archived documents:", error instanceof Error ? error.message : String(error));
     ctx.response.status = 500;
-    ctx.response.body = { error: "Failed to fetch archived documents" };
+    ctx.response.body = {
+      error: "Failed to fetch archived documents",
+      details: error instanceof Error ? error.message : "Unknown error"
+    };
   }
 });
 
@@ -858,28 +986,115 @@ router.post("/api/documents/:id/restore", async (ctx) => {
     
     // Check if document exists and is deleted
     const checkQuery = "SELECT * FROM documents WHERE id = $1 AND deleted_at IS NOT NULL";
-    const checkResult = await client.queryObject<any>(checkQuery, [id]);
+    const checkResult = await client.queryObject(checkQuery, [id]);
     
+    // If document isn't marked as deleted in documents table, check compiled_documents
     if (checkResult.rows.length === 0) {
-      ctx.response.status = 404;
-      ctx.response.body = { error: "Archived document not found" };
-      return;
+      // Check if it's a compiled document marked as deleted in the compiled_documents table
+      const checkCompiledQuery = `
+        SELECT d.id, d.title, cd.deleted_at as cd_deleted_at
+        FROM documents d 
+        JOIN compiled_documents cd ON d.id = cd.id
+        WHERE d.id = $1 AND cd.deleted_at IS NOT NULL
+      `;
+      const checkCompiledResult = await client.queryObject(checkCompiledQuery, [id]);
+      
+      if (checkCompiledResult.rows.length === 0) {
+        ctx.response.status = 404;
+        ctx.response.body = { error: "Archived document not found" };
+        return;
+      }
+      
+      // Document is a compiled document with deleted_at in compiled_documents
+      console.log(`Found document ${id} marked as deleted in compiled_documents table`);
     }
     
-    // Restore document by setting deleted_at to null
-    const restoreQuery = "UPDATE documents SET deleted_at = NULL WHERE id = $1 RETURNING *";
-    const restoreResult = await client.queryObject<any>(restoreQuery, [id]);
+    // Check if this is a compiled document
+    const compiledCheckQuery = "SELECT id FROM compiled_documents WHERE id = $1";
+    const compiledCheckResult = await client.queryObject(compiledCheckQuery, [id]);
+    const isCompiled = compiledCheckResult.rows.length > 0;
+    const childDocuments = [];
     
-    ctx.response.body = {
-      message: "Document restored successfully",
-      document: restoreResult.rows[0]
-    };
+    // Start a transaction to ensure all operations succeed or fail together
+    await client.queryObject("BEGIN");
     
+    try {
+      if (isCompiled) {
+        console.log(`Restoring compiled document with ID: ${id}`);
+        
+        // Get the list of child documents for informational purposes
+        const childDocQuery = `
+          SELECT d.id, d.title 
+          FROM documents d 
+          JOIN compiled_document_items cdi ON d.id = cdi.document_id 
+          WHERE cdi.compiled_document_id = $1
+        `;
+        const childDocResult = await client.queryObject(childDocQuery, [id]);
+        
+        if (childDocResult.rows.length > 0) {
+          childDocuments.push(...childDocResult.rows);
+          console.log(`Child documents that will be restored with parent:`, 
+            childDocResult.rows.map((row: any) => `${row.id}: ${row.title}`).join(', ')
+          );
+          
+          // Restore all child documents as well (clear deleted_at)
+          const restoreChildrenQuery = `
+            UPDATE documents SET deleted_at = NULL
+            WHERE id IN (
+              SELECT document_id FROM compiled_document_items 
+              WHERE compiled_document_id = $1
+            )
+          `;
+          await client.queryObject(restoreChildrenQuery, [id]);
+          console.log(`Restored ${childDocResult.rows.length} child documents of compiled document ${id}`);
+        }
+        
+        // Also update the compiled_documents table to clear deleted_at
+        const restoreCompiledQuery = `
+          UPDATE compiled_documents SET deleted_at = NULL
+          WHERE id = $1
+          RETURNING id
+        `;
+        const restoreCompiledResult = await client.queryObject(restoreCompiledQuery, [id]);
+        console.log(`Updated compiled document entry: `, restoreCompiledResult.rows);
+      }
+      
+      // Restore document by setting deleted_at to null
+      const restoreQuery = "UPDATE documents SET deleted_at = NULL WHERE id = $1 RETURNING *";
+      const restoreResult = await client.queryObject(restoreQuery, [id]);
+      
+      if (restoreResult.rows.length === 0) {
+        // If no rows were updated in documents table, the document might not have been marked as deleted there
+        console.log(`No rows updated in documents table for ${id}, document might only be marked in compiled_documents`);
+      } else {
+        console.log(`Document ${id} successfully restored in documents table`);
+      }
+      
+      // Commit transaction
+      await client.queryObject("COMMIT");
+      
+      ctx.response.status = 200;
+      ctx.response.body = {
+        message: isCompiled 
+          ? `Compiled document and ${childDocuments.length} child documents restored successfully` 
+          : "Document restored successfully",
+        document: restoreResult.rows[0] || {id},
+        is_compiled: isCompiled,
+        child_count: childDocuments.length,
+        child_documents: childDocuments
+      };
+    } catch (error) {
+      // Rollback transaction if anything failed
+      await client.queryObject("ROLLBACK");
+      console.error(`Error during restore operation for document ${id}:`, error);
+      throw error;
+    }
   } catch (error) {
-    console.error("Error restoring document:", error);
+    console.error("Error restoring document:", error instanceof Error ? error.message : String(error));
     ctx.response.status = 500;
     ctx.response.body = {
-      error: "An error occurred while restoring the document"
+      error: "An error occurred while restoring the document",
+      details: error instanceof Error ? error.message : String(error)
     };
   }
 });
@@ -888,40 +1103,421 @@ router.post("/api/documents/:id/restore", async (ctx) => {
 router.delete("/api/documents/:id/soft-delete", async (ctx) => {
   try {
     const id = ctx.params.id;
+    console.log(`[ARCHIVE API] Attempting to soft-delete document with ID: ${id}`);
     
     if (!id) {
+      console.log("[ARCHIVE API] No document ID provided");
       ctx.response.status = 400;
       ctx.response.body = { error: "Document ID is required" };
       return;
     }
     
-    // Check if document exists and is not already deleted
-    const checkQuery = "SELECT * FROM documents WHERE id = $1 AND deleted_at IS NULL";
-    const checkResult = await client.queryObject(checkQuery);
+    // First check if document already deleted
+    const checkDeletedQuery = "SELECT deleted_at FROM documents WHERE id = $1";
+    const checkDeletedResult = await client.queryObject(checkDeletedQuery, [id]);
+    console.log(`[ARCHIVE API] Check deleted result:`, checkDeletedResult.rows);
     
-    if (checkResult.rows.length === 0) {
-      ctx.response.status = 404;
-      ctx.response.body = { error: "Document not found or already archived" };
+    if (checkDeletedResult.rows.length > 0 && checkDeletedResult.rows[0].deleted_at) {
+      console.log(`[ARCHIVE API] Document ID ${id} is already archived with deleted_at=${checkDeletedResult.rows[0].deleted_at}`);
+      ctx.response.status = 400;
+      ctx.response.body = { error: "Document is already archived" };
       return;
     }
     
-    // Soft delete the document by setting deleted_at to current timestamp
-    const deleteQuery = "UPDATE documents SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *";
-    const deleteResult = await client.queryObject(deleteQuery, [id]);
+    // Check if document exists 
+    const checkQuery = "SELECT * FROM documents WHERE id = $1";
+    const checkResult = await client.queryObject(checkQuery, [id]);
+    console.log(`[ARCHIVE API] Check result for document ID ${id}:`, checkResult.rows);
     
-    ctx.response.body = {
-      message: "Document archived successfully",
-      document: deleteResult.rows[0]
-    };
+    if (checkResult.rows.length === 0) {
+      console.log(`[ARCHIVE API] Document ID ${id} not found`);
+      ctx.response.status = 404;
+      ctx.response.body = { error: "Document not found" };
+      return;
+    }
+    
+    // Check if document is a child document of a compiled document
+    const childCheckQuery = `
+      SELECT * FROM compiled_document_items
+      WHERE document_id = $1
+    `;
+    const childCheckResult = await client.queryObject(childCheckQuery, [id]);
+    console.log(`[ARCHIVE API] Child check result for document ID ${id}:`, childCheckResult.rows);
+    
+    if (childCheckResult.rows.length > 0) {
+      // This is a child document, prevent individual deletion
+      console.log(`[ARCHIVE API] Document ID ${id} is a child document of compilation ${childCheckResult.rows[0].compiled_document_id}`);
+      ctx.response.status = 400;
+      ctx.response.body = { 
+        error: "Cannot archive individual child documents", 
+        message: "To archive this document, please archive the parent compiled document.",
+        parent_id: childCheckResult.rows[0].compiled_document_id
+      };
+      return;
+    }
+    
+    // Check if document is a compiled document
+    const compiledCheckQuery = `
+      SELECT id FROM compiled_documents 
+      WHERE id = $1
+    `;
+    const compiledCheckResult = await client.queryObject(compiledCheckQuery, [id]);
+    console.log(`[ARCHIVE API] Compiled check result for document ID ${id}:`, compiledCheckResult.rows);
+    
+    const isCompiled = compiledCheckResult.rows.length > 0;
+    let childDocuments: any[] = [];
+    
+    // Start transaction for clean operations
+    await client.queryObject("BEGIN");
+    try {
+      // If compiled, need to handle differently
+      if (isCompiled) {
+        console.log(`[ARCHIVE API] Document ID ${id} is a compiled document - proceeding with archiving`);
+        
+        // For compiled documents, get the list of child documents for informational purposes
+        const childDocQuery = `
+          SELECT d.id, d.title 
+          FROM documents d 
+          JOIN compiled_document_items cdi ON d.id = cdi.document_id 
+          WHERE cdi.compiled_document_id = $1
+        `;
+        const childDocResult = await client.queryObject(childDocQuery, [id]);
+        
+        if (childDocResult.rows.length > 0) {
+          childDocuments.push(...childDocResult.rows);
+          console.log(`[ARCHIVE API] Child documents that will be archived with parent:`, 
+            childDocResult.rows.map((row: any) => `${row.id}: ${row.title}`).join(', ')
+          );
+          
+          // Archive all child documents as well (set deleted_at)
+          const archiveChildrenQuery = `
+            UPDATE documents SET deleted_at = CURRENT_TIMESTAMP
+            WHERE id IN (
+              SELECT document_id FROM compiled_document_items 
+              WHERE compiled_document_id = $1
+            )
+            RETURNING id, deleted_at
+          `;
+          const archiveChildrenResult = await client.queryObject(archiveChildrenQuery, [id]);
+          console.log(`[ARCHIVE API] Archived ${childDocResult.rows.length} child documents of compiled document ${id}. Results:`, archiveChildrenResult.rows);
+          
+          // CRITICAL FIX: Also update the compiled_documents table to set deleted_at
+          // This ensures the parent document is properly marked as archived
+          const archiveCompiledDocQuery = `
+            UPDATE compiled_documents SET deleted_at = CURRENT_TIMESTAMP
+            WHERE id = $1
+            RETURNING id, deleted_at
+          `;
+          const archiveCompiledResult = await client.queryObject(archiveCompiledDocQuery, [id]);
+          console.log(`[ARCHIVE API] Updated compiled_documents entry: `, archiveCompiledResult.rows);
+        }
+      }
+      
+      // Soft delete the document by setting deleted_at to current timestamp
+      const deleteQuery = "UPDATE documents SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *";
+      const deleteResult = await client.queryObject(deleteQuery, [id]);
+      console.log(`[ARCHIVE API] Soft delete result for document ID ${id}:`, deleteResult.rows);
+      
+      if (deleteResult.rows.length === 0) {
+        throw new Error(`Failed to archive document ${id}`);
+      }
+      
+      // Commit the transaction if everything succeeded
+      await client.queryObject("COMMIT");
+      
+      // Verify the document is now properly deleted
+      const verifyQuery = "SELECT deleted_at FROM documents WHERE id = $1";
+      const verifyResult = await client.queryObject(verifyQuery, [id]);
+      if (verifyResult.rows.length > 0 && verifyResult.rows[0].deleted_at) {
+        console.log(`[ARCHIVE API] Verified document ${id} now has deleted_at=${verifyResult.rows[0].deleted_at}`);
+      } else {
+        console.warn(`[ARCHIVE API] WARNING: Failed to verify deletion of document ${id}`);
+      }
+      
+      // ADDITIONAL CHECK: If this is a compiled document, verify it's properly marked in both tables
+      if (isCompiled) {
+        const verifyCompiledQuery = "SELECT deleted_at FROM compiled_documents WHERE id = $1";
+        const verifyCompiledResult = await client.queryObject(verifyCompiledQuery, [id]);
+        
+        if (verifyCompiledResult.rows.length > 0 && verifyCompiledResult.rows[0].deleted_at) {
+          console.log(`[ARCHIVE API] Verified compiled document ${id} has deleted_at set in compiled_documents table`);
+        } else {
+          console.warn(`[ARCHIVE API] WARNING: compiled_documents entry for ${id} may not be properly marked as deleted`);
+        }
+      }
+      
+      ctx.response.status = 200;
+      ctx.response.body = { 
+        message: "Document archived successfully", 
+        document_id: id,
+        is_compiled: isCompiled,
+        child_count: childDocuments.length,
+        child_documents: childDocuments,
+        timestamp: new Date().toISOString()
+      };
+      
+    } catch (error) {
+      // Roll back transaction if anything failed
+      await client.queryObject("ROLLBACK");
+      console.error(`[ARCHIVE API] Error while archiving document ${id}:`, error);
+      ctx.response.status = 500;
+      ctx.response.body = { 
+        error: "Failed to archive document", 
+        message: error instanceof Error ? error.message : String(error)
+      };
+      return;
+    }
     
   } catch (error) {
-    console.error("Error archiving document:", error);
+    console.error(`[ARCHIVE API] Error in soft-delete endpoint:`, error);
     ctx.response.status = 500;
-    ctx.response.body = {
-      error: "An error occurred while archiving the document"
+    ctx.response.body = { 
+      error: "Server error", 
+      message: error instanceof Error ? error.message : String(error)
     };
   }
 });
+
+// Endpoint to fetch archived child documents of a compiled document
+router.get("/api/documents/:id/archived-children", async (ctx) => {
+  try {
+    // Get document ID from URL parameters
+    const documentId = ctx.params.id;
+    if (!documentId) {
+      ctx.response.status = 400;
+      ctx.response.body = { error: "Document ID is required" };
+      return;
+    }
+
+    console.log(`Fetching archived child documents for compiled document: ${documentId}`);
+    
+    // First check if the requested document is a compiled document
+    const compiledCheckQuery = `
+      SELECT cd.id, d.deleted_at 
+      FROM compiled_documents cd 
+      JOIN documents d ON d.id = cd.id 
+      WHERE cd.id = $1
+    `;
+    
+    const compiledDoc = await client.queryObject(compiledCheckQuery, [documentId]);
+    
+    if (compiledDoc.rows.length === 0) {
+      ctx.response.status = 404;
+      ctx.response.body = { error: "Compiled document not found" };
+      return;
+    }
+    
+    // Get all child documents of this compiled document that are archived (have deleted_at set)
+    const childQuery = `
+      SELECT 
+        d.id,
+        d.title,
+        d.document_type,
+        d.description,
+        d.publication_date,
+        d.deleted_at
+      FROM 
+        documents d
+      JOIN 
+        compiled_document_items cdi ON cdi.document_id = d.id
+      WHERE 
+        cdi.compiled_document_id = $1
+        AND d.deleted_at IS NOT NULL
+      ORDER BY 
+        d.title ASC
+    `;
+    
+    const result = await client.queryObject(childQuery, [documentId]);
+    const childDocuments = result.rows || [];
+    
+    console.log(`Found ${childDocuments.length} archived child documents for compiled document: ${documentId}`);
+    
+    // Get authors for each child document
+    for (const doc of childDocuments) {
+      if (!doc || typeof doc !== 'object') continue;
+      
+      const authorsQuery = `
+        SELECT 
+          a.id, a.first_name, a.last_name
+        FROM 
+          authors a
+        JOIN 
+          document_authors da ON da.author_id = a.id
+        WHERE 
+          da.document_id = $1
+      `;
+      
+      const authors = await client.queryObject(authorsQuery, [(doc as any).id]);
+      (doc as any).authors = authors.rows || [];
+    }
+    
+    ctx.response.status = 200;
+    ctx.response.body = { 
+      documents: childDocuments,
+      parentId: documentId
+    };
+    
+  } catch (error) {
+    console.error("Error fetching archived child documents:", error instanceof Error ? error.message : String(error));
+    ctx.response.status = 500;
+    ctx.response.body = { 
+      error: "Failed to fetch archived child documents",
+      details: error instanceof Error ? error.message : "Unknown error"
+    };
+  }
+});
+
+// Endpoint to fetch parent document info for a child document
+router.get("/api/documents/:id/parent-info", async (ctx) => {
+  try {
+    const documentId = ctx.params.id;
+    
+    if (!documentId) {
+      ctx.response.status = 400;
+      ctx.response.body = { error: "Document ID is required" };
+      return;
+    }
+    
+    console.log(`Fetching parent document info for document ID: ${documentId}`);
+    
+    // Check if this is a child document in a compilation
+    const checkQuery = `
+      SELECT 
+        cdi.compiled_document_id,
+        pd.title as parent_title,
+        pd.deleted_at
+      FROM 
+        compiled_document_items cdi
+      JOIN 
+        documents pd ON pd.id = cdi.compiled_document_id
+      WHERE 
+        cdi.document_id = $1
+      LIMIT 1
+    `;
+    
+    const result = await client.queryObject(checkQuery, [documentId]);
+    
+    if (result.rows.length === 0) {
+      ctx.response.status = 404;
+      ctx.response.body = { 
+        error: "No parent document found",
+        message: "This document is not part of a compilation"
+      };
+      return;
+    }
+    
+    const parentInfo = result.rows[0];
+    
+    ctx.response.status = 200;
+    ctx.response.body = {
+      child_id: documentId,
+      parent_id: parentInfo.compiled_document_id,
+      parent_title: parentInfo.parent_title,
+      parent_deleted_at: parentInfo.deleted_at
+    };
+    
+  } catch (error) {
+    console.error("Error fetching parent document info:", error);
+    ctx.response.status = 500;
+    ctx.response.body = { 
+      error: "Failed to fetch parent document info",
+      message: error instanceof Error ? error.message : String(error)
+    };
+  }
+});
+
+// Debug endpoint to check compiled documents
+router.get("/api/debug/compiled-docs", async (ctx) => {
+  try {
+    // Query to find all compiled documents regardless of deleted status
+    const compiledQuery = `
+      SELECT 
+        cd.id,
+        d.title,
+        d.document_type,
+        d.deleted_at,
+        TRUE as is_compiled,
+        TRUE as is_package,
+        (
+          SELECT COUNT(*) 
+          FROM compiled_document_items cdi
+          WHERE cdi.compiled_document_id = cd.id
+        ) as child_count
+      FROM 
+        compiled_documents cd
+      JOIN 
+        documents d ON d.id = cd.id
+      ORDER BY 
+        d.deleted_at DESC NULLS FIRST
+      LIMIT 20
+    `;
+    
+    const result = await client.queryObject(compiledQuery);
+    const compiledDocs = result.rows || [];
+    
+    // Count documents with deleted_at
+    const archivedCount = compiledDocs.filter((doc: any) => doc.deleted_at).length;
+    
+    ctx.response.status = 200;
+    ctx.response.body = {
+      total_compiled: compiledDocs.length,
+      archived_compiled: archivedCount,
+      documents: compiledDocs
+    };
+  } catch (error) {
+    console.error("Error in debug endpoint:", error instanceof Error ? error.message : String(error));
+    ctx.response.status = 500;
+    ctx.response.body = {
+      error: "Failed to fetch debug information",
+      details: error instanceof Error ? error.message : "Unknown error"
+    };
+  }
+});
+
+// Debug endpoint to check document types
+router.get("/api/debug/document-types", async (ctx) => {
+  try {
+    // Query to get all enum values for document_type
+    const enumQuery = `
+      SELECT 
+        pg_enum.enumlabel 
+      FROM 
+        pg_type JOIN pg_enum ON pg_enum.enumtypid = pg_type.oid 
+      WHERE 
+        pg_type.typname = 'document_type'
+      ORDER BY 
+        pg_enum.enumlabel
+    `;
+    
+    const result = await client.queryObject(enumQuery);
+    const types = result.rows || [];
+    
+    ctx.response.status = 200;
+    ctx.response.body = {
+      document_types: types.map((row: any) => row.enumlabel),
+      count: types.length
+    };
+  } catch (error) {
+    console.error("Error fetching document types:", error instanceof Error ? error.message : String(error));
+    ctx.response.status = 500;
+    ctx.response.body = {
+      error: "Failed to fetch document types",
+      details: error instanceof Error ? error.message : "Unknown error"
+    };
+  }
+});
+
+// Register document author routes
+app.use(documentAuthorRoutes.routes());
+app.use(documentAuthorRoutes.allowedMethods());
+
+// Register archived documents routes
+app.use(archivedDocsRouter.routes());
+app.use(archivedDocsRouter.allowedMethods());
+
+// Register file routes
+app.use(fileRoutes.routes());
+app.use(fileRoutes.allowedMethods());
 
 // Add router to app
 app.use(router.routes());
@@ -932,14 +1528,6 @@ app.use(authorRoutes);
 
 // Add Research Agenda routes
 app.use(researchAgendaRoutes);
-
-// Add Document-Author routes
-app.use(documentAuthorRoutes.routes());
-app.use(documentAuthorRoutes.allowedMethods());
-
-// Add File routes
-app.use(fileRoutes.routes());
-app.use(fileRoutes.allowedMethods());
 
 // -----------------------------
 // SECTION: File Upload Route

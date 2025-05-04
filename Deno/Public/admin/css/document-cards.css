@@ -1,0 +1,232 @@
+/* Document Cards Styling */
+
+.document-card {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border-left: 4px solid #5D87FF;
+}
+
+.document-card:hover {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.document-card.compilation {
+    border-left-color: #FF8A4C;
+}
+
+.document-card .card-content {
+    padding: 20px;
+}
+
+.document-card .card-header {
+    margin-bottom: 15px;
+}
+
+.document-card .document-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 10px 0;
+}
+
+.document-card .document-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.document-card .document-type {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    background-color: #E9EFFD;
+    color: #5D87FF;
+}
+
+.document-card .type-thesis {
+    background-color: #E9EFFD;
+    color: #5D87FF;
+}
+
+.document-card .type-dissertation {
+    background-color: #FFF4DE;
+    color: #FF8A4C;
+}
+
+.document-card .type-confluence {
+    background-color: #E6F9F1;
+    color: #2BB491;
+}
+
+.document-card .type-synergy {
+    background-color: #FEE6EB;
+    color: #F1416C;
+}
+
+.document-card .document-category {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    background-color: #F5F6F7;
+    color: #7E8299;
+}
+
+.document-card .document-date {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    background-color: #F5F6F7;
+    color: #7E8299;
+}
+
+.document-card .card-body {
+    margin-bottom: 15px;
+}
+
+.document-card .document-authors {
+    font-size: 14px;
+    color: #555;
+    margin: 0 0 10px 0;
+}
+
+.document-card .document-topics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.document-card .topic-tag {
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 12px;
+    background-color: #F1F1F1;
+    color: #555;
+}
+
+.document-card .document-abstract {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.5;
+    margin-top: 10px;
+}
+
+.document-card .document-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.document-card button {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+}
+
+.document-card .btn-primary {
+    background-color: #5D87FF;
+    color: #fff;
+}
+
+.document-card .btn-primary:hover {
+    background-color: #4B6FD2;
+}
+
+.document-card .btn-secondary {
+    background-color: #F5F6F7;
+    color: #7E8299;
+}
+
+.document-card .btn-secondary:hover {
+    background-color: #E9EAEC;
+}
+
+.document-card .btn-danger {
+    background-color: #F1416C;
+    color: #fff;
+}
+
+.document-card .btn-danger:hover {
+    background-color: #D02955;
+}
+
+.document-card .toggle-children {
+    margin-top: 15px;
+    padding: 8px;
+    background-color: #F8F9FA;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #5D87FF;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.document-card .toggle-children:hover {
+    background-color: #E9EFFD;
+}
+
+.document-card .toggle-indicator {
+    font-size: 10px;
+}
+
+.document-card .children-container {
+    margin-top: 15px;
+    padding: 15px;
+    background-color: #F8F9FA;
+    border-radius: 4px;
+}
+
+.document-card .no-children {
+    padding: 10px;
+    text-align: center;
+    font-size: 14px;
+    color: #999;
+}
+
+.document-card .loading-children {
+    padding: 10px;
+    text-align: center;
+    font-size: 14px;
+    color: #999;
+}
+
+/* Empty state styling */
+.no-docs {
+    padding: 40px;
+    text-align: center;
+}
+
+.no-docs .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.no-docs .empty-icon {
+    font-size: 48px;
+    color: #DDE1E6;
+    margin-bottom: 20px;
+}
+
+.no-docs p {
+    font-size: 16px;
+    color: #7E8299;
+} 

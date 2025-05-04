@@ -29,8 +29,8 @@ function createDocumentCard(doc) {
     card.dataset.documentId = doc.id;
     card.dataset.documentType = doc.document_type || '';
     
-    // Format authors
-    const authors = formatAuthors(doc.authors);
+    // Format authors initially - may be updated later
+    let authors = formatAuthors(doc.authors);
     
     // Format date
     const pubDate = formatDate(doc.publish_date || doc.publication_date);
@@ -50,10 +50,8 @@ function createDocumentCard(doc) {
         <div class="document-info">
             <h3 class="document-title">${doc.title || 'Untitled Document'}</h3>
             <div class="document-meta">
-                Volume ${doc.volume || ''} ${doc.volume && doc.issue ? '| Issue ' + doc.issue : ''} 
-                <br>Authors: ${authors}
+                Authors: <span class="author-display" data-document-id="${doc.id}">${authors}</span>
             </div>
-            <div class="category-badge ${(documentType || '').toLowerCase()}">${category}</div>
             ${topicColors}
         </div>
         <div class="document-actions">
@@ -72,7 +70,42 @@ function createDocumentCard(doc) {
     // Add event listeners
     setupDocumentCardEventListeners(card, doc);
     
+    // Fetch authors separately if they're not available or empty
+    if (!doc.authors || !Array.isArray(doc.authors) || doc.authors.length === 0) {
+        fetchAuthorsForDocument(doc.id)
+            .then(authorData => {
+                const authorDisplay = card.querySelector(`.author-display[data-document-id="${doc.id}"]`);
+                if (authorDisplay && authorData && authorData.length > 0) {
+                    authorDisplay.textContent = formatAuthors(authorData);
+                }
+            })
+            .catch(error => {
+                console.error(`Error fetching authors for document ${doc.id}:`, error);
+            });
+    }
+    
     return card;
+}
+
+/**
+ * Fetch authors for a document from the API
+ * @param {string|number} documentId - Document ID
+ * @returns {Promise<Array>} - Promise resolving to array of author objects
+ */
+async function fetchAuthorsForDocument(documentId) {
+    try {
+        const response = await fetch(`/api/document-authors/${documentId}`);
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log(`Authors fetched for document ${documentId}:`, data.authors);
+        return data.authors || [];
+    } catch (error) {
+        console.error(`Error fetching authors for document ${documentId}:`, error);
+        return [];
+    }
 }
 
 /**
@@ -111,6 +144,26 @@ function createCompiledDocumentCard(doc, expandedDocIds = []) {
     const isExpanded = expandedDocIds.includes(doc.id);
     const toggleIndicator = isExpanded ? '▼' : '▶';
     
+    // Use appropriate fields from compiled_documents
+    const volume = doc.volume || '';
+    const issueNumber = doc.issue_number || doc.issue || '';
+    
+    // Format year range for display - use direct properties first
+    let yearDisplay = '';
+    if (doc.start_year !== undefined) {
+        yearDisplay = `${doc.start_year}${doc.end_year ? `-${doc.end_year}` : ''}`;
+    } else if (pubDate) {
+        yearDisplay = pubDate;
+    }
+    
+    console.log('Document data:', { 
+        id: doc.id, 
+        start_year: doc.start_year, 
+        end_year: doc.end_year,
+        yearDisplay,
+        is_compiled: doc.is_compiled
+    });
+    
     // Create card HTML with improved display - hide elements if data is missing
     card.innerHTML = `
         <div class="document-icon">
@@ -119,23 +172,21 @@ function createCompiledDocumentCard(doc, expandedDocIds = []) {
         <div class="document-info">
             <h3 class="document-title">
                 <span class="toggle-indicator">${toggleIndicator}</span>
-                ${doc.title || 'Untitled Compilation'}
+                ${category} Vol. ${volume}${issueNumber ? `, Issue No. ${issueNumber}` : ''}
+                ${yearDisplay ? ` (${yearDisplay})` : ''}
             </h3>
             <div class="document-meta">
-                
-                
                 <span class="meta-item"><i class="fas fa-file-alt"></i> ${doc.child_count || 0} document${doc.child_count !== 1 ? 's' : ''}</span>
             </div>
-            
         </div>
         <div class="document-actions">
-            <button class="action-btn expand-btn" title="View Child Documents">
+            <button class="action-btn expand-btn">
                 <i class="fas fa-list"></i>
             </button>
-            <button class="action-btn edit-btn" title="Edit Compilation">
+            <button class="action-btn edit-btn">
                 <i class="fas fa-edit"></i>
             </button>
-            <button class="action-btn delete-btn" title="Delete Compilation">
+            <button class="action-btn delete-btn">
                 <i class="fas fa-trash"></i>
             </button>
         </div>
@@ -189,7 +240,7 @@ function createChildDocumentCard(child) {
     childCard.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
     childCard.style.transition = 'all 0.2s ease';
     
-    // Format authors
+    // Format authors initially - may be updated later
     const authors = formatAuthors(child.authors);
     
     // Format date
@@ -203,12 +254,12 @@ function createChildDocumentCard(child) {
         <div class="document-info" style="flex: 1;">
             <h4 class="document-title" style="margin: 0 0 5px 0; font-size: 16px;">${child.title || 'Untitled Document'}</h4>
             <div class="document-meta" style="font-size: 13px; color: #666;">
-                 ${authors || 'Unknown Author'}
+                <span class="child-author-display" data-document-id="${child.id}">${authors}</span>
             </div>
         </div>
         <div class="document-actions" style="display: flex; gap: 8px;">
-            <button class="action-btn view-btn" title="View Document" style="background: #4299e1; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer;">
-                View
+            <button class="action-btn view-btn" title="View Document" style="background: #4299e1; color: white; border: none; border-radius: 4px; padding: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;">
+                <i class="fas fa-eye"></i>
             </button>
         </div>
     `;
@@ -227,12 +278,43 @@ function createChildDocumentCard(child) {
     // Add event listener for view button
     childCard.querySelector('.view-btn').addEventListener('click', function(e) {
         e.stopPropagation();
-        if (typeof showPreviewModal === 'function') {
-            showPreviewModal(child.id);
-        } else {
-            alert(`Preview document: ${child.title}`);
-        }
+        
+        // First fetch the document details to get the file path
+        fetch(`/api/documents/${child.id}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Error fetching document: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(document => {
+                if (document && document.file_path) {
+                    // Open the PDF in a new tab
+                    const pdfPath = `/${document.file_path}`;
+                    window.open(pdfPath, '_blank');
+                } else {
+                    alert('PDF path not found for this document');
+                }
+            })
+            .catch(error => {
+                console.error('Error opening PDF:', error);
+                alert(`Error opening document: ${error.message}`);
+            });
     });
+    
+    // Fetch authors separately if they're not available or empty
+    if (!child.authors || !Array.isArray(child.authors) || child.authors.length === 0) {
+        fetchAuthorsForDocument(child.id)
+            .then(authorData => {
+                const authorDisplay = childCard.querySelector(`.child-author-display[data-document-id="${child.id}"]`);
+                if (authorDisplay && authorData && authorData.length > 0) {
+                    authorDisplay.textContent = formatAuthors(authorData);
+                }
+            })
+            .catch(error => {
+                console.error(`Error fetching authors for child document ${child.id}:`, error);
+            });
+    }
     
     return childCard;
 }
@@ -247,9 +329,27 @@ function formatAuthors(authors) {
         return 'Unknown Author';
     }
     
-    return authors.map(author => 
-        `${author.first_name || ''} ${author.last_name || ''}`
-    ).join(', ');
+    return authors.map(author => {
+        // Handle full_name property first (from API)
+        if (author.full_name) {
+            return author.full_name;
+        }
+        
+        // Handle first_name and last_name properties
+        const firstName = author.first_name || '';
+        const lastName = author.last_name || '';
+        
+        if (firstName || lastName) {
+            return `${firstName} ${lastName}`.trim();
+        }
+        
+        // Handle string format
+        if (typeof author === 'string') {
+            return author;
+        }
+        
+        return '';
+    }).filter(name => name).join(', ') || 'Unknown Author';
 }
 
 /**
@@ -358,11 +458,28 @@ function setupDocumentCardEventListeners(card, doc) {
     // View button
     card.querySelector('.view-btn').addEventListener('click', function(e) {
         e.stopPropagation();
-        if (typeof showPreviewModal === 'function') {
-            showPreviewModal(doc.id);
-        } else {
-            alert(`View document: ${doc.title}`);
-        }
+        
+        // First fetch the document details to get the file path
+        fetch(`/api/documents/${doc.id}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Error fetching document: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(document => {
+                if (document && document.file_path) {
+                    // Open the PDF in a new tab
+                    const pdfPath = `/${document.file_path}`;
+                    window.open(pdfPath, '_blank');
+                } else {
+                    alert('PDF path not found for this document');
+                }
+            })
+            .catch(error => {
+                console.error('Error opening PDF:', error);
+                alert(`Error opening document: ${error.message}`);
+            });
     });
     
     // Edit button

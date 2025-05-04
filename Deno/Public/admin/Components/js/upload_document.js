@@ -670,7 +670,7 @@ async function handleCompiledDocumentSubmit(e) {
             volume: formData.get('volume') ? parseInt(formData.get('volume')) : null,
             issue_number: documentType === 'SYNERGY' ? null : (formData.get('issued-no') ? parseInt(formData.get('issued-no')) : null),
             department: departmentId ? getSelectedDepartmentText() : null,
-            category: category
+            category: category.toUpperCase() // Ensure category is uppercase to match enum values
         };
         
         // Call API to create the compiled document entry

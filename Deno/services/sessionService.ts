@@ -85,11 +85,21 @@ export async function deleteSessionToken(token: string | null): Promise<boolean>
     );
     
     if (!result.rows || result.rows.length === 0) {
-      console.log(`No token found in database: ${token.substring(0, 8)}...`);
+      // Log safely by checking token type
+      if (typeof token === 'string') {
+        console.log(`No token found in database: ${token.substring(0, 8)}...`);
+      } else {
+        console.log(`No token found in database. Token is not a string type: ${typeof token}`);
+      }
       return false;
     }
     
-    console.log(`Token deleted from database: ${token.substring(0, 8)}...`);
+    // Log safely by checking token type
+    if (typeof token === 'string') {
+      console.log(`Token deleted from database: ${token.substring(0, 8)}...`);
+    } else {
+      console.log(`Token deleted from database. (Non-string token type: ${typeof token})`);
+    }
     return true;
   } catch (error) {
     console.error("Database error when deleting token:", error);

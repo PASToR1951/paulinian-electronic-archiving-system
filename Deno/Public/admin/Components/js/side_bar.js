@@ -9,7 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     
-    fetch('side_bar.html')
+    // Use absolute path to fetch sidebar HTML
+    fetch('/admin/Components/side_bar.html')
     .then(response => response.text())
     .then(data => {
         sidebarContainer.innerHTML = data;

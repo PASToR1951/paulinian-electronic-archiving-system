@@ -1,0 +1,365 @@
+/**
+ * Document Archive Styles
+ * Styles for the document archive functionality
+ */
+
+/* Archive mode container styles */
+#documents-container.archive-mode {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid rgba(220, 53, 69, 0.2);
+    transition: all 0.3s ease-in-out;
+}
+
+#documents-container.mode-transition {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease-in-out;
+}
+
+/* Document grid layout */
+.document-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+/* Document card styles */
+.document-card {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: all 0.2s ease-in-out;
+    border: 1px solid #dee2e6;
+}
+
+.document-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.document-card.archived {
+    border-left: 4px solid #dc3545;
+    position: relative;
+}
+
+.document-card.compiled {
+    border-left: 4px solid #17a2b8;
+}
+
+.document-card.archived.compiled {
+    border-left: 4px solid #6f42c1;
+}
+
+.document-card.archived.restoring {
+    opacity: 0.7;
+    pointer-events: none;
+    background-color: #f8f9fa;
+}
+
+/* Card header */
+.document-card .card-header {
+    padding: 12px 16px;
+    background-color: rgba(0, 0, 0, 0.03);
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.document-type {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+.document-type i {
+    color: #6c757d;
+}
+
+.archived-badge {
+    color: #dc3545;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Card body */
+.document-card .card-body {
+    padding: 16px;
+}
+
+.document-title {
+    margin-bottom: 12px;
+    color: #343a40;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.document-info {
+    margin-bottom: 16px;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.document-info p {
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.document-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+/* Child documents section */
+.child-documents-container {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out;
+    background-color: rgba(0, 0, 0, 0.02);
+    border-top: 1px solid #dee2e6;
+}
+
+.child-documents-container.expanded {
+    padding: 16px;
+}
+
+.child-documents-table {
+    margin-bottom: 0;
+    font-size: 0.9rem;
+}
+
+.loading-children {
+    padding: 16px;
+    text-align: center;
+    color: #6c757d;
+}
+
+.no-children {
+    padding: 16px;
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.error-message {
+    padding: 16px;
+    text-align: center;
+    color: #dc3545;
+}
+
+/* Toast notifications */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+    max-width: 350px;
+}
+
+.toast {
+    background-color: #fff;
+    border-radius: 4px;
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
+    margin-bottom: 10px;
+    opacity: 0;
+    transition: all 0.3s ease-in-out;
+}
+
+.toast.showing {
+    opacity: 0;
+}
+
+.toast.show {
+    opacity: 1;
+}
+
+.toast-success {
+    border-left: 4px solid #28a745;
+}
+
+.toast-error {
+    border-left: 4px solid #dc3545;
+}
+
+.toast-warning {
+    border-left: 4px solid #ffc107;
+}
+
+.toast-info {
+    border-left: 4px solid #17a2b8;
+}
+
+.toast-header {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background-color: rgba(0, 0, 0, 0.03);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.toast-body {
+    padding: 0.75rem;
+}
+
+/* Archive toggle switch */
+.archive-toggle-container {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+}
+
+.archive-toggle-container label {
+    margin-left: 10px;
+    margin-bottom: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 30px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #dc3545;
+}
+
+input:focus + .slider {
+    box-shadow: 0 0 1px #dc3545;
+}
+
+input:checked + .slider:before {
+    transform: translateX(30px);
+}
+
+/* Loading state */
+.loading-documents {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 0;
+    color: #6c757d;
+}
+
+.loading-documents i {
+    margin-bottom: 16px;
+    color: #6c757d;
+}
+
+/* Empty state */
+.no-documents {
+    text-align: center;
+    padding: 40px 0;
+    color: #6c757d;
+}
+
+.no-documents i {
+    color: #dee2e6;
+    margin-bottom: 16px;
+}
+
+/* Error state */
+.error-container {
+    padding: 20px;
+}
+
+/* Filter styles in archive mode */
+.filters-section[data-mode="archive"] {
+    background-color: rgba(220, 53, 69, 0.05);
+    border: 1px solid rgba(220, 53, 69, 0.1);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.filters-section[data-mode="archive"] .filter-label {
+    color: #dc3545;
+}
+
+/* Pagination */
+.pagination-container {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .document-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .document-actions {
+        flex-direction: column;
+    }
+    
+    .document-actions button {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+}
+
+/* Keyboard shortcut hint */
+.keyboard-shortcut-hint {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 0.7rem;
+    color: #6c757d;
+    background-color: rgba(0, 0, 0, 0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.archive-toggle-container .keyboard-shortcut-hint {
+    position: relative;
+    top: 0;
+    right: 0;
+    margin-left: 8px;
+} 

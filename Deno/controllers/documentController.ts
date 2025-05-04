@@ -177,6 +177,14 @@ export async function getDocumentById(req: Request): Promise<Response> {
       });
     }
     
+    // Validate documentId is a valid number
+    if (isNaN(Number(documentId)) || !Number.isInteger(Number(documentId))) {
+      return new Response(JSON.stringify({ error: "Invalid document ID. ID must be a valid integer." }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    
     const document = await DocumentModel.getById(parseInt(documentId));
     
     if (!document) {
@@ -313,6 +321,14 @@ export async function updateDocument(req: Request): Promise<Response> {
       });
     }
     
+    // Validate documentId is a valid number
+    if (isNaN(Number(documentId)) || !Number.isInteger(Number(documentId))) {
+      return new Response(JSON.stringify({ error: "Invalid document ID. ID must be a valid integer." }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    
     if (req.body) {
       const body = await req.json();
       
@@ -363,6 +379,14 @@ export async function deleteDocument(req: Request): Promise<Response> {
       });
     }
     
+    // Validate documentId is a valid number
+    if (isNaN(Number(documentId)) || !Number.isInteger(Number(documentId))) {
+      return new Response(JSON.stringify({ error: "Invalid document ID. ID must be a valid integer." }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    
     // Check if document exists
     const existingDocument = await DocumentModel.getById(parseInt(documentId));
     
@@ -406,7 +430,17 @@ export async function getChildDocuments(req: Request): Promise<Response> {
       });
     }
     
-    const documentId = parseInt(matches[1]);
+    const documentIdStr = matches[1];
+    
+    // Validate documentId is a valid number
+    if (isNaN(Number(documentIdStr)) || !Number.isInteger(Number(documentIdStr))) {
+      return new Response(JSON.stringify({ error: "Invalid document ID. ID must be a valid integer." }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    
+    const documentId = parseInt(documentIdStr);
     console.log(`Controller: Fetching child documents for parent ID: ${documentId}`);
     
     const result = await fetchChildDocumentsService(documentId);

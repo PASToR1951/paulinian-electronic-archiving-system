@@ -89,6 +89,13 @@ async function fetchDocumentsFromDB(page = 1, category = null, sortOrder = 'late
             url += `&search=${encodeURIComponent(searchQuery)}`;
         }
         
+        // Add cache busting parameter if force refreshing
+        if (window.forceRefreshTimestamp) {
+            url += `&t=${window.forceRefreshTimestamp}`;
+            // Clear the timestamp so we don't keep forcing refresh
+            window.forceRefreshTimestamp = null;
+        }
+        
         // Show loading indicator in the container if requested
         if (showLoading) {
             document.getElementById('documents-container').innerHTML = '<div class="loading-documents"><i class="fas fa-spinner fa-spin"></i> Loading documents...</div>';
@@ -97,7 +104,12 @@ async function fetchDocumentsFromDB(page = 1, category = null, sortOrder = 'late
         console.log('FETCH DEBUG: Making API request to URL:', url);
         
         // Fetch documents from the API
-        const response = await fetch(url);
+        const response = await fetch(url, {
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+        });
         
         console.log('FETCH DEBUG: Response status:', response.status);
         console.log('FETCH DEBUG: Response headers:', Object.fromEntries([...response.headers]));
@@ -115,15 +127,48 @@ async function fetchDocumentsFromDB(page = 1, category = null, sortOrder = 'late
             // Check if is_compiled properties are set correctly
             data.documents.forEach((doc, index) => {
                 console.log(`FETCH DEBUG: Document ${index} (ID: ${doc.id}): is_compiled = ${doc.is_compiled}, doc_type = ${doc.doc_type}, title = "${doc.title}"`);
-                console.log(`FETCH DEBUG: Document ${index} authors:`, doc.authors);
+                console.log(`FETCH DEBUG: Document ${index} deleted_at:`, doc.deleted_at);
+                
+                // Enhanced debugging to check all properties
+                console.log(`FETCH DEBUG: Full properties of document ${doc.id}:`, Object.keys(doc));
+                console.log(`FETCH DEBUG: Document ${doc.id} deleted_at type:`, typeof doc.deleted_at);
+                if (doc.deleted_at) {
+                    console.warn(`URGENT: Document ${doc.id} has deleted_at set but is still included in results!`);
+                }
             });
             
             // Log all possible category-related fields
             const firstDoc = data.documents[0];
             console.log('FETCH DEBUG: All properties of first document:', Object.keys(firstDoc));
-            } else {
+        } else {
             console.log('FETCH DEBUG: No documents returned');
+        }
+        
+        // Filter out any documents that might have deleted_at set
+        // This is an extra safeguard to ensure deleted documents don't appear in the main view
+        if (data.documents) {
+            // First log any documents that should be filtered out
+            const deletedDocs = data.documents.filter(doc => doc.deleted_at);
+            if (deletedDocs.length > 0) {
+                console.warn('FETCH DEBUG: Found deleted documents that should be filtered out:', deletedDocs);
+            }
+            
+            // Add client-side filtering as a backup for server filter
+            const filteredDocs = data.documents.filter(doc => {
+                if (doc.deleted_at) {
+                    console.warn(`CLIENT: Filtering out document ${doc.id} (${doc.title}) because it has deleted_at set`);
+                    return false;
                 }
+                return true;
+            });
+            
+            // Check if we filtered anything
+            if (filteredDocs.length !== data.documents.length) {
+                console.warn(`CLIENT: Filtered out ${data.documents.length - filteredDocs.length} deleted documents on client side!`);
+                // Replace the documents with filtered version
+                data.documents = filteredDocs;
+            }
+        }
         
         return data;
     } catch (error) {
@@ -156,7 +201,7 @@ async function loadDocuments(page = 1, resetTracking = true) {
     }
     
     // Reset tracking if requested
-    if (resetTracking) {
+        if (resetTracking) {
         globalDisplayedDocIds = new Set();
     }
     
@@ -233,12 +278,34 @@ async function loadDocuments(page = 1, resetTracking = true) {
 
 /**
  * Refresh the document list with current filters and page
+ * @param {boolean} forceReload - Whether to force a complete reload from server
  */
-function refreshDocumentList() {
-    console.log('Refreshing document list');
+function refreshDocumentList(forceReload = false) {
+    console.log('Refreshing document list - forceReload:', forceReload);
+    
+    if (forceReload) {
+        // Add a cache-busting parameter to force a complete reload
+        window.forceRefreshTimestamp = Date.now();
+        console.log('Setting force refresh timestamp:', window.forceRefreshTimestamp);
+        
+        // Also clear any cached document data if using document cache
+        if (window.documentCache && typeof window.documentCache.clearAll === 'function') {
+            window.documentCache.clearAll();
+        }
+        
+        // Reset any document tracking variables
+        globalDisplayedDocIds = new Set();
+        expandedDocIds = [];
+    }
+    
     const currentPage = window.documentFilters ? 
         window.documentFilters.getCurrentPage() : 1;
-    loadDocuments(currentPage);
+    
+    // Notify console for debugging
+    console.log(`REFRESH: Loading documents for page ${currentPage}, resetTracking=true, forceReload=${forceReload}`);
+    
+    // Trigger the document loading with reset
+    loadDocuments(currentPage, true);
 }
 
 /**
@@ -599,29 +666,30 @@ function renderBasicDocumentCard(doc) {
             <h3 class="document-title">
                 ${isCompiled ? '<span class="toggle-indicator">▶</span>' : ''}
                 ${doc.title || 'Untitled Document'} 
-                ${!isCompiled && doc.volume ? `<span class="volume-issue">Vol. ${doc.volume}${doc.issue ? ' Iss. ' + doc.issue : ''}</span>` : ''}
             </h3>
                     <div class="document-meta">
                 ${isCompiled ? 
-                    `Volume ${doc.volume || ''} | ${pubDate} | ${doc.child_count || 0} documents` : 
+                    `Volume ${doc.volume || ''} | ${pubDate} | ${doc.child_count || 0} document${doc.child_count !== 1 ? 's' : ''}` : 
                     `Authors: <span class="author-list" data-document-id="${doc.id}">${authors}</span> | ${pubDate}`
                 }
                     </div>
-            <div class="category-badge ${(documentType || '').toLowerCase()}">
-                ${isCompiled ? category : (category === 'Synergy' ? 'Departmental' : 'Research Agenda')}
-            </div>
+            ${isCompiled ? 
+                `<div class="category-badge ${(documentType || '').toLowerCase()}">${category}</div>` : 
+                ''
+            }
                 </div>
                 <div class="document-actions">
             ${isCompiled ? '' : 
             `<button class="action-btn view-btn" data-document-id="${doc.id}">
-                        <i class="fas fa-eye"></i> View
+                <i class="fas fa-eye"></i> 
             </button>`}
             <button class="action-btn edit-btn" data-document-id="${doc.id}">
-                        <i class="fas fa-edit"></i> Edit
+                <i class="fas fa-edit"></i> 
                     </button>
-            <button class="action-btn delete-btn" data-document-id="${doc.id}">
-                <i class="fas fa-trash"></i> Delete
-                    </button>
+            ${doc.parent_compiled_id ? '' : 
+            `<button class="action-btn delete-btn" data-document-id="${doc.id}">
+                <i class="fas fa-trash"></i> 
+                    </button>`}
                 </div>
     `;
     
@@ -665,15 +733,19 @@ function renderBasicDocumentCard(doc) {
         }
     });
     
-    card.querySelector('.delete-btn').addEventListener('click', function(e) {
-        e.stopPropagation();
-        // Call delete function if available, or show alert
-        if (typeof deleteDocument === 'function') {
-            deleteDocument(doc.id);
-                    } else {
-            alert(`Delete document: ${doc.title}`);
-        }
-    });
+    // Only add delete button event listener if the button exists (not a child document)
+    const deleteBtn = card.querySelector('.delete-btn');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            // Call delete function if available, or show alert
+            if (typeof deleteDocument === 'function') {
+                deleteDocument(doc.id);
+                        } else {
+                alert(`Delete document: ${doc.title}`);
+            }
+        });
+    }
     
     // For compiled documents, add click handler to toggle children
     if (isCompiled) {
@@ -889,22 +961,39 @@ function createChildDocumentCard(child) {
                 </div>
             </div>
         <div class="document-actions">
-            <button class="action-btn view-btn" data-document-id="${child.id}">
-                <i class="fas fa-eye"></i> View
+            <button class="action-btn view-btn" data-document-id="${child.id}" title="View Document">
+                <i class="fas fa-eye"></i>
             </button>
+            <!-- Delete button removed for child documents -->
         </div>
     `;
     
     // Add event listener for view button
     childCard.querySelector('.view-btn').addEventListener('click', function(e) {
         e.stopPropagation();
-        // Call preview function if available, or show alert
-        if (typeof showPreviewModal === 'function') {
-            showPreviewModal(child.id);
+        
+        // First fetch the document details to get the file path
+        fetch(`/api/documents/${child.id}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Error fetching document: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(document => {
+                if (document && document.file_path) {
+                    // Open the PDF in a new tab
+                    const pdfPath = `/${document.file_path}`;
+                    window.open(pdfPath, '_blank');
             } else {
-            alert(`Preview document: ${child.title}`);
+                    alert('PDF path not found for this document');
             }
+            })
+            .catch(error => {
+                console.error('Error opening PDF:', error);
+                alert(`Error opening document: ${error.message}`);
         });
+    });
     
     return childCard;
 }
@@ -1058,6 +1147,143 @@ async function searchChildDocuments(query) {
     }
 }
 
+/**
+ * Add a delete button to a document card
+ * @param {HTMLElement} card - The document card element
+ * @param {number} documentId - The document ID
+ */
+function addDeleteButton(card, documentId) {
+    // Get the document data from the card's dataset
+    const isChildDoc = card.dataset.parentCompiledId !== undefined && card.dataset.parentCompiledId !== 'null';
+    
+    // Don't add delete button for child documents
+    if (isChildDoc) {
+        console.log(`Not adding delete button to child document ${documentId}`);
+        return;
+    }
+    
+    // Create button element
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'action-btn delete-btn';
+    deleteBtn.title = 'Archive Document';
+    deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+    deleteBtn.setAttribute('data-document-id', documentId);
+    
+    // Add click event
+    deleteBtn.addEventListener('click', function(event) {
+        event.stopPropagation();
+        // Use documentArchive.archiveDocument if available (preferred), otherwise fallback to deleteDocument
+        if (window.documentArchive && typeof window.documentArchive.archiveDocument === 'function') {
+            console.log('Using documentArchive.archiveDocument for ID:', documentId);
+            window.documentArchive.archiveDocument(documentId);
+    } else {
+            console.log('Falling back to legacy deleteDocument for ID:', documentId);
+            deleteDocument(documentId);
+        }
+    });
+    
+    // Add to card actions
+    const actionsContainer = card.querySelector('.document-actions');
+    if (actionsContainer) {
+        actionsContainer.appendChild(deleteBtn);
+    }
+}
+
+/**
+ * Attempt to delete a document (archive it)
+ * @param {number} documentId - Document ID to delete
+ */
+function deleteDocument(documentId) {
+    console.log('Deleting document:', documentId);
+    
+    // Use archive functionality if available
+    if (window.documentArchive && typeof window.documentArchive.archiveDocument === 'function') {
+        window.documentArchive.archiveDocument(documentId)
+            .then(() => {
+                // Force refresh the document list after deletion
+                setTimeout(() => {
+                    console.log('Forcing document list refresh after deletion');
+                    refreshDocumentList(true);
+                }, 500);
+            })
+            .catch(error => {
+                console.error('Error in archive operation:', error);
+            });
+    } else {
+        console.error('Archive functionality not available');
+        alert('Archive functionality not available. Please refresh the page and try again.');
+    }
+}
+
+/**
+ * Shows a toast notification
+ * @param {string} message - Message to display
+ * @param {string} type - Type of notification (success, error, warning)
+ */
+function showToast(message, type = 'success') {
+    // Check if toast container exists
+    let toastContainer = document.getElementById('toast-container');
+    
+    // Create container if it doesn't exist
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.style.position = 'fixed';
+        toastContainer.style.bottom = '20px';
+        toastContainer.style.right = '20px';
+        toastContainer.style.zIndex = '1050';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <div class="toast-content">
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+            <span>${message}</span>
+        </div>
+        <button class="close-btn"><i class="fas fa-times"></i></button>
+    `;
+    
+    // Add styles
+    toast.style.backgroundColor = type === 'success' ? '#4CAF50' : '#F44336';
+    toast.style.color = 'white';
+    toast.style.padding = '12px 20px';
+    toast.style.borderRadius = '4px';
+    toast.style.marginTop = '10px';
+    toast.style.display = 'flex';
+    toast.style.justifyContent = 'space-between';
+    toast.style.alignItems = 'center';
+    toast.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+    toast.style.transition = 'all 0.3s ease';
+    
+    // Add close button listener
+    toast.querySelector('.close-btn').addEventListener('click', () => {
+        toast.style.opacity = '0';
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    });
+    
+    // Add toast to container
+    toastContainer.appendChild(toast);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, 5000);
+    
+    // Show toast with animation
+    setTimeout(() => {
+        toast.style.transform = 'translateY(0)';
+        toast.style.opacity = '1';
+    }, 10);
+}
+
 // Initialize the document list when the DOM is loaded
 document.addEventListener('DOMContentLoaded', initializeDocumentList);
 
@@ -1072,4 +1298,32 @@ window.documentList = {
     fetchChildDocuments,
     searchChildDocuments
 };
+
+// Make sure document-list.js doesn't interfere with the archive button
+// Find any event listeners on the archive button and ensure they're properly managed
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Make sure the archive button has the right event handler
+    const archiveBtn = document.getElementById('archive-btn');
+    if (archiveBtn) {
+        console.log('Document-list.js: Found archive button, ensuring proper event handling');
+        
+        // Add a direct event handler to debug the issue
+        archiveBtn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Archive button clicked from document-list.js');
+            
+            // Call the archive toggle function directly if available
+            if (window.documentArchive && typeof window.documentArchive.toggleArchiveMode === 'function') {
+                window.documentArchive.toggleArchiveMode(e);
+            } else {
+                console.error('Archive toggle function not found');
+                alert('Archive functionality is not available. Please refresh the page and try again.');
+            }
+            
+            return false;
+        };
+    }
+});
   
