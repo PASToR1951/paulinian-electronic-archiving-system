@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>System Logs</title>
-    <link rel="stylesheet" href="css/side_bar.css">
-    <link rel="stylesheet" href="css/navbar_header.css">
-    <link rel="stylesheet" href="css/admin_logs.css">
+    <link rel="stylesheet" href="/admin/Components/css/side_bar.css">
+    <link rel="stylesheet" href="/admin/Components/css/navbar_header.css">
+    <link rel="stylesheet" href="/admin/Components/css/admin_logs.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide-react@0.292.0/dist/umd/lucide-react.js"></script>
     <script>
@@ -28,13 +28,14 @@
     
   </head>
   <body>
+    <!-- Navbar container -->
+  <div id="navbar-header"></div>
     <!-- Sidebar container -->
   <div id="sidebar-container"></div>
   
-  <!-- Navbar container -->
-  <div id="navbar-header"></div>
+  
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" style="width: 1200px; max-width: 100%; margin: 0 auto;">
 
         <div class="bg-white shadow-md rounded-lg overflow-hidden log-card">
             <div class="p-4 border-b border-gray-200">
@@ -151,7 +152,7 @@
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-          fetch('./side_bar.html')
+          fetch('/admin/Components/side_bar.html')
               .then(response => response.text())
               .then(data => {
                   document.getElementById('sidebar-container').innerHTML = data;
@@ -168,7 +169,7 @@
               })
               .catch(error => console.error('Error loading sidebar:', error));
   
-          fetch('./navbar_header.html')
+          fetch('/admin/Components/navbar_header.html')
               .then(response => response.text())
               .then(data => {
                   document.getElementById('navbar-header').innerHTML = data;

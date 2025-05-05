@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Author Profile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Basic styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb; /* bg-gray-50 */
+            color: #111827; /* text-gray-900 */
+        }
+
+        /* Add basic transition for smoother UI changes */
+        button, a {
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.15s ease-in-out;
+        }
+        /* Ensure icons size correctly */
+        .icon {
+            width: 1rem; /* h-4 w-4 */
+            height: 1rem;
+            display: inline-block;
+            vertical-align: text-bottom;
+            flex-shrink: 0;
+        }
+        .icon-sm {
+            width: 0.75rem; /* h-3 w-3 */
+            height: 0.75rem;
+        }
+        .icon-lg {
+            width: 1.5rem; /* h-6 w-6 */
+            height: 1.5rem;
+        }
+        /* Hide element visually but keep accessible */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+        /* Basic modal styles */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .modal-content {
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            width: 100%;
+            max-width: 42rem;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        /* Hide elements */
+        .hidden {
+            display: none;
+        }
+
+        /* Preserve whitespace for bio and JSON */
+        .whitespace-pre-line { white-space: pre-line; }
+        .whitespace-pre { white-space: pre; }
+
+        /* Basic animation for tag filter */
+        .tag-filter-content {
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            max-height: 0;
+            opacity: 0;
+        }
+        .tag-filter-content.open {
+            max-height: 500px; /* Adjust as needed */
+            opacity: 1;
+        }
+
+        /* Custom focus ring color */
+        button:focus-visible, a:focus-visible, input:focus {
+            --tw-ring-color: #16a34a; /* focus:ring-green-500 */
+            outline: 2px solid transparent;
+            outline-offset: 2px;
+            box-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+        }
+
+        /* Style for avatar container */
+        .avatar-container {
+            width: 6rem; /* w-24 */
+            height: 6rem; /* h-24 */
+            margin-bottom: 1rem; /* mb-4 */
+            border: 4px solid #ffffff; /* border-4 border-white (contrast against gradient) */
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); /* shadow-md */
+            margin-left: auto;
+            margin-right: auto;
+            border-radius: 9999px; /* rounded-full */
+            overflow: hidden; /* Ensure image stays within border */
+            background-color: #f3f4f6; /* Default background */
+        }
+
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+
+    <div class="container mx-auto p-4 md:p-8 min-h-screen font-sans">
+
+        <div class="grid grid-cols-1 gap-6">
+
+            <div id="profile-card" class="shadow-lg border border-gray-200 rounded-lg overflow-hidden bg-white flex flex-col">
+                <div id="profile-header" class="items-center text-center pt-6 pb-4 bg-gradient-to-r from-lime-500 to-green-600">
+                    <div class="avatar-container">
+                        <img id="avatar-image" class="object-cover w-full h-full" src="" alt="Profile picture">
+                        </div>
+                    <h1 id="display-full_name" class="text-xl font-bold mt-1 px-4 text-white"></h1>
+                    <div id="display-dept-affiliation-container" class="text-sm text-gray-100 mt-1 px-4">
+                        <span id="display-department"></span>
+                        <span id="display-affiliation-separator" class="hidden mx-1"> | </span>
+                        <span id="display-affiliation"></span>
+                    </div>
+                </div>
+
+                <div class="px-4 pb-4 pt-4 space-y-4 flex-grow">
+                    <h3 class="text-sm font-semibold mb-2 text-gray-800 uppercase tracking-wide">Biography</h3>
+                    <p id="display-bio" class="text-gray-700 whitespace-pre-line text-sm leading-relaxed"></p>
+                    <hr class="my-4 border-gray-200">
+                    <h3 class="text-sm font-semibold mb-2 text-gray-800 uppercase tracking-wide">Contact</h3>
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                        <div id="display-email-container" class="flex items-center space-x-1.5 hidden">
+                            <svg class="icon text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path d="M3 4a2 2 0 00-2 2v1.161l8.441 4.221a1.25 1.25 0 001.118 0L19 7.162V6a2 2 0 00-2-2H3z" />
+                                <path d="M19 8.839l-7.77 3.885a2.75 2.75 0 01-2.46 0L1 8.839V14a2 2 0 002 2h14a2 2 0 002-2V8.839z" />
+                            </svg>
+                            <a id="display-email" href="#" class="text-green-600 hover:text-green-700 hover:scale-105 block transition-transform duration-150 ease-in-out hover:underline break-all"></a>
+                        </div>
+                        <div id="display-linkedin-container" class="flex items-center space-x-1.5 hidden">
+                            <svg class="icon text-gray-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-label="LinkedIn logo"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                            <a id="display-linkedin" href="#" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700 hover:scale-105 block transition-transform duration-150 ease-in-out hover:underline break-all"></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="shadow-lg border border-gray-200 rounded-lg bg-white flex flex-col">
+                <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+                    <h2 class="text-xl font-bold text-gray-800">Works (<span id="publications-count">0</span>)</h2>
+                    <p id="publications-description" class="mt-1 text-gray-600 text-sm">Browse, search, and filter the list of publications.</p>
+                </div>
+                <div class="px-4 py-5 sm:p-6 flex-grow">
+                    <div id="view-publications-container">
+                        <div class="space-y-6">
+                            <div class="mb-6">
+                                <label for="publication-search" class="sr-only">Search works by title</label>
+                                <div class="relative">
+                                    <input type="text" id="publication-search" placeholder="Search works by title..." class="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-md text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500 bg-white" aria-label="Search publications by title">
+                                    <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-wrap items-center gap-2" id="category-filter-container">
+                                <span class="text-sm font-medium text-gray-700 shrink-0 mr-2">Filter by Category:</span>
+                                </div>
+
+                            <div class="mb-6">
+                                <button id="tag-filter-toggle" type="button" class="text-sm px-3 py-1.5 h-auto border border-gray-300 hover:bg-gray-100 rounded-full flex items-center text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500" aria-expanded="false" aria-controls="tag-filter-content">
+                                    Filter by Tags
+                                    <svg id="tag-filter-chevron-down" class="icon ml-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                    <svg id="tag-filter-chevron-up" class="icon ml-2 hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                                </button>
+                                <div id="tag-filter-content" class="tag-filter-content mt-3">
+                                    <div id="tag-filter-buttons" class="flex flex-wrap items-center gap-2 p-3 border border-gray-200 rounded-md bg-gray-50">
+                                        </div>
+                                </div>
+                            </div>
+
+                            <div id="publications-list" class="space-y-4">
+                                </div>
+                            <div id="no-results-message" class="hidden text-center py-12 px-6 text-gray-500 bg-white rounded-md shadow-sm border border-gray-200">
+                                <p class="text-lg font-medium">No results found</p>
+                                <p class="text-sm mt-1">Try adjusting your search query or filters.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> <div id="publication-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="publication-modal-title" aria-describedby="publication-modal-description">
+            <div class="modal-content bg-white">
+                 <button id="modal-close-button" type="button" class="absolute top-3 right-3 text-gray-500 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 rounded-full p-1" aria-label="Close publication details">
+                     <svg class="icon-lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                 </button>
+
+                 <h2 id="publication-modal-title" class="text-xl md:text-2xl font-bold text-gray-900 pr-10 mb-4"></h2>
+
+                 <div id="publication-modal-description" class="space-y-3 text-sm mb-5">
+                     <div class="text-gray-700">
+                         <span class="font-semibold text-gray-800">Category:</span> <span id="modal-category"></span>
+                     </div>
+                     <div class="text-gray-700">
+                         <span class="font-semibold text-gray-800">Year:</span> <span id="modal-year"></span>
+                     </div>
+                     <div id="modal-link-container" class="text-gray-700 flex items-start space-x-1.5 hidden">
+                         <span class="font-semibold text-gray-800 shrink-0">Link:</span>
+                         <a id="modal-link" href="#" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:underline break-all inline-flex items-center group">
+                             <span id="modal-link-text"></span>
+                             <svg class="icon-sm ml-1 opacity-70 group-hover:opacity-100 transition-opacity" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                         </a>
+                     </div>
+                     <div id="modal-tags-container" class="text-gray-700 hidden">
+                         <span class="font-semibold text-gray-800">Tags:</span>
+                         <div id="modal-tags" class="flex flex-wrap gap-1.5 mt-1.5">
+                             </div>
+                     </div>
+                     <div id="modal-abstract-container" class="text-gray-700 pt-3 mt-3 border-t border-gray-200 hidden">
+                         <h4 class="font-semibold text-gray-800 mb-1">Abstract</h4>
+                         <p id="modal-abstract" class="text-sm leading-relaxed whitespace-pre-line"></p>
+                     </div>
+                 </div>
+
+                 <div class="flex justify-end pt-4 border-t border-gray-200 mt-5">
+                     <button id="modal-close-button-footer" type="button" class="px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                         Close
+                     </button>
+                 </div>
+            </div>
+        </div>
+
+    </div> <script>
+    // --- CONFIGURATION ---
+    // BACKEND: Consider making these configurable or fetching from backend if needed
+    const ALL_CATEGORIES = ['Thesis', 'Dissertation', 'Confluence', 'Synergy'];
+    const PLACEHOLDER_IMAGE_URL = 'https://static.vecteezy.com/system/resources/previews/023/021/708/original/author-sign-theatre-icon-illustration-vector.jpg';
+    const API_BASE_URL = '/api'; // BACKEND: Adjust if your API isn't at the root
+
+    // --- STATE VARIABLES ---
+    let currentAuthorData = null;
+    let selectedPublication = null;
+    let searchQuery = '';
+    let selectedCategories = [];
+    let selectedTags = [];
+    let isTagFilterOpen = false;
+    let debounceTimeout = null;
+
+    // --- DOM ELEMENTS ---
+    // Grouping DOM elements for easier management
+    const DOM = {
+        avatarImage: document.getElementById('avatar-image'),
+        profileHeader: document.getElementById('profile-header'),
+        displayName: document.getElementById('display-full_name'),
+        displayDeptAffiliationContainer: document.getElementById('display-dept-affiliation-container'),
+        displayAffiliation: document.getElementById('display-affiliation'),
+        displayAffiliationSeparator: document.getElementById('display-affiliation-separator'),
+        displayDepartment: document.getElementById('display-department'),
+        displayEmailContainer: document.getElementById('display-email-container'),
+        displayEmail: document.getElementById('display-email'),
+        displayLinkedinContainer: document.getElementById('display-linkedin-container'),
+        displayLinkedin: document.getElementById('display-linkedin'),
+        displayBio: document.getElementById('display-bio'),
+        publicationsCount: document.getElementById('publications-count'),
+        publicationsDescription: document.getElementById('publications-description'),
+        viewPublicationsContainer: document.getElementById('view-publications-container'),
+        publicationsList: document.getElementById('publications-list'),
+        noResultsMessage: document.getElementById('no-results-message'),
+        searchInput: document.getElementById('publication-search'),
+        categoryFilterContainer: document.getElementById('category-filter-container'),
+        tagFilterToggle: document.getElementById('tag-filter-toggle'),
+        tagFilterContent: document.getElementById('tag-filter-content'),
+        tagFilterButtons: document.getElementById('tag-filter-buttons'),
+        tagFilterChevronDown: document.getElementById('tag-filter-chevron-down'),
+        tagFilterChevronUp: document.getElementById('tag-filter-chevron-up'),
+        modal: document.getElementById('publication-modal'),
+        modalTitle: document.getElementById('publication-modal-title'),
+        modalCategory: document.getElementById('modal-category'),
+        modalYear: document.getElementById('modal-year'),
+        modalLinkContainer: document.getElementById('modal-link-container'),
+        modalLink: document.getElementById('modal-link'),
+        modalLinkText: document.getElementById('modal-link-text'),
+        modalTagsContainer: document.getElementById('modal-tags-container'),
+        modalTags: document.getElementById('modal-tags'),
+        modalAbstractContainer: document.getElementById('modal-abstract-container'),
+        modalAbstract: document.getElementById('modal-abstract'),
+        modalCloseButton: document.getElementById('modal-close-button'),
+        modalCloseButtonFooter: document.getElementById('modal-close-button-footer'),
+    };
+
+
+    // --- DATA FETCHING ---
+
+    /**
+     * @typedef {object} Publication
+     * @property {string} id - Unique identifier for the publication (e.g., "pub1", database ID).
+     * @property {string} title - The title of the publication.
+     * @property {string} category - The category (e.g., 'Synergy', 'Thesis'). Must match one in ALL_CATEGORIES.
+     * @property {number} year - The publication year.
+     * @property {string} [link] - Optional URL link to the publication.
+     * @property {string[]} [tags] - Optional array of tag strings.
+     * @property {string|null} [abstract] - Optional abstract text. Can be null or missing.
+     */
+
+    /**
+     * @typedef {object} AuthorData
+     * @property {string} author_id - Unique identifier for the author.
+     * @property {string} full_name - The author's full name.
+     * @property {string} [affiliation] - Optional institutional affiliation.
+     * @property {string} [department] - Optional department.
+     * @property {string} [email] - Optional contact email address.
+     * @property {string} [linkedin] - Optional URL to LinkedIn profile.
+     * @property {string} [bio] - Optional biography text.
+     * @property {string|null} [profile_picture] - Optional URL to the profile picture.
+     * @property {Publication[]} publications - An array of the author's publications.
+     * @property {string} created_at - ISO timestamp of creation.
+     * @property {string} updated_at - ISO timestamp of last update.
+     * @property {any} [orcid_id] - ORCID ID might be present initially but should be removed/ignored by frontend.
+     */
+
+    /**
+     * Fetches author data from the backend API OR uses sample data for testing.
+     * BACKEND: This function needs the correct API endpoint and potentially authentication.
+     * @returns {Promise<AuthorData|null>} A promise that resolves with the author data or null if fetch fails.
+     */
+    async function fetchAuthorData() {
+        // CJ Diri: Database queries and hooks.
+        const useSampleData = true; // <-- SET TO false TO USE ACTUAL API CALL
+
+        // --- Sample Data (for testing) ---
+        // CJ Diri: Replace this sample data block with the actual API call below when backend is ready.
+        if (useSampleData) {
+            console.log("Using sample author data for testing.");
+            await new Promise(resolve => setTimeout(resolve, 300)); // Simulate network delay
+            const sampleData = {
+                 author_id: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+                 full_name: "Dr. Evelyn Reed (Sample)",
+                 affiliation: "Starlight University (Sample)",
+                 department: "Astrophysics (Sample)",
+                 email: "e.reed.sample@starlight.edu",
+                 linkedin: "https://linkedin.com/in/evelynreedsample",
+                 bio: "This is sample biography data. Dr. Evelyn Reed is a leading researcher in the field of exoplanetary science. Her work focuses on the atmospheric composition of distant worlds and the search for habitable environments beyond our solar system. She is passionate about science communication and mentoring the next generation of astronomers.",
+                 profile_picture: null, // Use null to test placeholder
+                 publications: [
+                     { id: "pub1", title: "Sample: Atmospheric Characterization of GJ 1214b", category: "Synergy", year: 2015, link: "https://example.com/Synergy1", tags: ["Exoplanets", "Atmosphere", "Spectroscopy"], abstract: "SAMPLE ABSTRACT: This paper details the spectroscopic analysis of the exoplanet GJ 1214b's atmosphere using data from space-based observatories. We find evidence for high-altitude clouds or hazes obscuring deeper atmospheric layers." },
+                     { id: "pub2", title: "Sample: Searching for Biosignatures on TRAPPIST-1e", category: "Synergy", year: 2018, tags: ["Exoplanets", "Biosignatures", "Habitable Zones"], abstract: "SAMPLE ABSTRACT: An investigation into potential atmospheric biosignatures on the potentially habitable exoplanet TRAPPIST-1e." },
+                     { id: "pub3", title: "Sample: Novel Techniques in Exoplanet Detection", category: "Confluence", year: 2019, link: "https://example.com/conf1", tags: ["Exoplanets", "Telescopes", "Instrumentation", "Data Analysis", "Machine Learning", "Statistics"] }, // No abstract
+                     { id: "pub4", title: "Sample: The Evolution of Planetary Atmospheres", category: "Dissertation", year: 2010, tags: ["Planetary Science", "Atmospheric Evolution", "Modeling"], abstract: "SAMPLE ABSTRACT: A comprehensive modeling study exploring the long-term evolution of terrestrial planet atmospheres." },
+                     { id: "pub5", title: "Sample: Early Universe Cosmology Models", category: "Thesis", year: 2006, tags: ["Cosmology", "Early Universe", "Inflation"], abstract: null }, // Explicitly null abstract
+                     { id: "pub6", title: "Sample: Data Visualization in Astrophysics", category: "Confluence", year: 2022, link: "https://example.com/viz", tags: ["Data Analysis", "Visualization", "Python"], abstract: "Exploring effective methods for visualizing large astronomical datasets." },
+                 ],
+                 created_at: new Date().toISOString(),
+                 updated_at: new Date().toISOString(),
+            };
+             // Ensure publications is an array (good practice even for sample data)
+             if (!Array.isArray(sampleData.publications)) {
+                 sampleData.publications = [];
+             }
+             delete sampleData.orcid_id; // Remove if present
+             return sampleData;
+        }
+        // --- End Sample Data ---
+
+
+        // --- Actual API Call ---
+        // BACKEND: Determine how to get the author ID (e.g., from URL path, query param)
+        // Example: const authorId = window.location.pathname.split('/').pop();
+        const authorId = "a1b2c3d4-e5f6-7890-1234-567890abcdef"; // Placeholder ID
+        const apiUrl = `${API_BASE_URL}/author/${authorId}`; // BACKEND: Verify/Update this URL
+
+        console.log(`Fetching author data from: ${apiUrl}`);
+
+        try {
+            const response = await fetch(apiUrl); // BACKEND: Add headers if needed (Authorization, Accept)
+
+            if (!response.ok) {
+                // Handle HTTP errors (e.g., 404 Not Found, 500 Server Error)
+                console.error(`API Error: ${response.status} ${response.statusText}`);
+                // You could try to parse error details from response body if API provides them
+                // const errorBody = await response.text();
+                // console.error("Error details:", errorBody);
+                return null; // Indicate failure
+            }
+
+            /** @type {AuthorData} */
+            const data = await response.json();
+
+            // Data Validation (Basic): Ensure publications is an array
+            if (!Array.isArray(data.publications)) {
+                 console.warn("Fetched data is missing or has invalid 'publications' array. Setting to empty array.");
+                 data.publications = [];
+            }
+
+             // Remove ORCID ID if present, as specified in original comments
+             delete data.orcid_id;
+
+
+            console.log("Author data fetched successfully.");
+            return data;
+
+        } catch (error) {
+            // Handle network errors or JSON parsing errors
+            console.error("Failed to fetch or parse author data:", error);
+            return null; // Indicate failure
+        }
+        // --- End Actual API Call ---
+    }
+
+    // --- HELPER FUNCTIONS ---
+
+    /**
+     * Debounces a function call.
+     * @param {Function} func - The function to debounce.
+     * @param {number} delay - The debounce delay in milliseconds.
+     */
+    function debounce(func, delay) {
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(func, delay);
+    }
+
+    /**
+     * Toggles visibility of an element by adding/removing the 'hidden' class.
+     * @param {HTMLElement | null} element - The element to toggle.
+     * @param {boolean} show - True to show, false to hide.
+     */
+    function toggleElement(element, show) {
+        element?.classList.toggle('hidden', !show);
+    }
+
+    /**
+     * Sets the text content of an element safely, handling null/undefined.
+     * @param {HTMLElement | null} element - The target element.
+     * @param {string | number | null | undefined} text - The text to set.
+     */
+     function setText(element, text) {
+        if (element) {
+            // Use empty string for null/undefined, convert numbers to string, trim strings
+            element.textContent = text == null ? '' : String(text).trim();
+        }
+     }
+
+    // --- RENDER FUNCTIONS ---
+
+    /**
+     * Renders the profile section based on the provided author data.
+     * @param {AuthorData} author - The author data to display.
+     */
+    function renderProfile(author) {
+        if (!author) return; // Should not happen if fetch handling is correct, but good practice
+
+        // Avatar
+        DOM.avatarImage.src = author.profile_picture || PLACEHOLDER_IMAGE_URL;
+        DOM.avatarImage.alt = `Profile picture of ${author.full_name || 'Author'}`;
+        DOM.avatarImage.onerror = () => { // Fallback if the provided image fails to load
+            DOM.avatarImage.onerror = null; // Prevent infinite loops
+            DOM.avatarImage.src = PLACEHOLDER_IMAGE_URL;
+            DOM.avatarImage.alt = 'Author placeholder image';
+        };
+
+        // Name (in Header)
+        setText(DOM.displayName, author.full_name ?? 'Unnamed Author');
+
+        // Department & Affiliation (in Header)
+        const deptText = author.department ?? '';
+        const affText = author.affiliation ?? '';
+        setText(DOM.displayDepartment, deptText);
+        setText(DOM.displayAffiliation, affText);
+        toggleElement(DOM.displayAffiliationSeparator, !!deptText && !!affText);
+        toggleElement(DOM.displayDeptAffiliationContainer, true); // Always show container
+
+        // Contact Info (in Content)
+        toggleElement(DOM.displayEmailContainer, !!author.email);
+        if (author.email) {
+            setText(DOM.displayEmail, author.email);
+            DOM.displayEmail.href = `mailto:${author.email}`;
+        }
+
+        toggleElement(DOM.displayLinkedinContainer, !!author.linkedin);
+        if (author.linkedin) {
+            // Display cleaned-up version of URL, but link to the full URL
+            const linkedinDisplay = author.linkedin.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+            setText(DOM.displayLinkedin, linkedinDisplay);
+            DOM.displayLinkedin.href = author.linkedin;
+        }
+
+        // Biography Section
+        if (!author.bio) {
+            DOM.displayBio.innerHTML = `<span class="italic text-gray-500">No biography provided.</span>`;
+        } else {
+            setText(DOM.displayBio, author.bio); // Use setText for plain text bio
+        }
+        toggleElement(DOM.displayBio, true); // Always show the bio paragraph element
+
+        // Ensure header has gradient background (redundant if never removed, but safe)
+        DOM.profileHeader.classList.add('bg-gradient-to-r', 'from-lime-500', 'to-green-600');
+    }
+
+    /**
+     * Renders a single publication item HTML string.
+     * @param {Publication} publication - The publication data.
+     * @returns {string} - The HTML string for the publication item.
+     */
+    function createPublicationItemHTML(publication) {
+        const { id, title, category, year, tags } = publication;
+        const maxTagsToShow = 5;
+        const safeTags = tags ?? []; // Ensure tags is always an array
+        const tagsToShow = safeTags.slice(0, maxTagsToShow);
+        const remainingTagCount = safeTags.length - tagsToShow.length;
+
+        const tagBaseClasses = "text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full inline-flex items-center";
+        const tagIconSVG = `<svg class="icon icon-sm mr-1 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>`;
+
+        const createTagSpan = (tag) => `
+            <span class="${tagBaseClasses}">
+                ${tagIconSVG}
+                ${tag}
+            </span>`;
+
+        const limitedTagsHTML = tagsToShow.map(createTagSpan).join('');
+        const allTagsHTML = safeTags.map(createTagSpan).join('');
+
+        // Use JSON.stringify carefully - ensure tags don't contain problematic characters for HTML attributes
+        // For simple tags, this is usually fine.
+        const allTagsDataAttr = JSON.stringify(allTagsHTML);
+
+        const showMoreButtonHTML = remainingTagCount > 0 ? `
+            <button type="button" class="show-more-tags-button text-xs h-auto px-3 py-1 mt-2 border border-gray-300 hover:bg-gray-100 rounded-md text-gray-700" data-pub-id="${id}" aria-label="Show ${remainingTagCount} more tags for ${title}">
+                Show ${remainingTagCount} more
+            </button>
+        ` : '';
+
+        return `
+            <div class="publication-item border-b border-gray-200 pb-4 last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors p-4 rounded-md group"
+                 data-pub-id="${id}" role="button" tabindex="0" aria-label="View details for ${title}">
+                <h3 class="text-lg font-semibold text-green-600 group-hover:text-green-700 transition-colors duration-200 mb-1">
+                    ${title ?? 'Untitled Publication'}
+                </h3>
+                <div class="flex flex-wrap items-center text-gray-600 text-sm mb-2">
+                    <span>${category ?? 'Uncategorized'}</span>
+                    <span class="mx-2 text-gray-400" aria-hidden="true">•</span>
+                    <span>${year ?? 'N/A'}</span>
+                </div>
+                ${safeTags.length > 0 ? `
+                    <div class="mt-2">
+                        <div class="tags-container flex flex-wrap gap-1" data-tags-all='${allTagsDataAttr}'>
+                            ${limitedTagsHTML}
+                        </div>
+                        ${showMoreButtonHTML}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+
+
+    /**
+     * Filters publications based on current state and renders the list.
+     */
+    function filterAndRenderPublications() {
+        if (!currentAuthorData?.publications) {
+            DOM.publicationsList.innerHTML = ''; // Clear list if no data
+            toggleElement(DOM.noResultsMessage, true); // Show no results
+             setText(DOM.publicationsCount, 0);
+            return;
+        }
+
+        let results = currentAuthorData.publications;
+        const query = searchQuery.toLowerCase();
+
+        // Apply Category Filter
+        if (selectedCategories.length > 0) {
+            results = results.filter(pub => pub.category && selectedCategories.includes(pub.category));
+        }
+        // Apply Tag Filter
+        if (selectedTags.length > 0) {
+            results = results.filter(pub => pub.tags && pub.tags.some(tag => selectedTags.includes(tag)));
+        }
+        // Apply Search Query Filter (on Title)
+        if (query) {
+            results = results.filter(item => item.title?.toLowerCase().includes(query));
+        }
+
+        // Sort by Year (Descending)
+        results.sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
+
+        // Render
+        DOM.publicationsList.innerHTML = ''; // Clear previous results
+        if (results.length > 0) {
+            results.forEach(pub => {
+                // Use innerHTML here because createPublicationItemHTML returns an HTML string
+                DOM.publicationsList.innerHTML += createPublicationItemHTML(pub);
+            });
+            toggleElement(DOM.noResultsMessage, false);
+        } else {
+            toggleElement(DOM.noResultsMessage, true);
+        }
+
+        // Update publication count display (reflecting filtered results count might be confusing, so show total)
+        setText(DOM.publicationsCount, currentAuthorData.publications.length);
+
+        // Re-attach listeners to the newly rendered items
+        addPublicationItemListeners();
+    }
+
+    /**
+     * Renders the category filter buttons based on ALL_CATEGORIES.
+     */
+    function renderCategoryFilters() {
+        // Clear existing buttons except the label
+        while (DOM.categoryFilterContainer.children.length > 1) {
+             DOM.categoryFilterContainer.removeChild(DOM.categoryFilterContainer.lastChild);
+        }
+
+        // BACKEND: Consider dynamically generating ALL_CATEGORIES from fetched data
+        // const availableCategories = [...new Set(currentAuthorData?.publications.map(p => p.category).filter(Boolean) ?? [])];
+
+        ALL_CATEGORIES.forEach(category => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            setText(button, category);
+            button.dataset.category = category;
+            const isActive = selectedCategories.includes(category);
+            button.className = `category-filter-button rounded-full text-xs px-3 py-1 h-auto transition-colors duration-150 border ${
+                isActive
+                    ? "bg-green-600 text-white hover:bg-green-700 border-green-600"
+                    : "text-gray-700 hover:bg-gray-100 border-gray-300"
+            }`;
+            button.setAttribute('aria-pressed', isActive);
+            DOM.categoryFilterContainer.appendChild(button);
+        });
+    }
+
+    /**
+     * Renders the tag filter buttons based on available tags in publications.
+     */
+    function renderTagFilters() {
+        DOM.tagFilterButtons.innerHTML = ''; // Clear existing buttons
+        if (!currentAuthorData?.publications) return;
+
+        // Extract unique, sorted tags from all publications
+        const allTags = Array.from(
+            new Set(currentAuthorData.publications.flatMap(pub => pub.tags ?? []))
+        ).sort();
+
+        if (allTags.length > 0) {
+            const tagIconSVG = `<svg class="icon icon-sm mr-1 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>`;
+            allTags.forEach(tag => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.dataset.tag = tag;
+                const isActive = selectedTags.includes(tag);
+                button.className = `tag-filter-button rounded-full text-xs px-3 py-1 h-auto inline-flex items-center transition-colors duration-150 border ${
+                    isActive
+                        ? "bg-green-600 text-white hover:bg-green-700 border-green-600"
+                        : "text-gray-700 hover:bg-gray-100 border-gray-300"
+                }`;
+                button.setAttribute('aria-pressed', isActive);
+                // Use innerHTML to include the SVG icon
+                button.innerHTML = `
+                    ${tagIconSVG}
+                    ${tag}
+                `;
+                DOM.tagFilterButtons.appendChild(button);
+            });
+        } else {
+             DOM.tagFilterButtons.innerHTML = `<p class="text-sm text-gray-500">No tags available for filtering.</p>`;
+        }
+    }
+
+
+    /**
+     * Renders the publication modal with details.
+     * @param {Publication} publication - The publication to display in the modal.
+     */
+    function renderModal(publication) {
+        if (!publication) {
+            closeModal(); // Close if no publication provided
+            return;
+        }
+        selectedPublication = publication;
+
+        setText(DOM.modalTitle, publication.title ?? 'Untitled Publication');
+        setText(DOM.modalCategory, publication.category ?? 'N/A');
+        setText(DOM.modalYear, publication.year ?? 'N/A');
+
+        // Link
+        const hasLink = !!publication.link;
+        toggleElement(DOM.modalLinkContainer, hasLink);
+        if (hasLink) {
+            DOM.modalLink.href = publication.link;
+            setText(DOM.modalLinkText, publication.link); // Display the full link
+        }
+
+        // Tags
+        const safeTags = publication.tags ?? [];
+        const hasTags = safeTags.length > 0;
+        toggleElement(DOM.modalTagsContainer, hasTags);
+        DOM.modalTags.innerHTML = ''; // Clear previous tags
+        if (hasTags) {
+            const tagBaseClasses = "text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full inline-flex items-center shadow-sm border border-gray-200";
+            const tagIconSVG = `<svg class="icon icon-sm mr-1.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>`;
+            safeTags.forEach(tag => {
+                // Use innerHTML to include SVG
+                DOM.modalTags.innerHTML += `
+                    <span class="${tagBaseClasses}">
+                       ${tagIconSVG}
+                       ${tag}
+                    </span>
+                `;
+            });
+        }
+
+        // Abstract
+        const hasAbstract = !!publication.abstract;
+        toggleElement(DOM.modalAbstractContainer, hasAbstract);
+        if (hasAbstract) {
+            setText(DOM.modalAbstract, publication.abstract);
+        } else {
+             setText(DOM.modalAbstract, ''); // Explicitly clear if no abstract
+        }
+
+
+        // Show the modal
+        toggleElement(DOM.modal, true);
+        // Focus the close button for accessibility
+        DOM.modalCloseButton.focus();
+    }
+
+    // --- EVENT HANDLERS ---
+
+    /** Handles search input changes with debouncing */
+    function handleSearchChange(event) {
+        searchQuery = event.target.value ?? '';
+        debounce(filterAndRenderPublications, 300); // Debounce filtering
+    }
+
+    /** Handles clicks on category filter buttons */
+    function handleCategoryFilterClick(event) {
+        const button = event.target.closest('.category-filter-button');
+        if (!button) return;
+
+        const category = button.dataset.category;
+        if (!category) return;
+
+        if (selectedCategories.includes(category)) {
+            selectedCategories = selectedCategories.filter(c => c !== category);
+        } else {
+            selectedCategories.push(category);
+        }
+        renderCategoryFilters(); // Update button appearance
+        filterAndRenderPublications(); // Refilter results
+    }
+
+     /** Handles clicks on tag filter buttons */
+    function handleTagFilterClick(event) {
+        const button = event.target.closest('.tag-filter-button');
+        if (!button) return;
+
+        const tag = button.dataset.tag;
+         if (!tag) return;
+
+        if (selectedTags.includes(tag)) {
+            selectedTags = selectedTags.filter(t => t !== tag);
+        } else {
+            selectedTags.push(tag);
+        }
+        renderTagFilters(); // Update button appearance
+        filterAndRenderPublications(); // Refilter results
+    }
+
+    /** Toggles the visibility of the tag filter section */
+    function handleTagFilterToggle() {
+        isTagFilterOpen = !isTagFilterOpen;
+        DOM.tagFilterContent.classList.toggle('open', isTagFilterOpen);
+        DOM.tagFilterToggle.setAttribute('aria-expanded', isTagFilterOpen);
+        toggleElement(DOM.tagFilterChevronDown, !isTagFilterOpen);
+        toggleElement(DOM.tagFilterChevronUp, isTagFilterOpen);
+    }
+
+    /** Handles clicks on individual publication items to open the modal */
+    function handlePublicationItemClick(event) {
+         // Find the closest ancestor which is a publication item
+        const item = event.target.closest('.publication-item');
+        if (!item || !currentAuthorData?.publications) return;
+
+        const pubId = item.dataset.pubId;
+        if (!pubId) return;
+
+        const publication = currentAuthorData.publications.find(p => p.id === pubId);
+        if (publication) {
+            renderModal(publication);
+        } else {
+            console.warn(`Publication with ID ${pubId} not found.`);
+        }
+    }
+
+     /** Handles clicks on the "Show More Tags" button within a publication item */
+    function handleShowMoreTagsClick(event) {
+        const button = event.target.closest('.show-more-tags-button');
+        if (!button) return;
+
+        // Prevent the click from triggering the publication item click handler
+        event.stopPropagation();
+
+        const tagsContainer = button.closest('.mt-2')?.querySelector('.tags-container');
+        if (tagsContainer?.dataset?.tagsAll) {
+            try {
+                const allTagsHTML = JSON.parse(tagsContainer.dataset.tagsAll);
+                // Use innerHTML as tagsAll contains HTML string
+                tagsContainer.innerHTML = allTagsHTML;
+                button.remove(); // Remove the "Show More" button
+            } catch (e) {
+                console.error("Error parsing tags data attribute:", e, tagsContainer.dataset.tagsAll);
+                // Fallback or notification? For now, just log error.
+            }
+        }
+    }
+
+    /** Closes the publication modal */
+    function closeModal() {
+        selectedPublication = null;
+        toggleElement(DOM.modal, false);
+        // Optional: Return focus to the element that opened the modal if tracked
+    }
+
+    // --- EVENT LISTENERS ---
+
+    /** Adds listeners for publication items and their 'Show More' buttons */
+    function addPublicationItemListeners() {
+         DOM.publicationsList.querySelectorAll('.publication-item').forEach(item => {
+             // Remove existing listeners to prevent duplicates if re-rendering
+             item.removeEventListener('click', handlePublicationItemClick);
+             item.removeEventListener('keydown', handlePublicationKeydown);
+
+             // Add new listeners
+             item.addEventListener('click', handlePublicationItemClick);
+             item.addEventListener('keydown', handlePublicationKeydown);
+         });
+
+         DOM.publicationsList.querySelectorAll('.show-more-tags-button').forEach(button => {
+             button.removeEventListener('click', handleShowMoreTagsClick); // Prevent duplicates
+             button.addEventListener('click', handleShowMoreTagsClick);
+         });
+    }
+
+     /** Handles keydown events on publication items for accessibility */
+     function handlePublicationKeydown(e) {
+         if (e.key === 'Enter' || e.key === ' ') {
+             e.preventDefault(); // Prevent default spacebar scroll
+             handlePublicationItemClick(e); // Treat as click
+         }
+     }
+
+    // --- SETUP LISTENERS ---
+    DOM.searchInput.addEventListener('input', handleSearchChange);
+    DOM.categoryFilterContainer.addEventListener('click', handleCategoryFilterClick);
+    DOM.tagFilterButtons.addEventListener('click', handleTagFilterClick);
+    DOM.tagFilterToggle.addEventListener('click', handleTagFilterToggle);
+
+    // Modal close listeners
+    DOM.modal.addEventListener('click', (event) => {
+        // Close only if clicking the overlay itself, not the content
+        if (event.target === DOM.modal) {
+            closeModal();
+        }
+    });
+    DOM.modalCloseButton.addEventListener('click', closeModal);
+    DOM.modalCloseButtonFooter.addEventListener('click', closeModal);
+    // Close modal on Escape key press
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !DOM.modal.classList.contains('hidden')) {
+            closeModal();
+        }
+    });
+
+    // --- INITIALIZATION ---
+    document.addEventListener('DOMContentLoaded', async () => {
+        console.log("Initializing Author Profile Page...");
+        try {
+            // Fetch data from the backend API or use sample data
+            currentAuthorData = await fetchAuthorData();
+
+            if (currentAuthorData) {
+                 // Data fetched successfully, now render the page
+                 renderProfile(currentAuthorData);
+                 renderCategoryFilters(); // Render filters based on ALL_CATEGORIES
+                 renderTagFilters();      // Render tag filters based on fetched data
+                 filterAndRenderPublications(); // Initial render of publications
+
+                 console.log("Author Profile Initialized Successfully.");
+            } else {
+                 // Handle case where fetch returned null (API error, 404, etc.)
+                 console.error("Failed to fetch author data. Profile cannot be displayed.");
+                 // Display a user-friendly error message in the main content area
+                 document.body.innerHTML = '<p class="text-red-600 text-center p-8">Could not load author profile data. The author might not exist or there was a server issue.</p>';
+            }
+        } catch (error) {
+            // Catch any unexpected errors during the initialization process
+            console.error("Critical error during profile initialization:", error);
+            document.body.innerHTML = `<p class="text-red-600 text-center p-8">An unexpected error occurred while loading the page: ${error.message}</p>`;
+        }
+    });
+
+</script>
+
+</body>
+</html>

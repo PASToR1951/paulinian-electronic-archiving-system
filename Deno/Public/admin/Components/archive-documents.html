@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archived Documents</title>
+   
+    <link rel="stylesheet" href="/admin/Components/css/archive_documents.css">
+    <link rel="stylesheet" href="/admin/Components/css/side_bar.css">
+    <link rel="stylesheet" href="/admin/Components/css/navbar_header.css">
+ 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+
+<body>
+     <!-- Navbar container -->
+  <div id="navbar-header"></div>
+
+  <!-- Sidebar container -->
+  <div id="sidebar-container"></div>
+  
+ 
+  <!-- Rest of your HTML content -->
+    <div class="docs-container">
+        <div class="category-container">
+            <div class="category-header">
+                <div class="label">
+                    Archives
+                </div>
+                
+                <div class="search-container">
+                    <div class="search-input-wrapper">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="search-documents" class="search-input" placeholder="Search archived documents...">
+                    </div>
+                
+                    <div class="sort-container">
+                        <select id="sort-order" class="sort-dropdown">
+                            <option value="latest">Latest to Earliest</option>
+                            <option value="earliest">Earliest to Latest</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Redesigned category section with card layout -->
+            <div class="category-cards-wrapper">
+                <!-- All category -->
+                <div class="category-card" data-category="All">
+                    <div class="category-icon">
+                        <img src="icons/Category-icons/default_category_icon.png" alt="All Icon">
+                    </div>
+                    <div class="category-info">
+                        <div class="category-name">All</div>
+                        <div class="category-count">0 files</div>
+                    </div>
+                </div>
+                
+                <!-- Confluence category -->
+                <div class="category-card" data-category="CONFLUENCE">
+                    <div class="category-icon">
+                        <img src="icons/Category-icons/confluence.png" alt="Confluence Icon">
+                    </div>
+                    <div class="category-info">
+                        <div class="category-name">Confluence</div>
+                        <div class="category-count">0 files</div>
+                    </div>
+                </div>
+
+                <!-- Synergy category -->
+                <div class="category-card" data-category="SYNERGY">
+                    <div class="category-icon">
+                        <img src="icons/Category-icons/synergy.png" alt="Synergy Icon">
+                    </div>
+                    <div class="category-info">
+                        <div class="category-name">Synergy</div>
+                        <div class="category-count">0 files</div>
+                    </div>
+                </div>
+
+                <!-- Dissertation category -->
+                <div class="category-card" data-category="DISSERTATION">
+                    <div class="category-icon">
+                        <img src="icons/Category-icons/dissertation.png" alt="Dissertation Icon">
+                    </div>
+                    <div class="category-info">
+                        <div class="category-name">Dissertation</div>
+                        <div class="category-count">0 files</div>
+                    </div>
+                </div>
+
+                <!-- Thesis category -->
+                <div class="category-card" data-category="THESIS">
+                    <div class="category-icon">
+                        <img src="icons/Category-icons/thesis.png" alt="Thesis Icon">
+                    </div>
+                    <div class="category-info">
+                        <div class="category-name">Thesis</div>
+                        <div class="category-count">0 files</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="documents-container" class="document-cards-container">
+            <div id="no-docs-message" class="no-docs">No archived documents found</div>
+        </div>
+
+        <div class="pagination">
+            <div id="entries-info" class="entries-info"></div>
+            <div id="page-links" class="page-links"></div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="success-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+                <path fill="#4caf50" d="M44,24c0,11.045-8.955,20-20,20S4,35.045,4,24S12.955,4,24,4S44,12.955,44,24z"></path>
+                <path fill="#ccff90" d="M34.602,14.602L21,28.199l-5.602-5.598l-2.797,2.797L21,33.801l16.398-16.402L34.602,14.602z"></path>
+            </svg>
+            <h2>Updated successfully!</h2>
+            <p>Document has been restored successfully.</p>
+        </div>
+    </div>
+    
+    <!-- Error Modal -->
+    <div id="error-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+                <path fill="#f44336" d="M44,24c0,11.045-8.955,20-20,20S4,35.045,4,24S12.955,4,24,4S44,12.955,44,24z"></path>
+                <path fill="#ffebee" d="M33.192,28.708L28.708,33.192c-0.39,0.39-1.024,0.39-1.414,0L24,29.899l-3.192,3.193
+                    c-0.39,0.39-1.024,0.39-1.414,0l-4.484-4.484c-0.39-0.39-0.39-1.024,0-1.414L18.101,24l-3.193-3.192
+                    c-0.39-0.39-0.39-1.024,0-1.414l4.484-4.484c0.39-0.39,1.024-0.39,1.414,0L24,18.101l3.192-3.193
+                    c0.39-0.39,1.024-0.39,1.414,0l4.484,4.484c0.39,0.39,0.39,1.024,0,1.414L29.899,24l3.193,3.192
+                    C33.582,27.684,33.582,28.318,33.192,28.708z"></path>
+            </svg>
+            <h2>Error</h2>
+            <p>Failed to complete the operation.</p>
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // Use absolute paths for HTML includes
+        fetch('/admin/Components/side_bar.html')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Failed to load sidebar: ${response.status}`);
+                }
+                return response.text();
+            })
+            .then(data => {
+                document.getElementById('sidebar-container').innerHTML = data;
+                
+                // Initialize sidebar functionality after loading
+                if (typeof highlightActiveSidebarLink === 'function') {
+                  highlightActiveSidebarLink();
+                }
+                
+                // Setup logout if it exists
+                if (typeof setupLogout === 'function') {
+                  setupLogout();
+                }
+            })
+            .catch(error => console.error('Error loading sidebar:', error));
+
+        fetch('/admin/Components/navbar_header.html')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Failed to load navbar: ${response.status}`);
+                }
+                return response.text();
+            })
+            .then(data => {
+                document.getElementById('navbar-header').innerHTML = data;
+            })
+            .catch(error => console.error('Error loading navbar:', error));
+            
+        // Initialize archives functionality
+        console.log('Initializing archived document list functionality');
+        setTimeout(() => {
+          // Initialize archive document list functionality after everything has loaded
+          if (typeof initializeArchivedDocumentList === 'function') {
+            console.log('Calling initializeArchivedDocumentList()');
+            initializeArchivedDocumentList();
+          } else {
+            console.error('Archive document list initialization function not found');
+          }
+        }, 100); // Small delay to ensure scripts are fully loaded
+      });
+    </script>
+
+    <!-- Load only the necessary JS files -->
+    <script src="/admin/Components/js/archived-document-list.js"></script>
+    <script src="/admin/Components/js/side_bar.js"></script>
+    
+    <!-- Make sure to update title when page loads -->
+    <script>
+      document.title = "Archived Documents - PEAS";
+      
+      // Initialize the archived document list when the page is ready
+      document.addEventListener('DOMContentLoaded', function() {
+        // Initialize archive document list functionality after everything has loaded
+        if (typeof initializeArchivedDocumentList === 'function') {
+          initializeArchivedDocumentList();
+        } else {
+          console.error('Archive document list initialization function not found');
+        }
+      });
+    </script>
+</body>
+
+</html>

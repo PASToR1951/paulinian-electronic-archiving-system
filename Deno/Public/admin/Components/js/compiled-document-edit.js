@@ -7,16 +7,25 @@ console.log('Compiled document edit module loaded');
 
 // Compiled Document edit module
 window.compiledDocumentEdit = {
-    // Function to show the edit modal for a compiled document
+    // Function to show the edit modal for a compiled document - delegates to documentEdit
     showCompiledEditModal: function(documentId) {
         console.log(`Showing edit modal for compiled document ID: ${documentId}`);
-        // In a real implementation, this would fetch the compiled document details
-        // and populate a modal form
-        alert(`Edit functionality for compiled document ${documentId} is coming soon.`);
+        
+        // Check if document edit module is available and use its implementation
+        if (window.documentEdit && typeof window.documentEdit.showCompiledEditModal === 'function') {
+            window.documentEdit.showCompiledEditModal(documentId);
+        } else {
+            alert(`Edit functionality for compiled document ${documentId} is coming soon.`);
+        }
     },
     
-    // Function to save compiled document changes
+    // Function to save compiled document changes - delegates to documentEdit
     saveCompiledDocument: function(documentData) {
+        // Use document edit implementation if available
+        if (window.documentEdit && typeof window.documentEdit.saveCompiledDocument === 'function') {
+            return window.documentEdit.saveCompiledDocument(documentData);
+        }
+        
         console.log('Saving compiled document:', documentData);
         // This would call the compiled document update API endpoint
         return Promise.resolve({ success: true });

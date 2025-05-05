@@ -848,231 +848,217 @@ window.documentArchive = (function() {
      * @param {number} page - Page number to load
      * @param {string} category - Category filter
      */
-    async function loadArchivedDocuments(page = 1, category = 'All') {
-        try {
-            // Show loading state
-            archiveState.isLoading = true;
-            updateLoadingState(true);
-            
-            // Reset current documents
-            archiveState.documents = [];
-            
-            console.log(`Loading archived documents: page=${page}, category=${category}`);
+    async function loadArchivedDocuments(page = 1, category = null, search = '') {
+        console.log(`Loading archived documents, page ${page}, category: ${category}, search: ${search}`);
+        
+        // Save current state in cache
+        archiveState.currentPage = page;
+        archiveState.categoryFilter = category;
+        archiveState.searchTerm = search;
             
             // Build URL with query parameters
-            const timestamp = window.forceRefreshTimestamp || Date.now();
-            
-            // Add cache buster to force a fresh request
-            let url = `/api/archived-docs?page=${page}&category=${category === 'All' ? '' : category}&_=${timestamp}`;
-            
-            // Add page size parameter
-            url += `&limit=20`;  // Increased from 10 to 20 to show more documents at once
-            
-            console.log('Making API request to URL:', url);
-            
-            // Fetch archived documents from API
+        let url = `/api/archives?page=${page}&size=10`;
+        
+        // Add optional filters if they exist
+        if (category) {
+            url += `&type=${encodeURIComponent(category)}`;
+        }
+        
+        if (search) {
+            url += `&search=${encodeURIComponent(search)}`;
+        }
+        
+        // Add cache busting if needed
+        if (window.forceRefreshTimestamp) {
+            url += `&_t=${window.forceRefreshTimestamp}`;
+        }
+        
+        // Get archive container element
+        const archiveContainer = document.querySelector('#archived-documents');
+        
+        if (!archiveContainer) {
+            console.error('Archive container not found. Make sure the container with ID "archived-documents" exists');
+            return;
+        }
+        
+        // Show loading state
+        archiveContainer.innerHTML = '<div class="loading-container"><div class="spinner"></div><p>Loading archived documents...</p></div>';
+        
+        try {
+            // Use the new unified API endpoint first
+            console.log(`Using unified API to load archived documents: ${url}`);
             const response = await fetch(url);
             
+            // Check for errors
             if (!response.ok) {
-                console.error(`Failed to fetch archived documents: ${response.status} ${response.statusText}`);
-                // Try to get more details
-                try {
-                    const errorData = await response.json();
-                    console.error('Error details:', errorData);
-                } catch (e) {
-                    console.error('Could not parse error response');
-                }
+                console.error(`Failed to load archived documents: ${response.status} ${response.statusText}`);
+                console.log('Falling back to legacy archive loading method...');
                 
-                throw new Error(`Failed to fetch archived documents: ${response.status} ${response.statusText}`);
+                // Fall back to the old endpoint approach
+                return legacyLoadArchivedDocuments(page, category, search);
             }
             
-            // Log the raw response text for debugging
-            const responseText = await response.text();
-            console.log('Raw API response:', responseText);
+            // Parse the response
+            const data = await response.json();
+            console.log('Archived documents data (unified API):', data);
             
-            // Parse the response as JSON
-            let data;
-            try {
-                data = JSON.parse(responseText);
-            } catch (e) {
-                console.error('Error parsing JSON response:', e);
-                throw new Error('Invalid JSON response from server');
-            }
-            
-            console.log(`Received ${data.documents ? data.documents.length : 0} archived documents:`, data);
-            
-            // Show a message if no documents were found
-            if (!data.documents || data.documents.length === 0) {
-                const container = document.getElementById('documents-container');
-                if (container) {
-                    container.innerHTML = `
-                        <div class="no-archived-docs">
-                            <i class="fas fa-archive fa-3x"></i>
-                            <p>No archived documents found.</p>
-                            <p class="small">Documents that are archived will appear here.</p>
-                        </div>
-                    `;
-                }
-                updateLoadingState(false);
-                archiveState.isLoading = false;
-                return;
-            }
-            
-            // Process each document to enrich with parent information if needed
-            const documents = data.documents || [];
-            
-            // DEBUG: Check if any documents have is_compiled flag
-            const hasCompiledDocs = documents.some(doc => doc.is_compiled === true);
-            console.log(`Do we have any compiled documents? ${hasCompiledDocs}`);
-            
-            // Create debug display at top of page
-            const debugInfo = document.createElement('div');
-            debugInfo.style.background = '#f8f9fa';
-            debugInfo.style.border = '1px solid #ddd';
-            debugInfo.style.padding = '10px';
-            debugInfo.style.marginBottom = '15px';
-            debugInfo.style.fontSize = '12px';
-            debugInfo.style.fontFamily = 'monospace';
-            
-            // Build debug info about documents
-            let debugHtml = `<div><strong>Debug Info</strong> <small>(${documents.length} total documents)</small></div>`;
-            debugHtml += '<ul style="list-style-type: none; padding-left: 10px; margin: 5px 0;">';
-            
-            // Count document types
-            const compiledCount = documents.filter(doc => doc.is_compiled === true).length;
-            const packageCount = documents.filter(doc => doc.is_package === true).length;
-            const childCount = documents.filter(doc => doc.is_child === true).length;
-            
-            debugHtml += `<li>📊 Compiled docs: ${compiledCount}, Packages: ${packageCount}, Children: ${childCount}</li>`;
-            
-            // List all compiled documents
-            const compiledDocsForDebug = documents.filter(doc => doc.is_compiled === true);
-            if (compiledDocsForDebug.length > 0) {
-                debugHtml += '<li>📁 Compiled documents:</li>';
-                debugHtml += '<ul style="padding-left: 20px;">';
-                compiledDocsForDebug.forEach(doc => {
-                    debugHtml += `<li>ID: ${doc.id} - "${doc.title}"</li>`;
-                });
-                debugHtml += '</ul>';
-            } else {
-                debugHtml += '<li>❌ No compiled documents found!</li>';
-            }
-            
-            debugHtml += '</ul>';
-            debugInfo.innerHTML = debugHtml;
-            
-            // Add debug info to the DOM before the documents container
-            const container = document.getElementById('documents-container');
-            if (container && container.parentNode) {
-                const debugContainer = document.getElementById('archive-debug-info');
-                if (debugContainer) {
-                    debugContainer.innerHTML = '';
-                    debugContainer.appendChild(debugInfo);
-                } else {
-                    const newDebugContainer = document.createElement('div');
-                    newDebugContainer.id = 'archive-debug-info';
-                    newDebugContainer.appendChild(debugInfo);
-                    container.parentNode.insertBefore(newDebugContainer, container);
-                }
-            }
-            
-            // Log each document to inspect its properties
-            documents.forEach((doc, index) => {
-                console.log(`Document ${index}: id=${doc.id}, title=${doc.title}, is_compiled=${doc.is_compiled}, is_package=${doc.is_package}, deleted_at=${doc.deleted_at}`);
-            });
-            
-            // Ensure parent document flags are properly set
-            documents.forEach(doc => {
-                // Some backend implementations might use different properties
-                // Make sure we set consistent flags for parent/compiled documents
-                if (doc.is_compiled === true || doc.is_package === true) {
-                    doc.is_compiled = true;
-                    doc.is_package = true;
-                    console.log(`Marked document as compiled/package: ${doc.id} - ${doc.title}`);
-                }
-            });
-            
-            // First pass to build a map of compiled documents
-            const compiledDocsMap = {};
-            for (const doc of documents) {
-                if (doc.is_compiled) {
-                    compiledDocsMap[doc.id] = doc;
-                }
-            }
-            
-            // Second pass to add parent info to child documents
-            const enrichmentPromises = [];
-            for (const doc of documents) {
-                if (doc.is_child && doc.parent_compiled_id) {
-                    // If we already have the parent in our list, use that info
-                    if (compiledDocsMap[doc.parent_compiled_id]) {
-                        doc.parent_title = compiledDocsMap[doc.parent_compiled_id].title;
-                    } else {
-                        // Otherwise, fetch parent info
-                        enrichmentPromises.push(
-                            fetchParentDocumentDetails(doc.id)
-                                .then(parentInfo => {
-                                    if (parentInfo) {
-                                        doc.parent_title = parentInfo.parent_title;
-                                    }
-                                    return doc;
-                                })
-                                .catch(err => {
-                                    console.warn(`Failed to enrich document ${doc.id} with parent info:`, err);
-                                    return doc;
-                                })
-                        );
-                    }
-                }
-            }
-            
-            // Wait for all enrichment to complete if any
-            if (enrichmentPromises.length > 0) {
-                console.log(`Enriching ${enrichmentPromises.length} documents with parent information...`);
-                await Promise.allSettled(enrichmentPromises);
-                console.log('Document enrichment complete');
-            }
-            
-            // Update state
-            archiveState.documents = documents;
-            archiveState.currentPage = data.current_page || 1;
+            // Update pagination state
+            archiveState.documents = data.documents || [];
             archiveState.totalPages = data.total_pages || 1;
+            archiveState.totalDocuments = data.total_documents || 0;
             
-            // Cache the results
-            archiveState.storeDocuments(true, documents, page, category);
+            // Update category counts if provided
+            if (data.category_counts) {
+                updateCategoryFilters(data.category_counts);
+            }
             
-            // Render the documents
-            renderArchivedDocuments(documents, archiveState.currentPage, archiveState.totalPages);
+            // Render the archived documents
+            renderArchivedDocuments(archiveState.documents);
             
-            // Update URL
-            updateUrl();
+            // Update pagination controls
+            updatePagination(page, data.total_pages);
+            
+            // Check if we have any archived documents
+            checkRemainingArchived();
+            
+            return data;
         } catch (error) {
             console.error('Error loading archived documents:', error);
             
-            // Show error message
-            const container = document.getElementById('documents-container');
-            if (container) {
-                container.innerHTML = `
-                    <div class="archive-error">
-                        <i class="fas fa-exclamation-triangle fa-3x"></i>
-                        <p>Error loading archived documents</p>
-                        <p class="small">${error.message}</p>
-                        <button id="retry-archive-btn" class="btn btn-primary">Retry</button>
+            // Show error in container
+            archiveContainer.innerHTML = `
+                <div class="archive-error">
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Error loading archived documents:</strong> ${error.message}
                     </div>
-                `;
-                
-                // Add retry button handler
-                const retryBtn = document.getElementById('retry-archive-btn');
-                if (retryBtn) {
-                    retryBtn.addEventListener('click', () => {
-                        loadArchivedDocuments(page, category);
-                    });
+                    <button class="btn btn-primary btn-retry" onclick="documentArchive.loadArchivedDocuments(${page})">
+                        <i class="fas fa-redo"></i> Retry
+                    </button>
+                        </div>
+                    `;
+            
+            return null;
+        }
+    }
+    
+    /**
+     * Legacy method for loading archived documents (fallback if unified API fails)
+     * @param {number} page - Page number to load
+     * @param {string} category - Category filter
+     * @param {string} search - Search term
+     * @returns {Promise} - Promise that resolves when documents are loaded
+     */
+    async function legacyLoadArchivedDocuments(page, category, search) {
+        try {
+            console.log(`Using legacy method to load archived documents`);
+            
+            // Build URL with query parameters for the old endpoint
+            let url = `/api/archived-documents?page=${page}&size=10`;
+            
+            // Add optional filters if they exist
+            if (category) {
+                url += `&type=${encodeURIComponent(category)}`;
+            }
+            
+            if (search) {
+                url += `&search=${encodeURIComponent(search)}`;
+            }
+            
+            // Add cache busting if needed
+            if (window.forceRefreshTimestamp) {
+                url += `&_t=${window.forceRefreshTimestamp}`;
+            }
+            
+            // Try different endpoints for loading archived documents
+            let response = null;
+            let data = null;
+            let loadSuccess = false;
+            
+            // Try potential endpoints
+            const loadEndpoints = [
+                url,
+                url.replace('/api/archived-documents', '/archives')
+            ];
+            
+            for (const endpoint of loadEndpoints) {
+                try {
+                    console.log(`Attempting to load archived documents from: ${endpoint}`);
+                    response = await fetch(endpoint);
+                    
+                    if (response.ok) {
+                        data = await response.json();
+                        console.log(`Successfully loaded archived documents from: ${endpoint}`);
+                        loadSuccess = true;
+                        break;
+                } else {
+                        console.log(`Load endpoint ${endpoint} returned ${response.status}`);
+                    }
+                } catch (err) {
+                    console.log(`Error trying load endpoint ${endpoint}:`, err.message);
                 }
             }
-        } finally {
-            // Update loading state
-            updateLoadingState(false);
-            archiveState.isLoading = false;
+            
+            if (!loadSuccess) {
+                console.error(`Failed to load archived documents with any known endpoint`);
+                throw new Error('Server endpoints not available for archived documents');
+            }
+            
+            console.log('Archived documents data (legacy):', data);
+            
+            // Update pagination state (handle different response formats)
+            if (data.documents) {
+                // New format
+                archiveState.documents = data.documents || [];
+                archiveState.totalPages = data.total_pages || 1;
+                archiveState.totalDocuments = data.total_documents || 0;
+            } else if (Array.isArray(data)) {
+                // Old format (just an array of documents)
+                archiveState.documents = data;
+                archiveState.totalPages = 1;
+                archiveState.totalDocuments = data.length;
+                    } else {
+                // Unknown format
+                archiveState.documents = [];
+                archiveState.totalPages = 1;
+                archiveState.totalDocuments = 0;
+            }
+            
+            // Update category counts if provided
+            if (data.category_counts) {
+                updateCategoryFilters(data.category_counts);
+            }
+            
+            // Render the archived documents
+            renderArchivedDocuments(archiveState.documents);
+            
+            // Update pagination controls
+            updatePagination(page, archiveState.totalPages);
+            
+            // Check if we have any archived documents
+            checkRemainingArchived();
+            
+            return data;
+        } catch (error) {
+            console.error('Error in legacy load operation:', error);
+            
+            // Show error in container
+            const archiveContainer = document.querySelector('#archived-documents');
+            if (archiveContainer) {
+                archiveContainer.innerHTML = `
+                    <div class="archive-error">
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Error loading archived documents:</strong> ${error.message}
+                        </div>
+                        <button class="btn btn-primary btn-retry" onclick="documentArchive.loadArchivedDocuments(${page})">
+                            <i class="fas fa-redo"></i> Retry
+                        </button>
+                    </div>
+                `;
+            }
+            
+            return null;
         }
     }
 
@@ -1372,7 +1358,7 @@ window.documentArchive = (function() {
                     <div class="document-header">
                     <h3 class="document-title">${toggleIcon}${doc.title || 'Untitled Document'}</h3>
                     <div class="document-meta">
-                        <div class="meta-row"><span class="meta-label">Authors:</span> ${authors}</div>
+                        <div class="meta-row"><span class="meta-label"><i class="fas fa-user"></i></span> ${authors}</div>
                         <div class="meta-row"><span class="meta-label">Archived:</span> ${archivedDate}</div>
                         ${parentInfo}
                     </div>
@@ -1572,98 +1558,144 @@ window.documentArchive = (function() {
     }
 
     /**
-     * Restore a document from archive
+     * Restore an archived document by removing its deleted_at timestamp
+     * @param {number} documentId - ID of the document to restore
      */
-    function restoreDocument(docId, isParent = false, childIds = []) {
-        console.log('Restoring document', docId, 'isParent:', isParent, 'childIds:', childIds);
+    async function restoreDocument(documentId) {
+        console.log(`Restoring document: ${documentId}`);
         
-        // Show confirmation dialog
-        if (!confirm('Are you sure you want to restore this document?')) {
+        if (!documentId) {
+            console.error('No document ID provided for restoration');
+            showToast('Failed to restore document: Missing ID', 'error');
             return;
         }
         
-        // Show loading indicator on the restore button
-        const restoreButton = document.querySelector(`.btn-restore[data-id="${docId}"]`);
-        if (restoreButton) {
-            const originalText = restoreButton.innerHTML;
-            restoreButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Restoring...';
-            restoreButton.disabled = true;
+        try {
+            // Show toast message to indicate restoration is in progress
+            showToast('Restoring document...', 'info');
+            
+            // Use the new unified API endpoint first
+            console.log(`Using unified API to restore document ${documentId}`);
+            const response = await fetch(`/api/archives/${documentId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'no-cache'
+                }
+            });
+            
+            // Check for errors
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Restore operation failed with unified API:', errorData.error || response.statusText);
+                console.log('Falling back to legacy restore method...');
+                
+                // Fall back to the old endpoint approach
+                return legacyRestoreDocument(documentId);
+            }
+            
+            // Parse the response
+            const result = await response.json();
+            console.log('Restore operation successful with unified API:', result);
+            
+            // Show success message
+            showToast('Document restored successfully', 'success');
+            
+            // Refresh the document list
+            loadArchivedDocuments(window.documentArchive.getCurrentCache().page || 1);
+            
+            // Also refresh regular document list if available
+            if (window.documentList && typeof window.documentList.refreshDocumentList === 'function') {
+                console.log('Refreshing regular document list after restore');
+                setTimeout(() => {
+                    window.documentList.refreshDocumentList(true);
+                }, 300);
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('Error restoring document:', error);
+            showToast(`Restore failed: ${error.message}`, 'error');
+            return false;
         }
-        
-        // Prepare data for the request
-        const data = {
-            document_id: docId,
-            is_parent: isParent
-        };
-        
-        // Add child IDs if provided
-        if (childIds && childIds.length > 0) {
-            data.child_ids = childIds;
-        }
-        
-        // Send request to restore the document
-        fetch('/admin/api/documents/restore', {
-            method: 'POST',
+    }
+    
+    /**
+     * Legacy method for restoring documents (fallback if unified API fails)
+     * @param {number} documentId - Document ID to restore
+     * @returns {Promise<boolean>} - Promise that resolves to true if successful
+     */
+    async function legacyRestoreDocument(documentId) {
+        try {
+            // Try different restore endpoints
+            let response = null;
+            let restoreSuccess = false;
+            
+            // Try potential restore endpoints
+            const restoreEndpoints = [
+                {
+                    url: `/api/archived-documents/${documentId}/restore`,
+                    method: 'POST'
+                },
+                {
+                    url: `/api/documents/${documentId}/restore`,
+                    method: 'POST'
+                }
+            ];
+            
+            for (const endpoint of restoreEndpoints) {
+                try {
+                    console.log(`Attempting to restore with endpoint: ${endpoint.url}`);
+                    response = await fetch(endpoint.url, {
+                        method: endpoint.method,
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': getCsrfToken()
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to restore document');
+                            'Cache-Control': 'no-cache'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        restoreSuccess = true;
+                        console.log(`Successfully restored document using: ${endpoint.url}`);
+                        break;
+                    } else {
+                        console.log(`Restore endpoint ${endpoint.url} returned ${response.status}`);
+                    }
+                } catch (err) {
+                    console.log(`Error trying restore endpoint ${endpoint.url}:`, err.message);
+                }
             }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Document restored successfully', data);
             
-            // Remove the document card from the archive view
-            const documentCard = document.querySelector(`.document-card[data-id="${docId}"]`);
-            if (documentCard) {
-                // Add a success message before removing
-                const successMessage = document.createElement('div');
-                successMessage.className = 'alert alert-success archive-success';
-                successMessage.innerHTML = `
-                    <i class="fas fa-check-circle"></i>
-                    Document restored successfully! It will now appear in the regular document list.
-                `;
-                documentCard.parentNode.insertBefore(successMessage, documentCard);
-                
-                // Animate the card removal
-                documentCard.style.transition = 'all 0.5s ease';
-                documentCard.style.opacity = '0';
-                documentCard.style.height = '0';
-                documentCard.style.marginBottom = '0';
-                
-                // Remove the card after animation completes
-                setTimeout(() => {
-                    documentCard.remove();
-                    
-                    // Check if we still have archived documents
-                    checkRemainingArchived();
-                    
-                    // Remove success message after a delay
+            if (!restoreSuccess) {
+                console.error(`Failed to restore document with any known endpoint`);
+                showToast('Failed to restore document. Server endpoints not available.', 'error');
+                return false;
+            }
+            
+            // Parse the response
+            const result = await response.json();
+            console.log('Restore operation successful:', result);
+            
+            // Show success message
+            showToast('Document restored successfully', 'success');
+            
+            // Refresh the document list
+            loadArchivedDocuments(window.documentArchive.getCurrentCache().page || 1);
+            
+            // Also refresh regular document list if available
+            if (window.documentList && typeof window.documentList.refreshDocumentList === 'function') {
+                console.log('Refreshing regular document list after restore');
                     setTimeout(() => {
-                        successMessage.style.opacity = '0';
-                        setTimeout(() => successMessage.remove(), 500);
-                    }, 3000);
-                }, 500);
-            }
-        })
-        .catch(error => {
-            console.error('Error restoring document:', error);
-            
-            // Reset the restore button
-            if (restoreButton) {
-                restoreButton.innerHTML = '<i class="fas fa-undo"></i> Retry';
-                restoreButton.disabled = false;
+                    window.documentList.refreshDocumentList(true);
+                }, 300);
             }
             
-            // Show error message
-            showToast('Failed to restore document. Please try again.');
-        });
+            return true;
+        } catch (error) {
+            console.error('Error in legacy restore operation:', error);
+            showToast(`Restore failed: ${error.message}`, 'error');
+            return false;
+        }
     }
 
     /**
@@ -1714,73 +1746,39 @@ window.documentArchive = (function() {
             // Show loading indication
             showToast(`Archiving document...`, 'info');
             
-            // First check if this document is already archived (to prevent double-archiving)
-            const verifyResponse = await fetch(`/api/documents/${documentId}`);
-            
-            if (!verifyResponse.ok) {
-                console.error(`Error verifying document ${documentId}: ${verifyResponse.status} ${verifyResponse.statusText}`);
-                showToast('Failed to verify document status', 'error');
-                return Promise.reject(new Error(`Failed to verify document status: ${verifyResponse.statusText}`));
-            }
-            
-            const documentData = await verifyResponse.json();
-            
-            if (documentData.deleted_at) {
-                console.log(`Document ${documentId} is already archived with deleted_at=${documentData.deleted_at}`);
-                showToast('Document is already archived', 'warning');
-                // Return success since the document is already in the desired state
-                return true;
-            }
-            
-            // Make the DELETE request to the soft-delete endpoint
-            const response = await fetch(`/api/documents/${documentId}/soft-delete`, {
-                method: 'DELETE',
+            // Try the new unified API endpoint first
+            console.log(`Using unified API to archive document ${documentId}`);
+            const response = await fetch(`/api/archives`, {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Cache-Control': 'no-cache'
-                }
+                },
+                body: JSON.stringify({
+                    document_id: documentId,
+                    archive_children: true // Archive all child documents as well
+                })
             });
             
             // Check for HTTP errors
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                console.error('Archive operation failed:', errorData.error || response.statusText);
-                showToast(`Failed to archive document: ${errorData.error || response.statusText}`, 'error');
-                return Promise.reject(new Error(`Failed to archive document: ${errorData.error || response.statusText}`));
+                console.error('Archive operation failed with unified API:', errorData.error || response.statusText);
+                console.log('Falling back to legacy archiving method...');
+                
+                // Fall back to the old multi-endpoint approach
+                return legacyArchiveDocument(documentId);
             }
             
             // Parse the response
             const result = await response.json();
-            console.log('Archive operation successful:', result);
-            
-            // If this is a compiled document with children, log details
-            if (result.is_compiled && result.child_documents && result.child_documents.length) {
-                console.log(`Archived compiled document with ${result.child_documents.length} child documents`);
-            }
-            
-            // Verify the document is now properly archived
-            const verifyArchiveResponse = await fetch(`/api/documents/${documentId}`);
-            
-            if (verifyArchiveResponse.ok) {
-                const verifiedDoc = await verifyArchiveResponse.json();
-                if (!verifiedDoc.deleted_at) {
-                    console.warn(`Verification failed: Document ${documentId} does not have deleted_at set after archive operation`);
-                    // We'll still report success since the server reported success
-                } else {
-                    console.log(`Verified: Document ${documentId} now has deleted_at=${verifiedDoc.deleted_at}`);
-                }
-            }
+            console.log('Archive operation successful with unified API:', result);
             
             // Add a timestamp to force cache refresh when loading documents
             window.forceRefreshTimestamp = Date.now();
             
             // Show success message
-            showToast(
-                result.is_compiled 
-                    ? `Archived document package with ${result.child_count || 0} item${result.child_count !== 1 ? 's' : ''}` 
-                    : 'Document archived successfully', 
-                'success'
-            );
+            showToast('Document archived successfully', 'success');
             
             // If we're in archive mode, refresh the archive list
             if (window.documentArchive.isArchiveMode()) {
@@ -1800,6 +1798,459 @@ window.documentArchive = (function() {
             console.error('Error in archive operation:', error);
             showToast(`Archive failed: ${error.message}`, 'error');
             return Promise.reject(error);
+        }
+    }
+
+    /**
+     * Archive a compiled document
+     * @param {number} documentId - Document ID to archive
+     * @returns {Promise} - Promise resolving when the archive operation is complete
+     */
+    async function archiveCompiledDocument(documentId) {
+        try {
+            // Show loading indication
+            showToast(`Archiving compilation...`, 'info');
+            
+            // First try to use the unified archive API endpoint specifically for compiled documents
+            console.log(`Using unified API for compiled document ${documentId}`);
+            
+            // Try the most reliable endpoint first - the specific compiled route
+            const response = await fetch(`/api/archives/compiled/${documentId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'no-cache'
+                }
+            });
+            
+            // Check if this endpoint worked
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Archive operation successful with unified compiled document API:', result);
+                
+                // Add a timestamp to force cache refresh
+                window.forceRefreshTimestamp = Date.now();
+                
+                // Show success message
+                showToast('Document archived successfully', 'success');
+                
+                // Refresh the current view
+                refreshCurrentView();
+                
+                return result;
+            }
+            
+            console.log(`Specific compiled endpoint returned ${response.status}, trying alternative endpoint...`);
+            
+            // If specific endpoint failed, try the more generic unified endpoint
+            const genericResponse = await fetch(`/api/archives`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'no-cache'
+                },
+                body: JSON.stringify({
+                    document_id: documentId,
+                    archive_children: true,
+                    is_compiled: true
+                })
+            });
+            
+            // Check if this endpoint worked
+            if (genericResponse.ok) {
+                const result = await genericResponse.json();
+                console.log('Archive operation successful with generic endpoint:', result);
+                
+                // Add a timestamp to force cache refresh
+                window.forceRefreshTimestamp = Date.now();
+                
+                // Show success message
+                showToast('Document archived successfully', 'success');
+                
+                // Refresh the current view
+                refreshCurrentView();
+                
+                return result;
+            }
+            
+            console.log(`Generic archive endpoint returned ${genericResponse.status}, trying legacy endpoints...`);
+            
+            // If all optimized endpoints failed, try legacy multi-endpoint approach
+            return await legacyArchiveDocument(documentId, true);
+            
+        } catch (error) {
+            console.error('Error archiving compiled document:', error);
+            showToast(`Failed to archive document: ${error.message}`, 'error');
+            return Promise.reject(error);
+        }
+    }
+
+    /**
+     * Helper function to refresh the appropriate view after an operation
+     */
+    function refreshCurrentView() {
+        // If we're in archive mode, refresh the archive list
+        if (window.documentArchive.isArchiveMode()) {
+            loadArchivedDocuments(window.documentArchive.getCurrentCache().page || 1);
+        } else {
+            // Otherwise, force refresh the regular document list
+            if (window.documentList && typeof window.documentList.refreshDocumentList === 'function') {
+                console.log('Forcing document list refresh');
+                setTimeout(() => {
+                    window.documentList.refreshDocumentList(true);
+                }, 300);
+            }
+        }
+    }
+    
+    /**
+     * Legacy method for archiving documents (fallback if unified API fails)
+     * @param {number} documentId - Document ID to archive
+     * @returns {Promise<boolean>} - Promise that resolves to true if successful
+     */
+    async function legacyArchiveDocument(documentId) {
+        try {
+            // Try to verify the document from multiple possible endpoints
+            let verifyResponse;
+            let documentData;
+            let endpointFound = false;
+            
+            // Try potential endpoint paths (ordered by most likely to work)
+            const potentialEndpoints = [
+                `/documents/${documentId}`,           // Regular path without /api prefix
+                `/api/documents/${documentId}`,       // Standard API path
+                `/api/compiled-documents/${documentId}` // Compiled document specific endpoint
+            ];
+            
+            for (const endpoint of potentialEndpoints) {
+                try {
+                    console.log(`Attempting to verify document using endpoint: ${endpoint}`);
+                    verifyResponse = await fetch(endpoint);
+                    
+                    if (verifyResponse.ok) {
+                        documentData = await verifyResponse.json();
+                        console.log(`Successfully verified document using: ${endpoint}`);
+                        endpointFound = true;
+                        break;
+                    } else {
+                        console.log(`Endpoint ${endpoint} returned ${verifyResponse.status}`);
+                    }
+                } catch (err) {
+                    console.log(`Error trying endpoint ${endpoint}:`, err.message);
+                }
+            }
+            
+            if (!endpointFound) {
+                console.error(`Could not verify document ${documentId} with any known endpoint`);
+                // Continue with the operation anyway since the user confirmed
+                console.log('Proceeding with archive operation without verification');
+                // Assume it's a regular document since we're in this function
+                documentData = { id: documentId, is_compiled: false };
+            } else if (documentData.deleted_at) {
+                console.log(`Document ${documentId} is already archived with deleted_at=${documentData.deleted_at}`);
+                showToast('Document is already archived', 'warning');
+                // Return success since the document is already in the desired state
+                return true;
+            }
+            
+            // Check if this document is actually a compiled document
+            // If so, we should use the specialized function instead
+            if (documentData.is_compiled === true || documentData.document_type === 'COMPILED' || 
+                (documentData.child_count && documentData.child_count > 0)) {
+                console.log(`Document ${documentId} appears to be a compiled document, using specialized function`);
+                return legacyArchiveCompiledDocument(documentId);
+            }
+            
+            // Try different archive endpoints
+            let response = null;
+            let archiveSuccess = false;
+            
+            // Try potential archive endpoints
+            const archiveEndpoints = [
+                {
+                    url: `/documents/${documentId}/soft-delete`,
+                    method: 'DELETE'
+                },
+                {
+                    url: `/api/documents/${documentId}/soft-delete`,
+                    method: 'DELETE'
+                },
+                {
+                    url: `/api/compiled-documents/${documentId}/soft-delete`,
+                    method: 'DELETE'
+                },
+                {
+                    url: `/api/archives`,
+                    method: 'POST',
+                    body: JSON.stringify({
+                        document_id: documentId,
+                        archive_children: false
+                    })
+                }
+            ];
+            
+            for (const endpoint of archiveEndpoints) {
+                try {
+                    console.log(`Attempting to archive with endpoint: ${endpoint.url}`);
+                    response = await fetch(endpoint.url, {
+                        method: endpoint.method,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Cache-Control': 'no-cache'
+                        },
+                        body: endpoint.body
+                    });
+                    
+                    if (response.ok) {
+                        archiveSuccess = true;
+                        console.log(`Successfully archived document using: ${endpoint.url}`);
+                        break;
+                    } else {
+                        console.log(`Archive endpoint ${endpoint.url} returned ${response.status}`);
+                    }
+                } catch (err) {
+                    console.log(`Error trying archive endpoint ${endpoint.url}:`, err.message);
+                }
+            }
+            
+            if (!archiveSuccess) {
+                console.error(`Failed to archive document with any known endpoint`);
+                showToast('Cannot archive document. Please contact your system administrator.', 'error');
+                return Promise.reject(new Error('Failed to archive document: No working endpoint found'));
+            }
+            
+            // Parse the response
+            const result = await response.json();
+            console.log('Archive operation successful:', result);
+            
+            // If this is a compiled document with children, log details
+            if (result.is_compiled && result.child_documents && result.child_documents.length) {
+                console.log(`Archived compiled document with ${result.child_documents.length} child documents`);
+            }
+            
+            // Add a timestamp to force cache refresh when loading documents
+            window.forceRefreshTimestamp = Date.now();
+            
+            // Show success message
+            showToast('Document archived successfully', 'success');
+            
+            // If we're in archive mode, refresh the archive list
+            if (window.documentArchive.isArchiveMode()) {
+                loadArchivedDocuments(window.documentArchive.getCurrentCache().page || 1);
+                } else {
+                // Otherwise, force refresh the regular document list (in document-list.js)
+                if (window.documentList && typeof window.documentList.refreshDocumentList === 'function') {
+                    console.log('Forcing document list refresh after archive operation');
+                    setTimeout(() => {
+                        window.documentList.refreshDocumentList(true);
+                    }, 300);
+                }
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('Error in legacy archive operation:', error);
+            showToast(`Archive failed: ${error.message || 'Server operation failed'}`, 'error');
+            return Promise.reject(error);
+        }
+    }
+    
+    /**
+     * Legacy method for archiving compiled documents (fallback if unified API fails)
+     * @param {number} documentId - Document ID to archive
+     * @returns {Promise<boolean>} - Promise that resolves to true if successful
+     */
+    async function legacyArchiveCompiledDocument(documentId) {
+        try {
+            // Try different endpoint paths that might be valid
+            let verifyResponse;
+            let documentData;
+            let endpointFound = false;
+            
+            // Try potential endpoint paths (ordered by most likely to work)
+            const potentialEndpoints = [
+                `/documents/${documentId}`,           // Regular path without /api prefix
+                `/api/documents/${documentId}`,       // Standard API path
+                `/api/compiled-documents/${documentId}` // Compiled document specific endpoint
+            ];
+            
+            for (const endpoint of potentialEndpoints) {
+                try {
+                    console.log(`Attempting to verify document using endpoint: ${endpoint}`);
+                    verifyResponse = await fetch(endpoint);
+                    
+                    if (verifyResponse.ok) {
+                        documentData = await verifyResponse.json();
+                        console.log(`Successfully verified document using: ${endpoint}`);
+                        endpointFound = true;
+                        break;
+                    } else {
+                        console.log(`Endpoint ${endpoint} returned ${verifyResponse.status}`);
+                    }
+                } catch (err) {
+                    console.log(`Error trying endpoint ${endpoint}:`, err.message);
+                }
+            }
+            
+            if (!endpointFound) {
+                console.error(`Could not verify document ${documentId} with any known endpoint`);
+                showToast('Could not verify document information', 'error');
+                return Promise.reject(new Error('Document verification failed: No endpoint found'));
+            }
+            
+            if (documentData.deleted_at) {
+                console.log(`Document ${documentId} is already archived with deleted_at=${documentData.deleted_at}`);
+                showToast('Document is already archived', 'warning');
+                return true;
+            }
+            
+            // Try different archive endpoints, with compiled document endpoints first
+            let response = null;
+            let archiveSuccess = false;
+            
+            // Try potential archive endpoints - ordered from most specific to more general
+            const archiveEndpoints = [
+                {
+                    url: `/api/compiled-documents/${documentId}/soft-delete`,
+                    method: 'DELETE'
+                },
+                {
+                    url: `/documents/${documentId}/soft-delete`,
+                    method: 'DELETE'
+                },
+                {
+                    url: `/api/documents/${documentId}/soft-delete`,
+                    method: 'DELETE'
+                },
+                {
+                    url: `/api/archives`,
+                    method: 'POST',
+                    body: JSON.stringify({
+                        document_id: documentId,
+                        archive_children: true
+                    })
+                }
+            ];
+            
+            for (const endpoint of archiveEndpoints) {
+                try {
+                    console.log(`Attempting to archive with endpoint: ${endpoint.url}`);
+                    response = await fetch(endpoint.url, {
+                        method: endpoint.method,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Cache-Control': 'no-cache'
+                        },
+                        body: endpoint.body
+                    });
+                    
+                    if (response.ok) {
+                        archiveSuccess = true;
+                        console.log(`Successfully archived compiled document using: ${endpoint.url}`);
+                        break;
+                    } else {
+                        console.log(`Archive endpoint ${endpoint.url} returned ${response.status}`);
+                    }
+                } catch (err) {
+                    console.log(`Error trying archive endpoint ${endpoint.url}:`, err.message);
+                }
+            }
+            
+            if (!archiveSuccess) {
+                console.error(`Failed to archive compiled document with any known endpoint`);
+                showToast('Cannot archive document. Please contact your system administrator.', 'error');
+                return Promise.reject(new Error('Failed to archive document: No working endpoint found'));
+            }
+            
+            // Parse the response
+            const result = await response.json();
+            console.log('Archive operation successful:', result);
+            
+            // Show success message
+            showToast('Document archived successfully', 'success');
+            
+            // Refresh the document list
+            if (window.documentArchive.isArchiveMode()) {
+                loadArchivedDocuments(window.documentArchive.getCurrentCache().page || 1);
+            } else {
+                if (window.documentList && typeof window.documentList.refreshDocumentList === 'function') {
+                    console.log('Forcing document list refresh after archive operation');
+                    setTimeout(() => {
+                        window.documentList.refreshDocumentList(true);
+                    }, 300);
+                }
+            }
+            
+            return true;
+        } catch (error) {
+            console.error(`Error in legacyArchiveCompiledDocument:`, error);
+            showToast(`Archive failed: ${error.message || 'Server operation failed'}`, 'error');
+            return Promise.reject(error);
+        }
+    }
+    
+    /**
+     * Archive a child document with reference to its parent
+     * @param {number} childId - ID of child document
+     * @param {number} parentId - ID of parent document
+     * @returns {Promise<boolean>} - Promise resolving to true if successful
+     */
+    async function archiveChildDocument(childId, parentId) {
+        try {
+            console.log(`Archiving child document ${childId} of parent ${parentId}`);
+            
+            // Try different archive endpoints
+            let archiveSuccess = false;
+            
+            // Try potential archive endpoints
+            const archiveEndpoints = [
+                {
+                    url: `/documents/${childId}/soft-delete`,
+                    method: 'DELETE'
+                },
+                {
+                    url: `/api/documents/${childId}/soft-delete`,
+                    method: 'DELETE'
+                }
+            ];
+            
+            for (const endpoint of archiveEndpoints) {
+                try {
+                    console.log(`Attempting to archive child with endpoint: ${endpoint.url}`);
+                    const response = await fetch(endpoint.url, {
+                        method: endpoint.method,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Cache-Control': 'no-cache'
+                        },
+                        body: JSON.stringify({
+                            parent_compiled_id: parentId,
+                            is_child: true
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        archiveSuccess = true;
+                        console.log(`Successfully archived child document ${childId} using: ${endpoint.url}`);
+                        break;
+                    } else {
+                        console.log(`Archive endpoint ${endpoint.url} returned ${response.status} for child ${childId}`);
+                    }
+                } catch (err) {
+                    console.log(`Error trying archive endpoint ${endpoint.url} for child ${childId}:`, err.message);
+                }
+            }
+            
+            if (!archiveSuccess) {
+                console.error(`Failed to archive child document ${childId} with any known endpoint`);
+                return false;
+            }
+            
+            console.log(`Successfully archived child document ${childId}`);
+            return true;
+        } catch (error) {
+            console.error(`Error archiving child document ${childId}:`, error);
+            return false;
         }
     }
 
@@ -1935,7 +2386,7 @@ window.documentArchive = (function() {
                 <div class="document-info">
                     <h4 class="document-title">${child.title || 'Untitled Document'}</h4>
                     <div class="document-meta">
-                    <span>Authors: ${authors}</span>
+                    <span><i class="fas fa-user"></i> ${authors}</span>
                 </div>
             </div>
                 <div class="document-actions">
@@ -1963,7 +2414,7 @@ window.documentArchive = (function() {
     /**
      * Show a toast notification
      * @param {string} message - Message to display
-     * @param {string} type - Type of toast (success, error, warning, info)
+     * @param {string} type - Type of toast (success, error, warning, info, document-archived, document-restored)
      */
     function showToast(message, type = 'success') {
         // Check if toastr is available (common toast library)
@@ -1974,57 +2425,92 @@ window.documentArchive = (function() {
         
         // If toastr is not available, create our own implementation
         const toast = document.createElement('div');
-        toast.className = `toast toast-${type}`;
+        toast.className = `toast ${type}`;
+        
+        // Create a unique ID for the toast
+        const toastId = 'toast-' + Date.now();
+        toast.id = toastId;
+        
+        // Determine icon based on toast type
+        let icon;
+        switch (type) {
+            case 'success':
+                icon = '<i class="fas fa-check-circle"></i>';
+                break;
+            case 'document-archived':
+                icon = '<i class="fas fa-archive"></i>';
+                break;
+            case 'document-restored':
+                icon = '<i class="fas fa-history"></i>';
+                break;
+            case 'error':
+                icon = '<i class="fas fa-exclamation-circle"></i>';
+                break;
+            case 'warning':
+                icon = '<i class="fas fa-exclamation-triangle"></i>';
+                break;
+            case 'info':
+            default:
+                icon = '<i class="fas fa-info-circle"></i>';
+                break;
+        }
+        
+        // Auto remove after 5 seconds for success/info, 8 seconds for errors/warnings
+        const duration = (type === 'error' || type === 'warning') ? 8000 : 4000;
+        
         toast.innerHTML = `
-            <div class="toast-header">
-                <i class="fas ${type === 'success' ? 'fa-check-circle' : 
-                              type === 'error' ? 'fa-exclamation-circle' : 
-                              type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'}"></i>
-                <strong class="mr-auto">${type.charAt(0).toUpperCase() + type.slice(1)}</strong>
-                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast">&times;</button>
+            <div class="toast-content">
+                ${icon}
+                <span>${message}</span>
             </div>
-            <div class="toast-body">
-                ${message}
-            </div>
+            <button class="close-btn"><i class="fas fa-times"></i></button>
+            <div class="toast-progress"></div>
         `;
         
         // Check if a toast container exists
-        let toastContainer = document.querySelector('.toast-container');
+        let toastContainer = document.getElementById('toast-container');
         
         // If not, create one
         if (!toastContainer) {
             toastContainer = document.createElement('div');
-            toastContainer.className = 'toast-container';
+            toastContainer.id = 'toast-container';
             document.body.appendChild(toastContainer);
         }
         
         // Add the toast to the container
         toastContainer.appendChild(toast);
         
-        // Auto-hide after 5 seconds
-        setTimeout(() => {
-            toast.classList.add('showing');
-            setTimeout(() => {
-                toast.classList.add('show');
-            }, 10);
-        }, 10);
+        // Animate the progress bar
+        const progressBar = toast.querySelector('.toast-progress');
+        progressBar.style.animation = `toast-progress ${duration/1000}s linear forwards`;
         
+        // Auto-hide after set duration
         setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => {
-                toast.remove();
-            }, 300);
-        }, 5000);
+            removeToast(toastId);
+        }, duration);
         
         // Add click handler to close button
-        const closeButton = toast.querySelector('.close');
+        const closeButton = toast.querySelector('.close-btn');
         if (closeButton) {
             closeButton.addEventListener('click', function() {
-                toast.classList.remove('show');
-                setTimeout(() => {
-                    toast.remove();
-                }, 300);
+                removeToast(toastId);
             });
+        }
+        
+        // Function to remove toast with animation
+        function removeToast(id) {
+            const toastToRemove = document.getElementById(id);
+            if (toastToRemove) {
+                toastToRemove.style.opacity = '0';
+                toastToRemove.style.transform = 'translateX(100px)';
+                
+                // Wait for animation to finish before removing from DOM
+                setTimeout(() => {
+                    if (toastToRemove.parentNode) {
+                        toastToRemove.parentNode.removeChild(toastToRemove);
+                    }
+                }, 300);
+            }
         }
     }
     
@@ -2209,7 +2695,15 @@ window.documentArchive = (function() {
         
         // Core document operations
         archiveDocument,
+        archiveCompiledDocument,
+        archiveChildDocument,
         restoreDocument,
+        
+        // Legacy fallback functions (not directly exposed but available internally)
+        _legacyArchiveDocument: legacyArchiveDocument,
+        _legacyArchiveCompiledDocument: legacyArchiveCompiledDocument,
+        _legacyRestoreDocument: legacyRestoreDocument,
+        _legacyLoadArchivedDocuments: legacyLoadArchivedDocuments,
         
         // Document display functions
         loadArchivedDocuments,
@@ -2219,15 +2713,13 @@ window.documentArchive = (function() {
                 documents: archiveState.documents,
                 page: archiveState.currentPage,
                 totalPages: archiveState.totalPages,
-                category: archiveState.category
+                category: archiveState.categoryFilter,
+                search: archiveState.searchTerm
             };
         },
         
-        // Parent information functions
-        getParentInfo: fetchParentDocumentDetails,
-        
-        // Initialization
-        initializeArchive: initializeArchive
+        // Initialize archive functionality
+        initializeArchive
     };
 })();
 

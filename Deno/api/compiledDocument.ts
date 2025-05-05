@@ -1,4 +1,4 @@
-import { createCompiledDocument as createCompiledDocumentService, getCompiledDocument as getCompiledDocumentService, addDocumentToCompilation as addDocumentToCompilationService, removeDocumentFromCompilation as removeDocumentFromCompilationService } from "../services/documentService.ts";
+import { createCompiledDocument as createCompiledDocumentService, getCompiledDocument as getCompiledDocumentService, addDocumentToCompilation as addDocumentToCompilationService, removeDocumentFromCompilation as removeDocumentFromCompilationService, softDeleteCompiledDocument as softDeleteCompiledDocumentService } from "../services/documentService.ts";
 
 /**
  * Creates a new compiled document
@@ -192,6 +192,68 @@ export async function handleAddDocumentsToCompilation(request: Request): Promise
   } catch (error: unknown) {
     console.error('Error adding documents to compilation:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to add documents to compilation';
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+/**
+ * HTTP handler for soft deleting a compiled document by ID
+ * @param request The HTTP request
+ * @returns The HTTP response
+ */
+export async function handleSoftDeleteCompiledDocument(request: Request): Promise<Response> {
+  if (request.method !== 'DELETE') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  const url = new URL(request.url);
+  const pathParts = url.pathname.split('/');
+  const id = parseInt(pathParts[pathParts.length - 2], 10); // Get ID from /compiled-documents/:id/soft-delete
+
+  if (isNaN(id)) {
+    return new Response(JSON.stringify({ error: 'Invalid ID' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  try {
+    await softDeleteCompiledDocumentService(id);
+    
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Compiled document successfully archived',
+      id: id
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (error: unknown) {
+    console.error(`Error archiving compiled document with ID ${id}:`, error);
+    
+    // Check for specific errors to return appropriate status codes
+    const errorMessage = error instanceof Error ? error.message : 'Failed to archive compiled document';
+    
+    if (errorMessage.includes('not found')) {
+      return new Response(JSON.stringify({ error: errorMessage }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    
+    if (errorMessage.includes('already archived')) {
+      return new Response(JSON.stringify({ error: errorMessage }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

@@ -50,7 +50,8 @@ function createDocumentCard(doc) {
         <div class="document-info">
             <h3 class="document-title">${doc.title || 'Untitled Document'}</h3>
             <div class="document-meta">
-                Authors: <span class="author-display" data-document-id="${doc.id}">${authors}</span>
+                <span class="meta-item"><i class="fas fa-user"></i> <span class="author-display" data-document-id="${doc.id}">${authors}</span></span>
+                <span class="meta-item"><i class="fas fa-calendar-alt"></i> ${pubDate || 'N/A'}</span>
             </div>
             ${topicColors}
         </div>
@@ -177,16 +178,17 @@ function createCompiledDocumentCard(doc, expandedDocIds = []) {
             </h3>
             <div class="document-meta">
                 <span class="meta-item"><i class="fas fa-file-alt"></i> ${doc.child_count || 0} document${doc.child_count !== 1 ? 's' : ''}</span>
+                <span class="meta-item"><i class="fas fa-info-circle"></i> Click to view contents</span>
             </div>
         </div>
         <div class="document-actions">
-            <button class="action-btn expand-btn">
+            <button class="action-btn expand-btn" title="Show contained documents">
                 <i class="fas fa-list"></i>
             </button>
-            <button class="action-btn edit-btn">
+            <button class="action-btn edit-btn" title="Edit compilation">
                 <i class="fas fa-edit"></i>
             </button>
-            <button class="action-btn delete-btn">
+            <button class="action-btn delete-btn" title="Archive compilation">
                 <i class="fas fa-trash"></i>
             </button>
         </div>
@@ -229,17 +231,6 @@ function createChildDocumentCard(child) {
     childCard.className = 'child-document-card';
     childCard.dataset.documentId = child.id;
     
-    // Add styling to match the screenshot
-    childCard.style.display = 'flex';
-    childCard.style.justifyContent = 'space-between';
-    childCard.style.alignItems = 'center';
-    childCard.style.padding = '10px 15px';
-    childCard.style.margin = '5px 0';
-    childCard.style.borderRadius = '4px';
-    childCard.style.backgroundColor = 'white';
-    childCard.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-    childCard.style.transition = 'all 0.2s ease';
-    
     // Format authors initially - may be updated later
     const authors = formatAuthors(child.authors);
     
@@ -248,35 +239,55 @@ function createChildDocumentCard(child) {
     
     // Format document type - try category_name first, then document_type
     const documentType = child.document_type || child.doc_type || '';
-    const category = formatCategoryName(documentType);
     
-    childCard.innerHTML = `
-        <div class="document-info" style="flex: 1;">
-            <h4 class="document-title" style="margin: 0 0 5px 0; font-size: 16px;">${child.title || 'Untitled Document'}</h4>
-            <div class="document-meta" style="font-size: 13px; color: #666;">
-                <span class="child-author-display" data-document-id="${child.id}">${authors}</span>
-            </div>
-        </div>
-        <div class="document-actions" style="display: flex; gap: 8px;">
-            <button class="action-btn view-btn" title="View Document" style="background: #4299e1; color: white; border: none; border-radius: 4px; padding: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;">
-                <i class="fas fa-eye"></i>
-            </button>
-        </div>
-    `;
+    // Create document info section
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'child-document-info';
     
-    // Add hover effect
-    childCard.addEventListener('mouseover', function() {
-        this.style.backgroundColor = '#f0f7ff';
-        this.style.boxShadow = '0 2px 5px rgba(0,0,0,0.15)';
-    });
+    // Create title element
+    const titleElement = document.createElement('h4');
+    titleElement.className = 'child-document-title';
+    titleElement.textContent = child.title || 'Untitled Document';
+    infoDiv.appendChild(titleElement);
     
-    childCard.addEventListener('mouseout', function() {
-        this.style.backgroundColor = 'white';
-        this.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-    });
+    // Create author element
+    const authorElement = document.createElement('div');
+    authorElement.className = 'child-document-author';
+    authorElement.innerHTML = `<i class="fas fa-user"></i> ${authors}`;
+    infoDiv.appendChild(authorElement);
     
-    // Add event listener for view button
-    childCard.querySelector('.view-btn').addEventListener('click', function(e) {
+    // Create metadata section
+    const metadataElement = document.createElement('div');
+    metadataElement.className = 'child-document-metadata';
+    
+    // Add publication date if available
+    if (pubDate) {
+        const dateElement = document.createElement('div');
+        dateElement.className = 'meta-item';
+        dateElement.innerHTML = `<i class="fas fa-calendar-alt"></i> ${pubDate}`;
+        metadataElement.appendChild(dateElement);
+    }
+    
+    // Add document type if available
+    if (documentType) {
+        const typeElement = document.createElement('div');
+        typeElement.className = 'meta-item';
+        typeElement.innerHTML = `<i class="fas fa-file-alt"></i> ${formatCategoryName(documentType)}`;
+        metadataElement.appendChild(typeElement);
+    }
+    
+    infoDiv.appendChild(metadataElement);
+    childCard.appendChild(infoDiv);
+    
+    // Create actions section
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'child-document-actions';
+    
+    // Add view button
+    const viewButton = document.createElement('button');
+    viewButton.className = 'action-button view';
+    viewButton.innerHTML = '<i class="fas fa-eye"></i> View';
+    viewButton.addEventListener('click', function(e) {
         e.stopPropagation();
         
         // First fetch the document details to get the file path
@@ -289,9 +300,29 @@ function createChildDocumentCard(child) {
             })
             .then(document => {
                 if (document && document.file_path) {
-                    // Open the PDF in a new tab
-                    const pdfPath = `/${document.file_path}`;
-                    window.open(pdfPath, '_blank');
+                    // Open the PDF in a new tab or viewer
+                    // Ensure we have a fully qualified URL by adding protocol and host if missing
+                    let pdfPath = document.file_path;
+                    
+                    // If the path doesn't start with http or /, add the leading /
+                    if (!pdfPath.startsWith('http') && !pdfPath.startsWith('/')) {
+                        pdfPath = '/' + pdfPath;
+                    }
+                    
+                    // If the path is relative (starts with /), prepend the current origin
+                    if (pdfPath.startsWith('/')) {
+                        pdfPath = window.location.origin + pdfPath;
+                    }
+                    
+                    console.log(`Opening document with path: ${pdfPath}`);
+                    
+                    // Use PDF viewer modal if available
+                    if (typeof showPdfViewer === 'function') {
+                        showPdfViewer(pdfPath, document.title || 'Document');
+                    } else {
+                        // Fallback to opening in new tab
+                        window.open(pdfPath, '_blank');
+                    }
                 } else {
                     alert('PDF path not found for this document');
                 }
@@ -302,19 +333,8 @@ function createChildDocumentCard(child) {
             });
     });
     
-    // Fetch authors separately if they're not available or empty
-    if (!child.authors || !Array.isArray(child.authors) || child.authors.length === 0) {
-        fetchAuthorsForDocument(child.id)
-            .then(authorData => {
-                const authorDisplay = childCard.querySelector(`.child-author-display[data-document-id="${child.id}"]`);
-                if (authorDisplay && authorData && authorData.length > 0) {
-                    authorDisplay.textContent = formatAuthors(authorData);
-                }
-            })
-            .catch(error => {
-                console.error(`Error fetching authors for child document ${child.id}:`, error);
-            });
-    }
+    actionsDiv.appendChild(viewButton);
+    childCard.appendChild(actionsDiv);
     
     return childCard;
 }
@@ -470,7 +490,20 @@ function setupDocumentCardEventListeners(card, doc) {
             .then(document => {
                 if (document && document.file_path) {
                     // Open the PDF in a new tab
-                    const pdfPath = `/${document.file_path}`;
+                    // Ensure we have a fully qualified URL by adding protocol and host if missing
+                    let pdfPath = document.file_path;
+                    
+                    // If the path doesn't start with http or /, add the leading /
+                    if (!pdfPath.startsWith('http') && !pdfPath.startsWith('/')) {
+                        pdfPath = '/' + pdfPath;
+                    }
+                    
+                    // If the path is relative (starts with /), prepend the current origin
+                    if (pdfPath.startsWith('/')) {
+                        pdfPath = window.location.origin + pdfPath;
+                    }
+                    
+                    console.log(`Opening document with path: ${pdfPath}`);
                     window.open(pdfPath, '_blank');
                 } else {
                     alert('PDF path not found for this document');
@@ -485,7 +518,10 @@ function setupDocumentCardEventListeners(card, doc) {
     // Edit button
     card.querySelector('.edit-btn').addEventListener('click', function(e) {
         e.stopPropagation();
-        if (typeof showEditModal === 'function') {
+        if (typeof editDocument === 'function') {
+            // Use the editDocument function with isCompiled=false for regular documents
+            editDocument(doc.id, false);
+        } else if (typeof showEditModal === 'function') {
             showEditModal(doc.id);
         } else {
             alert(`Edit document: ${doc.title}`);
@@ -602,10 +638,13 @@ function setupCompiledDocumentCardEventListeners(card, doc, isExpanded, expanded
     if (editBtn) {
         editBtn.addEventListener('click', function(e) {
             e.stopPropagation();
-            if (typeof showCompiledEditModal === 'function') {
+            if (typeof editDocument === 'function') {
+                // Use the editDocument function with isCompiled=true for compiled documents
+                editDocument(doc.id, true);
+            } else if (typeof showCompiledEditModal === 'function') {
                 showCompiledEditModal(doc.id);
             } else {
-                alert(`Edit compiled document: ${doc.title}`);
+                alert(`Edit compiled document: ${doc.title || 'Untitled Compilation'}`);
             }
         });
     }
@@ -615,10 +654,45 @@ function setupCompiledDocumentCardEventListeners(card, doc, isExpanded, expanded
     if (deleteBtn) {
         deleteBtn.addEventListener('click', function(e) {
             e.stopPropagation();
-            if (typeof confirmDeleteCompiledDocument === 'function') {
+            // First check if our archiveCompiledDocument function is available
+            if (window.documentArchive && typeof window.documentArchive.archiveCompiledDocument === 'function') {
+                if (confirm(`Are you sure you want to archive "${doc.title || 'this compilation'}" and all its child documents? They will be moved to the archive.`)) {
+                    console.log(`Using archiveCompiledDocument for compiled document ${doc.id}`);
+                    
+                    // Show a toast notification that archiving is in progress
+                    if (typeof showToast === 'function') {
+                        showToast('Archiving document...', 'info');
+                    }
+                    
+                    // Disable the delete button to prevent multiple clicks
+                    deleteBtn.disabled = true;
+                    deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    
+                    // Call the archive function
+                    window.documentArchive.archiveCompiledDocument(doc.id)
+                        .catch(error => {
+                            console.error('Error archiving compiled document:', error);
+                            
+                            // Show a more detailed error message
+                            if (typeof showToast === 'function') {
+                                const errorMsg = error.message || 'Server connection error';
+                                showToast(`Archive failed: ${errorMsg}. Please try again later or contact support.`, 'error');
+                            }
+                        })
+                        .finally(() => {
+                            // Re-enable the delete button
+                            deleteBtn.disabled = false;
+                            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                        });
+                }
+            } 
+            // Fall back to generic confirmation function if available
+            else if (typeof confirmDeleteCompiledDocument === 'function') {
                 confirmDeleteCompiledDocument(doc.id);
-            } else {
-                if (confirm(`Are you sure you want to delete "${doc.title}" and all its child documents?`)) {
+            } 
+            // Last resort fallback
+            else {
+                if (confirm(`Are you sure you want to delete "${doc.title || 'this compilation'}" and all its child documents?`)) {
                     alert(`Compiled document ${doc.id} would be deleted`);
                 }
             }
@@ -628,61 +702,70 @@ function setupCompiledDocumentCardEventListeners(card, doc, isExpanded, expanded
 
 /**
  * Fetch and render child documents for a compiled document
- * @param {string|number} compiledDocId - Parent document ID
- * @param {HTMLElement} container - Container to render child documents in
+ * @param {string|number} compiledDocId - Compiled document ID
+ * @param {HTMLElement} container - Container to render children in
  */
 function fetchAndRenderChildDocuments(compiledDocId, container) {
-    // Show loading
-    container.innerHTML = '<div class="loading-children"><i class="fas fa-spinner fa-spin"></i> Loading child documents...</div>';
+    // Show loading indicator
+    const loadingElement = document.createElement('div');
+    loadingElement.className = 'loading-children';
+    loadingElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading documents...';
+    container.appendChild(loadingElement);
     
-    // Set full width styling on the container
-    container.style.width = '100%';
-    container.style.marginLeft = '0';
-    container.style.borderLeft = '4px solid #3498db';
-    container.style.backgroundColor = '#f8f9fa';
-    
-    // Fetch child documents from API
+    // Fetch child documents
     fetch(`/api/documents/${compiledDocId}/children`)
         .then(response => {
             if (!response.ok) {
-                throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                throw new Error(`Failed to fetch child documents: ${response.status} ${response.statusText}`);
             }
             return response.json();
         })
         .then(data => {
-            // API now returns an object with a "documents" property
-            if (!data || !data.documents || !Array.isArray(data.documents)) {
-                console.error('Invalid child documents data:', data);
-                throw new Error('Invalid data format for child documents');
-            }
+            // Remove loading indicator
+            container.removeChild(loadingElement);
             
-            // Get the documents array from the response
-            const childDocs = data.documents;
-            
-            // Clear container
-            container.innerHTML = '';
-            
-            // If no children, show message
-            if (childDocs.length === 0) {
-                container.innerHTML = '<div class="no-children" style="padding: 15px; text-align: center;">No child documents found</div>';
+            // Check if there are any child documents
+            if (!data.documents || data.documents.length === 0) {
+                const noChildrenElement = document.createElement('div');
+                noChildrenElement.className = 'no-children-message';
+                noChildrenElement.textContent = 'No documents found in this compilation';
+                container.appendChild(noChildrenElement);
                 return;
             }
             
-            // Create a wrapper for the child documents
-            const childrenWrapper = document.createElement('div');
-            childrenWrapper.className = 'children-wrapper';
-            childrenWrapper.style.width = '100%';
-            childrenWrapper.style.padding = '10px 0';
-            container.appendChild(childrenWrapper);
+            // Create a fragment to hold all child documents
+            const fragment = document.createDocumentFragment();
             
             // Render each child document
-            childDocs.forEach(child => {
-                const childCard = createChildDocumentCard(child);
-                childrenWrapper.appendChild(childCard);
+            data.documents.forEach(childDoc => {
+                try {
+                    const childCard = createChildDocumentCard(childDoc);
+                    fragment.appendChild(childCard);
+                } catch (error) {
+                    console.error(`Error rendering child document ${childDoc.id}:`, error);
+                    // Add error indicator
+                    const errorElement = document.createElement('div');
+                    errorElement.className = 'error-message';
+                    errorElement.textContent = `Error loading document: ${childDoc.title || 'Unknown'}`;
+                    fragment.appendChild(errorElement);
+                }
             });
+            
+            // Add all child documents to container
+            container.appendChild(fragment);
         })
         .catch(error => {
             console.error('Error fetching child documents:', error);
-            container.innerHTML = `<div class="error-message" style="padding: 15px; color: #e74c3c;">Error loading child documents: ${error.message}</div>`;
+            
+            // Remove loading indicator
+            if (container.contains(loadingElement)) {
+                container.removeChild(loadingElement);
+            }
+            
+            // Show error message
+            const errorElement = document.createElement('div');
+            errorElement.className = 'error-message';
+            errorElement.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Error loading documents: ${error.message}`;
+            container.appendChild(errorElement);
         });
 } 

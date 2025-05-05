@@ -28,19 +28,11 @@ function filterByCategory(categoryName) {
         // Set "All" category as active
         document.querySelector('.category-card[data-category="All"]').classList.add('active');
     } else {
-        // Convert display category names to document_type ENUM values for API
-        const categoryTypeMap = {
-            'All': 'All',
-            'Thesis': 'THESIS',
-            'Dissertation': 'DISSERTATION',
-            'Confluence': 'CONFLUENCE',
-            'Synergy': 'SYNERGY'
-        };
+        // For API filtering, we just use the category name as is
+        // The data-category attributes now match the API values (THESIS, DISSERTATION, etc.)
+        currentCategoryFilter = categoryName === 'All' ? null : categoryName;
         
-        // Use the mapped value for the filter
-        currentCategoryFilter = categoryTypeMap[categoryName] || categoryName;
-        
-        console.log(`Mapped category from ${categoryName} to ${currentCategoryFilter}`);
+        console.log(`Set current category filter to: ${currentCategoryFilter}`);
         
         // Update active category styling
         document.querySelectorAll('.category-card').forEach(btn => {
@@ -99,38 +91,52 @@ async function loadCategories() {
  * @param {Array} categories - Array of category objects with counts
  */
 function updateCategoryCounts(categories) {
-    console.log('Updating category counts:', categories);
+    console.log('DEBUG: Updating category counts with data:', categories);
     
     // Calculate total documents across all categories
     let totalDocs = 0;
     categories.forEach(cat => {
-        totalDocs += cat.count;
+        totalDocs += Number(cat.count);
     });
+    
+    console.log('DEBUG: Total document count:', totalDocs);
     
     // Update the "All" category count
     const allCountElement = document.querySelector('.category-card[data-category="All"] .category-count');
     if (allCountElement) {
-        allCountElement.textContent = `${totalDocs} files`;
+        allCountElement.textContent = `${totalDocs} ${totalDocs === 1 ? 'file' : 'files'}`;
+        console.log('DEBUG: Updated All category count to', totalDocs);
+    } else {
+        console.error('DEBUG: Could not find All category count element');
     }
     
-    // Map API document_type to display names
-    const typeDisplayMap = {
-        'THESIS': 'Thesis',
-        'DISSERTATION': 'Dissertation',
-        'CONFLUENCE': 'Confluence',
-        'SYNERGY': 'Synergy'
-    };
-    
-    // Update each individual category count
+    // Map API document_type values to the data-category attribute values in HTML
+    // Note: In document_list.html, data-category uses Title Case (Thesis, Dissertation, etc.)
+    // But in archive-documents.html, data-category uses UPPERCASE (THESIS, DISSERTATION, etc.)
+    // So we need to check both formats
     categories.forEach(category => {
-        // Use the display name mapped from document_type
-        const displayName = typeDisplayMap[category.name] || category.name;
-        console.log(`Updating count for category: ${category.name} -> ${displayName} with count: ${category.count}`);
-        const countElement = document.querySelector(`.category-card[data-category="${displayName}"] .category-count`);
+        const categoryName = category.name; // This is in UPPERCASE from API (e.g., "THESIS")
+        const count = Number(category.count);
+        
+        // Try both UPPERCASE and Title Case versions
+        const uppercaseSelector = `.category-card[data-category="${categoryName}"] .category-count`;
+        const titleCaseSelector = `.category-card[data-category="${categoryName.charAt(0) + categoryName.slice(1).toLowerCase()}"] .category-count`;
+        
+        console.log(`DEBUG: Looking for category elements with selectors: "${uppercaseSelector}" or "${titleCaseSelector}"`);
+        
+        // First try the uppercase version (for archive-documents.html)
+        let countElement = document.querySelector(uppercaseSelector);
+        
+        // If not found, try the title case version (for documents_list.html)
+        if (!countElement) {
+            countElement = document.querySelector(titleCaseSelector);
+        }
+        
         if (countElement) {
-            countElement.textContent = `${category.count} ${category.count === 1 ? 'file' : 'files'}`;
+            countElement.textContent = `${count} ${count === 1 ? 'file' : 'files'}`;
+            console.log(`DEBUG: Updated ${categoryName} category count to ${count}`);
         } else {
-            console.warn(`Could not find element for category: ${displayName}`);
+            console.warn(`DEBUG: Could not find category count element for ${categoryName}`);
         }
     });
 }
@@ -292,19 +298,44 @@ function updateFilterIndicator() {
 }
 
 /**
- * Initialize filters and pagination
+ * Initialize filters and pagination when document list page loads
  */
 function initializeFiltersAndPagination() {
-    console.log('Initializing filters and pagination');
+    console.log('INIT DEBUG: Initializing document filters and pagination');
     
-    // Set up event listeners
+    // Set up category filters
     setupCategoryFilters();
+    
+    // Load categories from the API
+    loadCategories();
+    
+    // Set up sort order dropdown
     setupSortOrder();
+    
+    // Set up pagination controls
     setupPaginationControls();
+    
+    // Set up search functionality
     setupSearchInput();
     
-    // Load initial categories
-    loadCategories();
+    console.log('INIT DEBUG: Filters and pagination initialized successfully');
+    
+    // Make global access object available
+    console.log('INIT DEBUG: Creating window.documentFilters global object');
+    window.documentFilters = {
+        initializeFiltersAndPagination,
+        updatePagination,
+        setCurrentPage,
+        getCurrentCategoryFilter,
+        getCurrentSortOrder,
+        getCurrentPage,
+        getCurrentSearchQuery,
+        setVisibleEntriesCount,
+        resetFilters,
+        updateFilterIndicator
+    };
+    
+    console.log('INIT DEBUG: window.documentFilters created:', window.documentFilters);
 }
 
 /**
@@ -433,16 +464,18 @@ function resetFilters() {
     }
 }
 
-// Export functions for use in other modules
-window.documentFilters = {
-    initializeFiltersAndPagination,
-    setCurrentPage,
-    setVisibleEntriesCount,
-    getCurrentCategoryFilter,
-    getCurrentSortOrder,
-    getCurrentPage,
-    getCurrentSearchQuery,
-    updatePagination,
-    updateFilterIndicator,
-    resetFilters
-}; 
+// Export functions for use in other modules - only if not already defined
+if (!window.documentFilters) {
+    window.documentFilters = {
+        initializeFiltersAndPagination,
+        setCurrentPage,
+        setVisibleEntriesCount,
+        getCurrentCategoryFilter,
+        getCurrentSortOrder,
+        getCurrentPage,
+        getCurrentSearchQuery,
+        updatePagination,
+        updateFilterIndicator,
+        resetFilters
+    };
+} 

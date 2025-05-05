@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Edit Modals</title>
+    <!-- These modals should be imported where needed -->
+</head>
+<body>
+    <!-- Modal for Single Document Edit -->
+    <div id="edit-single-document-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="container">
+                <div class="left-panel">
+                    <h2>Edit Document</h2>
+                    <form id="edit-single-document-form">
+                        <input type="hidden" id="edit-single-document-id" name="document_id">
+                        
+                        <div class="form-group">
+                            <label for="edit-single-document-title">Title</label>
+                            <input type="text" id="edit-single-document-title" name="title" placeholder="Document title" required>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="edit-single-document-type">Document Type</label>
+                                <select id="edit-single-document-type" name="document_type" required>
+                                    <option value="">Select document type</option>
+                                    <option value="THESIS">Thesis</option>
+                                    <option value="DISSERTATION">Dissertation</option>
+                                    <option value="CONFLUENCE">Confluence</option>
+                                    <option value="SYNERGY">Synergy</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-single-document-date">Date Published</label>
+                                <input type="date" id="edit-single-document-date" name="date_published">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Authors</label>
+                            <div class="search-input-container">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="edit-single-document-author-search" placeholder="Search for authors" autocomplete="off">
+                            </div>
+                            <div id="edit-single-document-author-dropdown" class="dropdown-list"></div>
+                            <div id="edit-single-document-selected-authors" class="selected-authors"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Research Agenda</label>
+                            <div class="search-input-container">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="edit-single-document-topic-search" placeholder="Search for research agenda items" autocomplete="off">
+                            </div>
+                            <div id="edit-single-document-topic-dropdown" class="dropdown-list"></div>
+                            <div id="edit-single-document-selected-topics" class="selected-topics"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Document File</label>
+                            <div class="file-upload">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <p>Drag & drop a new file or click to browse</p>
+                                <p class="file-types">Accepts PDF documents only</p>
+                                <input type="file" id="edit-single-document-file" name="document_file" style="display: none;" accept=".pdf">
+                            </div>
+                            <div id="edit-single-document-file-indicator"></div>
+                        </div>
+                        
+                        <div class="submit-container">
+                            <button type="button" class="btn-secondary cancel-edit-btn">Cancel</button>
+                            <button type="submit" class="btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="right-panel">
+                    <div class="preview-container">
+                        <div class="preview-header">
+                            <div class="preview-icon" style="width: 36px; height: 36px;">
+                                <img id="edit-single-document-type-icon" src="/admin/Components/icons/Category-icons/default_category_icon.png" alt="Document Type" style="width: 100%; height: 100%;">
+                            </div>
+                            <div class="preview-title-section">
+                                <h3 id="edit-single-document-preview-title" class="preview-title">Document Title</h3>
+                                <p id="edit-single-document-preview-author" class="preview-author"><i class="fas fa-user"></i> Author Name</p>
+                            </div>
+                        </div>
+                        
+                        <div class="preview-metadata">
+                            <div class="metadata-row">
+                                <span class="metadata-label">Document Type:</span>
+                                <span id="edit-single-document-preview-type" class="metadata-value">-</span>
+                            </div>
+                            <div class="metadata-row">
+                                <span class="metadata-label">Date Published:</span>
+                                <span id="edit-single-document-preview-date" class="metadata-value">-</span>
+                            </div>
+                            <div class="metadata-row">
+                                <span class="metadata-label">Research Agenda:</span>
+                                <span id="edit-single-document-preview-topics" class="metadata-value">-</span>
+                            </div>
+                        </div>
+                        
+                        <button id="edit-single-document-read-btn" class="read-document-btn">
+                            <i class="fas fa-book-reader"></i> Read Document
+                        </button>
+                        
+                        <div class="preview-abstract">
+                            <h3 class="abstract-title">Abstract</h3>
+                            <p id="edit-single-document-preview-abstract" class="abstract-content">
+                                No abstract available.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Compiled Document Edit -->
+    <div id="edit-compiled-document-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="container">
+                <div class="left-panel">
+                    <h2>Edit Compilation</h2>
+                    <form id="edit-compiled-document-form">
+                        <input type="hidden" id="edit-compiled-document-id" name="document_id">
+                        
+                        <div class="form-group">
+                            <label for="edit-compiled-document-title">Compilation Title</label>
+                            <input type="text" id="edit-compiled-document-title" name="title" placeholder="Compilation title" required>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="edit-compiled-document-type">Document Type</label>
+                                <select id="edit-compiled-document-type" name="document_type" required>
+                                    <option value="">Select document type</option>
+                                    <option value="THESIS">Thesis</option>
+                                    <option value="DISSERTATION">Dissertation</option>
+                                    <option value="CONFLUENCE">Confluence</option>
+                                    <option value="SYNERGY">Synergy</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-compiled-document-date">Date Published</label>
+                                <input type="date" id="edit-compiled-document-date" name="date_published">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Authors</label>
+                            <div class="search-input-container">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="edit-compiled-document-author-search" placeholder="Search for authors" autocomplete="off">
+                            </div>
+                            <div id="edit-compiled-document-author-dropdown" class="dropdown-list"></div>
+                            <div id="edit-compiled-document-selected-authors" class="selected-authors"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Research Agenda</label>
+                            <div class="search-input-container">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="edit-compiled-document-topic-search" placeholder="Search for research agenda items" autocomplete="off">
+                            </div>
+                            <div id="edit-compiled-document-topic-dropdown" class="dropdown-list"></div>
+                            <div id="edit-compiled-document-selected-topics" class="selected-topics"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Compiled Document File</label>
+                            <div class="file-upload">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <p>Drag & drop a new file or click to browse</p>
+                                <p class="file-types">Accepts PDF documents only</p>
+                                <input type="file" id="edit-compiled-document-file" name="document_file" style="display: none;" accept=".pdf">
+                            </div>
+                            <div id="edit-compiled-document-file-indicator"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Child Documents</label>
+                            <div id="edit-compiled-document-children" class="compilation-studies-list">
+                                <div class="no-children-message">No child documents added yet.</div>
+                            </div>
+                            <button type="button" id="add-child-document-btn">
+                                <i class="fas fa-plus"></i> Add Child Document
+                            </button>
+                        </div>
+                        
+                        <div class="submit-container">
+                            <button type="button" class="btn-secondary cancel-edit-btn">Cancel</button>
+                            <button type="submit" class="btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="right-panel">
+                    <div class="preview-container">
+                        <div class="preview-header">
+                            <div class="preview-icon" style="width: 36px; height: 36px;">
+                                <img id="edit-compiled-document-type-icon" src="/admin/Components/icons/Category-icons/default_category_icon.png" alt="Document Type" style="width: 100%; height: 100%;">
+                            </div>
+                            <div class="preview-title-section">
+                                <h3 id="edit-compiled-document-preview-title" class="preview-title">Compilation Title</h3>
+                                <p id="edit-compiled-document-preview-author" class="preview-author"><i class="fas fa-user"></i> Multiple Authors</p>
+                            </div>
+                        </div>
+                        
+                        <div class="preview-metadata">
+                            <div class="metadata-row">
+                                <span class="metadata-label">Document Type:</span>
+                                <span id="edit-compiled-document-preview-type" class="metadata-value">-</span>
+                            </div>
+                            <div class="metadata-row">
+                                <span class="metadata-label">Date Published:</span>
+                                <span id="edit-compiled-document-preview-date" class="metadata-value">-</span>
+                            </div>
+                            <div class="metadata-row">
+                                <span class="metadata-label">Child Count:</span>
+                                <span id="edit-compiled-document-preview-count" class="metadata-value">0</span>
+                            </div>
+                            <div class="metadata-row">
+                                <span class="metadata-label">Research Agenda:</span>
+                                <span id="edit-compiled-document-preview-topics" class="metadata-value">-</span>
+                            </div>
+                        </div>
+                        
+                        <button id="edit-compiled-document-read-btn" class="read-document-btn">
+                            <i class="fas fa-book-reader"></i> Read Document
+                        </button>
+                        
+                        <div class="preview-abstract">
+                            <h3 class="abstract-title">Child Documents</h3>
+                            <div id="edit-compiled-document-preview-children" class="compilation-preview">
+                                <div class="no-children-message">No child documents added.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Child Document Selection Modal -->
+    <div id="select-child-document-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="select-child-header">
+                <h3>Select Documents to Add</h3>
+                <button id="close-select-document-btn" class="close-select-btn">×</button>
+            </div>
+            
+            <div class="search-child-documents">
+                <div class="search-input-container">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="child-document-search" placeholder="Search documents by title, author, or type">
+                </div>
+            </div>
+            
+            <div class="available-documents" id="available-documents-container">
+                <div class="loading-documents">
+                    <i class="fas fa-spinner fa-spin"></i> Loading documents...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF Viewer Modal -->
+    <div id="pdf-viewer-modal" style="display: none;">
+        <div class="pdf-modal-content">
+            <div class="pdf-modal-header">
+                <h3 id="pdf-viewer-title">Document Preview</h3>
+                <button id="close-pdf-btn" class="close-button">×</button>
+            </div>
+            <div class="pdf-container">
+                <iframe id="pdf-iframe" src=""></iframe>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

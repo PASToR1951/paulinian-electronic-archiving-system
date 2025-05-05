@@ -14,13 +14,14 @@ router.get("/api/archived-docs", async (ctx) => {
   try {
     const db = new Database();
     
-    // Get query parameters
-    const page = parseInt(ctx.request.query.page) || 1;
-    const limit = parseInt(ctx.request.query.limit) || 10;
+    // Get query parameters correctly from the URL
+    const url = new URL(ctx.request.url);
+    const page = parseInt(url.searchParams.get("page") || "1");
+    const limit = parseInt(url.searchParams.get("limit") || "10");
     const offset = (page - 1) * limit;
-    const category = ctx.request.query.category || "";
-    const search = ctx.request.query.search || "";
-    const sortOrder = ctx.request.query.sort || "latest"; // 'latest' or 'earliest'
+    const category = url.searchParams.get("category") || "";
+    const search = url.searchParams.get("search") || "";
+    const sortOrder = url.searchParams.get("sort") || "latest"; // 'latest' or 'earliest'
     
     console.log(`Fetching archived documents: page=${page}, limit=${limit}, category=${category}, search=${search}, sortOrder=${sortOrder}`);
     
@@ -36,7 +37,7 @@ router.get("/api/archived-docs", async (ctx) => {
         d.created_at,
         d.is_compiled,
         d.volume,
-        GROUP_CONCAT(a.name, ', ') as author
+        string_agg(COALESCE(a.name, ''), ', ') as author
       FROM 
         documents d
       LEFT JOIN 
@@ -48,13 +49,21 @@ router.get("/api/archived-docs", async (ctx) => {
     `;
     
     // Add category filter if provided
+    let paramCounter = 1;
+    const queryParams = [];
+    
     if (category) {
-      query += ` AND d.document_type = ?`;
+      query += ` AND d.document_type = $${paramCounter}`;
+      queryParams.push(category);
+      paramCounter++;
     }
     
     // Add search filter if provided
     if (search) {
-      query += ` AND (d.title LIKE ? OR d.abstract LIKE ? OR a.name LIKE ?)`;
+      const searchTerm = `%${search}%`;
+      query += ` AND (d.title ILIKE $${paramCounter} OR d.abstract ILIKE $${paramCounter+1} OR a.name ILIKE $${paramCounter+2})`;
+      queryParams.push(searchTerm, searchTerm, searchTerm);
+      paramCounter += 3;
     }
     
     // Group by document ID to handle multiple authors
@@ -62,28 +71,19 @@ router.get("/api/archived-docs", async (ctx) => {
     
     // Add sorting
     if (sortOrder === "earliest") {
-      query += ` ORDER BY d.publication_date ASC, d.title ASC`;
+      query += ` ORDER BY d.publication_date ASC NULLS LAST, d.title ASC`;
     } else {
-      query += ` ORDER BY d.publication_date DESC, d.title ASC`;
+      query += ` ORDER BY d.publication_date DESC NULLS LAST, d.title ASC`;
     }
     
-    // Add pagination
-    query += ` LIMIT ? OFFSET ?`;
-    
-    // Prepare query parameters
-    const queryParams = [];
-    
-    if (category) {
-      queryParams.push(category);
-    }
-    
-    if (search) {
-      const searchTerm = `%${search}%`;
-      queryParams.push(searchTerm, searchTerm, searchTerm);
-    }
+    // Add pagination - PostgreSQL uses $n parameters
+    query += ` LIMIT $${paramCounter} OFFSET $${paramCounter+1}`;
     
     // Add pagination parameters
     queryParams.push(limit, offset);
+    
+    console.log("Executing query:", query);
+    console.log("With parameters:", queryParams);
     
     // Execute the query
     const documents = await db.query(query, queryParams);
@@ -102,31 +102,34 @@ router.get("/api/archived-docs", async (ctx) => {
         d.deleted_at IS NOT NULL
     `;
     
+    // Reset parameter counter
+    paramCounter = 1;
+    const countParams = [];
+    
     // Add category filter if provided
     if (category) {
-      countQuery += ` AND d.document_type = ?`;
+      countQuery += ` AND d.document_type = $${paramCounter}`;
+      countParams.push(category);
+      paramCounter++;
     }
     
     // Add search filter if provided
     if (search) {
-      countQuery += ` AND (d.title LIKE ? OR d.abstract LIKE ? OR a.name LIKE ?)`;
-    }
-    
-    // Prepare count query parameters
-    const countParams = [];
-    
-    if (category) {
-      countParams.push(category);
-    }
-    
-    if (search) {
       const searchTerm = `%${search}%`;
+      countQuery += ` AND (d.title ILIKE $${paramCounter} OR d.abstract ILIKE $${paramCounter+1} OR a.name ILIKE $${paramCounter+2})`;
       countParams.push(searchTerm, searchTerm, searchTerm);
     }
     
+    console.log("Executing count query:", countQuery);
+    console.log("With count parameters:", countParams);
+    
     // Execute count query
     const countResult = await db.query(countQuery, countParams);
-    const totalDocuments = countResult[0]?.total || 0;
+    const totalDocuments = countResult.length > 0 && countResult[0] 
+      ? (typeof countResult[0] === 'object' && countResult[0] && 'total' in countResult[0]
+        ? Number(countResult[0].total) 
+        : 0)
+      : 0;
     const totalPages = Math.ceil(totalDocuments / limit);
     
     // Get category counts for filter badges
@@ -145,16 +148,16 @@ router.get("/api/archived-docs", async (ctx) => {
     const categoryCountsResult = await db.query(categoriesQuery);
     
     // Format the category counts
-    const categoryCounts = {};
-    categoryCountsResult.forEach(row => {
-      const category = row.category || 'Uncategorized';
-      categoryCounts[category] = row.count;
+    const categoryCounts: Record<string, number> = {};
+    categoryCountsResult.forEach((row: any) => {
+      const category = (row.category || 'Uncategorized') as string;
+      categoryCounts[category] = Number(row.count);
     });
     
     // Process documents to handle any additional data needs
-    const processedDocuments = documents.map(doc => {
+    const processedDocuments = documents.map((doc: any) => {
       // Parse authors string into array
-      let authors = [];
+      let authors: string[] = [];
       if (doc.author) {
         authors = doc.author.split(', ').filter(Boolean);
       }
@@ -176,12 +179,12 @@ router.get("/api/archived-docs", async (ctx) => {
       limit: limit
     };
     
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error fetching archived documents:', error);
     ctx.response.status = 500;
     ctx.response.body = {
       error: 'Failed to fetch archived documents',
-      details: error.message
+      details: error instanceof Error ? error.message : String(error)
     };
   }
 });
@@ -204,19 +207,89 @@ router.post("/api/restore-document/:id", async (ctx) => {
     
     console.log(`Restoring document with ID: ${documentId}`);
     
+    // Get the document information first
+    const getDocumentQuery = `
+      SELECT title, document_type, file_path
+      FROM documents
+      WHERE id = ?
+    `;
+    
+    const documentInfo = await db.query(getDocumentQuery, [documentId]);
+    
+    if (documentInfo.length === 0) {
+      ctx.response.status = 404;
+      ctx.response.body = { error: 'Document not found' };
+      return;
+    }
+    
+    // Type assertion for document info
+    const docInfo = documentInfo[0] as { 
+      title: string; 
+      document_type: string; 
+      file_path: string | null;
+    };
+    
+    const { title, document_type, file_path } = docInfo;
+    
+    // Check for active documents with the same title and type
+    const checkDuplicateQuery = `
+      SELECT id 
+      FROM documents 
+      WHERE title = ? 
+      AND document_type = ? 
+      AND deleted_at IS NULL
+      AND id <> ?
+    `;
+    
+    const duplicates = await db.query(checkDuplicateQuery, [title, document_type, documentId]);
+    
+    if (duplicates.length > 0) {
+      ctx.response.status = 409;
+      ctx.response.body = { 
+        error: 'Cannot restore document', 
+        details: 'An active document with the same title and type already exists.' 
+      };
+      return;
+    }
+    
+    // Check for duplicates by file path (if file_path exists)
+    if (file_path) {
+      const checkFilePathQuery = `
+        SELECT id 
+        FROM documents 
+        WHERE file_path = ? 
+        AND deleted_at IS NULL
+        AND id <> ?
+      `;
+      
+      const filePathDuplicates = await db.query(checkFilePathQuery, [file_path, documentId]);
+      
+      if (filePathDuplicates.length > 0) {
+        ctx.response.status = 409;
+        ctx.response.body = { 
+          error: 'Cannot restore document', 
+          details: 'An active document with the same file already exists.' 
+        };
+        return;
+      }
+    }
+    
     // Set the deleted_at field to NULL to restore the document
-    const query = `
+    const updateQuery = `
       UPDATE documents
       SET deleted_at = NULL
       WHERE id = ?
     `;
     
     // Execute the query
-    const result = await db.query(query, [documentId]);
+    const result = await db.query(updateQuery, [documentId]);
     
-    if (result.affectedRows === 0) {
+    // Check if the update was successful by examining the result
+    const updateSuccessful = result && Array.isArray(result) && result.length > 0;
+    
+    if (!updateSuccessful) {
       ctx.response.status = 404;
-      ctx.response.body = { error: 'Document not found' };
+      ctx.response.body = { error: 'Document not found or could not be updated' };
       return;
     }
     
@@ -225,12 +298,12 @@ router.post("/api/restore-document/:id", async (ctx) => {
       message: 'Document restored successfully'
     };
     
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error restoring document:', error);
     ctx.response.status = 500;
     ctx.response.body = {
       error: 'Failed to restore document',
-      details: error.message
+      details: error instanceof Error ? error.message : String(error)
     };
   }
 });
@@ -259,22 +332,22 @@ router.get("/api/archived-category-counts", async (ctx) => {
     const result = await db.query(query);
     
     // Format the category counts
-    const counts = {};
-    result.forEach(row => {
-      const category = row.category || 'Uncategorized';
-      counts[category] = row.count;
+    const counts: Record<string, number> = {};
+    result.forEach((row: any) => {
+      const category = (row.category || 'Uncategorized') as string;
+      counts[category] = Number(row.count);
     });
     
     ctx.response.body = {
       counts: counts
     };
     
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error fetching archived category counts:', error);
     ctx.response.status = 500;
     ctx.response.body = {
       error: 'Failed to fetch archived category counts',
-      details: error.message
+      details: error instanceof Error ? error.message : String(error)
     };
   }
 });

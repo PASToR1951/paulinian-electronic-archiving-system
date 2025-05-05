@@ -345,24 +345,23 @@ async function handleSingleDocumentSubmit(e) {
         const categorySelect = document.getElementById('single-category');
         const categoryValue = categorySelect.value;
         
-        let documentType;
-        let categoryId = null;
-        let storagePath = 'storage/single/';
-        
-        if (categoryValue === 'Thesis') {
-            documentType = 'THESIS';
-            categoryId = 1; // Set the appropriate category ID for Thesis
-            storagePath += 'thesis/';
-        } else if (categoryValue === 'Dissertation') {
-            documentType = 'DISSERTATION';
-            categoryId = 2; // Set the appropriate category ID for Dissertation
-            storagePath += 'dissertation/';
-        } else {
-            throw new Error('Invalid document type');
+        // Collect selected research agenda items from the topicInput
+        // This is needed because the form doesn't have a researchAgenda field, but uses topicInput + selectedTopics
+        const selectedTopics = document.getElementById('selectedTopics');
+        const researchAgendaItems = [];
+        if (selectedTopics) {
+            selectedTopics.querySelectorAll('.selected-topic').forEach(topic => {
+                researchAgendaItems.push(topic.textContent.trim().replace('×', '').trim());
+            });
+            
+            if (researchAgendaItems.length > 0) {
+                // Add to formData for the backend
+                formData.set('researchAgenda', researchAgendaItems.join(','));
+            }
         }
         
         // Ensure the directory exists before uploading
-        await ensureDirectoriesExist(storagePath);
+        await ensureDirectoriesExist('storage/single/');
         
         // First upload the file
         const file = fileInput.files[0];
@@ -370,9 +369,9 @@ async function handleSingleDocumentSubmit(e) {
         fileData.append('file', file, file.name); // Add filename explicitly
         
         // Add storage path to the form data
-        fileData.append('storagePath', storagePath);
+        fileData.append('storagePath', 'storage/single/');
         
-        console.log('Uploading single document file:', file.name, 'Size:', file.size, 'bytes', 'Path:', storagePath);
+        console.log('Uploading single document file:', file.name, 'Size:', file.size, 'bytes', 'Path:', 'storage/single/');
         
         // Upload file first
         const fileUploadResponse = await fetch('/api/upload', {
@@ -405,33 +404,57 @@ async function handleSingleDocumentSubmit(e) {
             publicationDate = `${pubYear}-${pubMonth}-01`; // Use first day of month
         }
         
-        // Get metadata from upload result if available
-        let abstract = 'Extracting abstract from file...';
+        // Extract abstract from the file before saving to database
+        showLoading('Extracting abstract from PDF...');
+        let abstract = '';
         let pageCount = 0;
         
-        if (fileResult.metadata && fileResult.fileType === 'pdf') {
-            console.log('Using extracted PDF metadata:', fileResult.metadata);
-            abstract = fileResult.metadata.abstract || abstract;
-            pageCount = fileResult.metadata.pageCount || 0;
+        // If it's a PDF file, extract the abstract properly
+        if (file.type === 'application/pdf') {
+            try {
+                abstract = await extractPDFAbstractPromise(file);
+                console.log('Abstract extracted successfully:', abstract.substring(0, 100) + '...');
+                
+                // Get page count if available from server response
+                if (fileResult.metadata && fileResult.metadata.pageCount) {
+                    pageCount = fileResult.metadata.pageCount;
+                }
+            } catch (extractionError) {
+                console.error('Error extracting abstract:', extractionError);
+                abstract = 'Failed to extract abstract from document.';
+            }
+        } else {
+            abstract = 'No abstract available for non-PDF documents.';
         }
         
-        // Create document object
+        // Use server-provided metadata as fallback
+        if (!abstract && fileResult.metadata && fileResult.metadata.abstract) {
+            abstract = fileResult.metadata.abstract;
+        }
+        
+        // Final fallback if extraction completely fails
+        if (!abstract || abstract.trim() === '') {
+            abstract = 'No abstract could be extracted from this document.';
+        }
+        
+        // Create document object with the actual extracted abstract
         const documentData = {
             title: formData.get('title'),
             abstract: abstract,
             publication_date: publicationDate,
             file_path: filePath,
             is_public: true, // Default to public
-            document_type: documentType,
+            document_type: mapCategoryToDocumentType(categoryValue),
             research_agenda: formData.get('researchAgenda') || null,
-            category_id: categoryId,
+            category_id: null,
             pages: pageCount
         };
         
         // Update the preview with the document data
         updateDocumentPreview(fileResult);
         
-        // Save document to database
+        // Save document to database with the actual extracted abstract
+        showLoading('Saving document to database...');
         const documentResponse = await fetch('/api/documents', {
             method: 'POST',
             headers: {
@@ -566,6 +589,154 @@ async function handleSingleDocumentSubmit(e) {
 }
 
 /**
+ * Extract abstract from PDF file returning a Promise
+ * @param {File} file - The PDF file to extract from
+ * @returns {Promise<string>} - Promise resolving to the extracted abstract
+ */
+function extractPDFAbstractPromise(file) {
+    return new Promise((resolve, reject) => {
+        if (!file) {
+            reject(new Error('No file provided'));
+            return;
+        }
+        
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            const typedArray = new Uint8Array(e.target.result);
+            
+            // Initialize PDF.js
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+            
+            // Load the PDF document
+            const loadingTask = window.pdfjsLib.getDocument({ data: typedArray });
+            loadingTask.promise.then(async function(pdf) {
+                try {
+                    // Search through the first few pages for abstract
+                    const maxPagesToSearch = Math.min(5, pdf.numPages);
+                    let abstractText = "";
+                    let isAbstractSection = false;
+                    let abstractStartPage = -1;
+                    let abstractEndFound = false;
+                    let lastLineWasIncomplete = false;
+                    
+                    for (let pageNum = 1; pageNum <= maxPagesToSearch && !abstractEndFound; pageNum++) {
+                        const page = await pdf.getPage(pageNum);
+                        const textContent = await page.getTextContent();
+                        
+                        // Join text items into lines while preserving their positions
+                        const lines = [];
+                        let currentLine = [];
+                        let lastY = null;
+                        
+                        // Sort items by vertical position (top to bottom) and horizontal position (left to right)
+                        const sortedItems = textContent.items.sort((a, b) => {
+                            const yDiff = Math.abs(a.transform[5] - b.transform[5]);
+                            if (yDiff > 2) {
+                                return b.transform[5] - a.transform[5];
+                            }
+                            return a.transform[4] - b.transform[4];
+                        });
+                        
+                        // Group items into lines
+                        for (const item of sortedItems) {
+                            if (lastY === null || Math.abs(item.transform[5] - lastY) <= 2) {
+                                currentLine.push(item);
+                            } else {
+                                if (currentLine.length > 0) {
+                                    lines.push(currentLine);
+                                }
+                                currentLine = [item];
+                            }
+                            lastY = item.transform[5];
+                        }
+                        if (currentLine.length > 0) {
+                            lines.push(currentLine);
+                        }
+                        
+                        // Convert lines to text while preserving formatting
+                        const pageLines = lines.map(line => {
+                            const text = line.map(item => item.str).join('');
+                            return text.trim();
+                        }).filter(line => line.length > 0);
+                        
+                        const pageText = pageLines.join('\n');
+                        
+                        // Check if this page contains the abstract
+                        if (!isAbstractSection) {
+                            const abstractStart = findAbstractStart(pageText);
+                            if (abstractStart) {
+                                isAbstractSection = true;
+                                abstractStartPage = pageNum;
+                                abstractText = abstractStart;
+                                lastLineWasIncomplete = !abstractStart.endsWith('.') && 
+                                                      !abstractStart.endsWith('?') && 
+                                                      !abstractStart.endsWith('!');
+                            }
+                        } else {
+                            const endMarkerRegex = new RegExp(
+                                "^\\s*(introduction|keywords?:?|index terms:?|background|acknowledg(e|ement|ments)|1\\.?|i\\.?|chapter|section|references)\\b",
+                                "im"
+                            );
+                            const endMatch = pageText.match(endMarkerRegex);
+
+                            if (endMatch) {
+                                const markerPosition = pageText.indexOf(endMatch[0]);
+                                const abstractPart = pageText.substring(0, markerPosition).trim();
+
+                                if (abstractPart.length > 30) {
+                                    abstractText += (lastLineWasIncomplete ? ' ' : '\n') + abstractPart;
+                                    abstractEndFound = true;
+                                    break;
+                                }
+                            } else if (pageNum === abstractStartPage) {
+                                // Same page as abstract start, content already added
+                                continue;
+                            } else {
+                                // Add content only if it appears to be continuation of the abstract
+                                const cleanedText = pageText.replace(/^[\d\s\w]+$|Page \d+|^\d+$/gm, '').trim();
+                                if (cleanedText && 
+                                    (lastLineWasIncomplete || /^[a-z,;)]/.test(cleanedText) || /[a-z][.?!]$/.test(abstractText)) && 
+                                    !cleanedText.toLowerCase().includes('acknowledge') &&
+                                    !cleanedText.includes('copyright') &&
+                                    !/^\s*\d+\s*$/.test(cleanedText)) {
+                                    abstractText += (lastLineWasIncomplete ? ' ' : '\n') + cleanedText;
+                                    lastLineWasIncomplete = !cleanedText.endsWith('.') && 
+                                                          !cleanedText.endsWith('?') && 
+                                                          !cleanedText.endsWith('!');
+                                } else {
+                                    abstractEndFound = true;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Clean up the abstract text
+                    if (abstractText) {
+                        abstractText = cleanAbstractText(abstractText);
+                        resolve(abstractText);
+                    } else {
+                        resolve("No abstract found in the document.");
+                    }
+                } catch (error) {
+                    console.error('Error extracting abstract:', error);
+                    reject(error);
+                }
+            }).catch(function(error) {
+                console.error('Error loading PDF:', error);
+                reject(error);
+            });
+        };
+        
+        reader.onerror = function(error) {
+            reject(error);
+        };
+        
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+/**
  * Handle compiled document form submission
  * @param {Event} e Form submit event
  */
@@ -638,7 +809,7 @@ async function handleCompiledDocumentSubmit(e) {
         }
         
         // Determine document type based on category
-        const documentType = category === 'Synergy' ? 'SYNERGY' : 'CONFLUENCE';
+        const documentType = mapCategoryToDocumentType(category);
         
         // Create storage path for compiled document
         const compiledStoragePath = `storage/compiled/${category.toLowerCase()}/`;
@@ -846,11 +1017,27 @@ async function handleCompiledDocumentSubmit(e) {
                 }
                 
                 // Add research agenda items if provided
-                if (section.querySelector('.research-agenda')) {
-                    const researchAgendaInput = section.querySelector('.research-agenda');
-                    const researchAgendaItems = researchAgendaInput.value.split(',').map(item => item.trim()).filter(item => item !== '');
+                if (section.querySelector('.research-agenda-input')) {
+                    const researchAgendaInput = section.querySelector('.research-agenda-input');
+                    
+                    // First try getting research agenda from the hidden input that stores collected topics
+                    const selectedTopics = section.querySelector('.selected-topics');
+                    let researchAgendaItems = [];
+                    
+                    if (selectedTopics && selectedTopics.querySelectorAll('.selected-topic').length > 0) {
+                        // Get from selected topics UI
+                        selectedTopics.querySelectorAll('.selected-topic').forEach(topic => {
+                            researchAgendaItems.push(topic.textContent.trim().replace('×', '').trim());
+                        });
+                    } else if (researchAgendaInput.value.trim()) {
+                        // Fallback to the input value if no selected topics UI
+                        researchAgendaItems = researchAgendaInput.value.split(',').map(item => item.trim()).filter(item => item !== '');
+                    }
                     
                     if (researchAgendaItems.length > 0) {
+                        // Log what we found for debugging
+                        console.log(`Found ${researchAgendaItems.length} research agenda items for section ${i+1}:`, researchAgendaItems);
+                        
                         // First add items to research_agenda table (backwards compatibility)
                         const researchAgendaData = {
                             document_id: studyDocId,
@@ -2266,4 +2453,25 @@ function getDepartmentCode() {
     
     // If no parentheses, return the department text or a default
     return departmentText || '';
+}
+
+/**
+ * Maps the selected category value to a valid document_type enum value
+ * @param {string} category - The selected category value
+ * @returns {string} - A valid document_type value
+ */
+function mapCategoryToDocumentType(category) {
+    // Map category to one of the valid types: THESIS, DISSERTATION, CONFLUENCE, SYNERGY, RESEARCH_STUDY
+    switch(category) {
+        case 'Thesis':
+            return 'THESIS';
+        case 'Dissertation':
+            return 'DISSERTATION';
+        case 'Confluence':
+            return 'CONFLUENCE';
+        case 'Synergy':
+            return 'SYNERGY';
+        default:
+            return 'RESEARCH_STUDY'; // Default fallback
+    }
 }

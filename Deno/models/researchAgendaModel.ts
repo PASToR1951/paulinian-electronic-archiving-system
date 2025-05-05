@@ -17,9 +17,6 @@ export interface ResearchAgenda {
 export interface ResearchAgendaItem {
   id: number;
   name: string;
-  description?: string;
-  created_at?: Date;
-  updated_at?: Date;
 }
 
 export class ResearchAgendaModel {
@@ -155,14 +152,19 @@ export class ResearchAgendaModel {
    * @param documentId - The document ID
    * @returns Array of research agenda items
    */
-  static async getByDocumentId(documentId: number): Promise<ResearchAgenda[]> {
+  static async getByDocumentId(documentId: number): Promise<ResearchAgendaItem[]> {
     try {
-      const result = await client.queryObject(
-        "SELECT * FROM research_agenda WHERE document_id = $1 ORDER BY id",
+      // Simplify the query to only select columns we know exist
+      const result = await client.queryObject(`
+        SELECT ra.id, ra.name 
+        FROM research_agenda ra
+        JOIN document_research_agenda dra ON ra.id = dra.research_agenda_id
+        WHERE dra.document_id = $1
+        ORDER BY ra.name`,
         [documentId]
       );
       
-      return result.rows as ResearchAgenda[];
+      return result.rows as ResearchAgendaItem[];
     } catch (error) {
       console.error("Error fetching research agenda items:", error);
       return [];
@@ -176,8 +178,9 @@ export class ResearchAgendaModel {
    */
   static async deleteByDocumentId(documentId: number): Promise<boolean> {
     try {
+      // Delete from the junction table instead of trying to delete from research_agenda
       await client.queryArray(
-        "DELETE FROM research_agenda WHERE document_id = $1",
+        "DELETE FROM document_research_agenda WHERE document_id = $1",
         [documentId]
       );
       
@@ -191,14 +194,13 @@ export class ResearchAgendaModel {
   /**
    * Create a new standalone research agenda item
    * @param name - The name of the research agenda
-   * @param description - Optional description
    * @returns The created agenda item or null if failed
    */
-  static async createAgendaItem(name: string, description?: string): Promise<ResearchAgendaItem | null> {
+  static async createAgendaItem(name: string): Promise<ResearchAgendaItem | null> {
     try {
       // Check if the agenda item already exists
       const existingItem = await client.queryObject(
-        "SELECT * FROM research_agenda WHERE name ILIKE $1",
+        "SELECT id, name FROM research_agenda WHERE name ILIKE $1",
         [name]
       );
 
@@ -209,7 +211,7 @@ export class ResearchAgendaModel {
 
       // Create new agenda item
       const result = await client.queryObject(
-        "INSERT INTO research_agenda (name) VALUES ($1) RETURNING *",
+        "INSERT INTO research_agenda (name) VALUES ($1) RETURNING id, name",
         [name]
       );
 
@@ -227,10 +229,10 @@ export class ResearchAgendaModel {
 
   /**
    * Create multiple research agenda items
-   * @param items - Array of research agenda items to create
+   * @param items - Array of research agenda item names to create
    * @returns Object containing successful items and errors
    */
-  static async createAgendaItems(items: { name: string; description?: string }[]): 
+  static async createAgendaItems(items: { name: string }[]): 
     Promise<{ created: ResearchAgendaItem[]; errors: { name: string; error: string }[] }> {
     const created: ResearchAgendaItem[] = [];
     const errors: { name: string; error: string }[] = [];
@@ -248,7 +250,7 @@ export class ResearchAgendaModel {
 
         // Check if the agenda item already exists
         const existingItem = await client.queryObject(
-          "SELECT * FROM research_agenda WHERE name ILIKE $1",
+          "SELECT id, name FROM research_agenda WHERE name ILIKE $1",
           [item.name]
         );
 
@@ -262,7 +264,7 @@ export class ResearchAgendaModel {
 
         // Create new agenda item
         const result = await client.queryObject(
-          "INSERT INTO research_agenda (name) VALUES ($1) RETURNING *",
+          "INSERT INTO research_agenda (name) VALUES ($1) RETURNING id, name",
           [item.name]
         );
 
@@ -299,7 +301,7 @@ export class ResearchAgendaModel {
       }
 
       const result = await client.queryObject(
-        "SELECT * FROM research_agenda WHERE name ILIKE $1 ORDER BY name ASC LIMIT 10",
+        "SELECT id, name FROM research_agenda WHERE name ILIKE $1 ORDER BY name ASC LIMIT 10",
         [`%${query}%`]
       );
 

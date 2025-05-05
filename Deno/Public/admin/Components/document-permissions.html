@@ -3,146 +3,1808 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document Permissions</title>
-    <link rel="stylesheet" href="css/document-permission.css">
-  <link rel="stylesheet" href="/admin/Components/css/side_bar.css">
-  <link rel="stylesheet" href="/admin/Components/css/navbar_header.css">
-  <link rel="stylesheet" href="/admin/Components/css/page_header.css">
+    <title>Document Access Requests Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        /* --- Custom Properties for Theme --- */
+        :root {
+            --primary-green: #047857; /* Tailwind emerald-700 */
+            --light-green: #d1fae5; /* Tailwind emerald-100 */
+            --lighter-green: #ecfdf5; /* Tailwind emerald-50 */
+            --dark-green: #064e3b; /* Tailwind emerald-900 */
+            --gold-accent: #d97706; /* Tailwind amber-600 */
+            --light-gold: #fef3c7; /* Tailwind amber-100 */
+            --dark-gold: #92400e; /* Tailwind amber-800 */
+            --text-primary: #1f2937; /* Tailwind gray-800 */
+            --text-secondary: #4b5563; /* Tailwind gray-600 */
+            --border-color: #e5e7eb; /* Tailwind gray-200 */
+            --background-light: #f9fafb; /* Tailwind gray-50 */
+            --background-page: #f3f4f6; /* Tailwind gray-100 */
+            --danger-red: #dc2626; /* Tailwind red-600 */
+            --danger-red-dark: #b91c1c; /* Tailwind red-800 */
+            --danger-red-light: #fee2e2; /* Tailwind red-100 */
+             --sky-blue-light: #e0f2fe; /* sky-100 */
+             --sky-blue-dark: #0369a1; /* sky-700 */
+             --sky-blue-border: #bae6fd; /* sky-200 */
+        }
 
+        /* --- Base Styles --- */
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: var(--background-page);
+            color: var(--text-primary);
+            line-height: 1.6;
+            
+            
+        }
+        /* Main Page Title */
+        .page-title {
+            color: var(--dark-green);
+            border-bottom: 2px solid var(--light-green);
+            padding-bottom: 0.5rem;
+        }
+        /* Main Container */
+        .main-container {
+            width: 1200px;
+             background-color: #fff;
+             border-radius: 0.75rem; /* Slightly more rounded */
+             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        /* --- Filter Controls --- */
+        .filter-controls {
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+            gap: 1rem; /* Space between filter groups */
+            align-items: center; /* Align items vertically */
+        }
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem; /* Space within a group */
+        }
+        .filter-group label {
+             font-size: 0.875rem; /* Slightly smaller label */
+             font-weight: 500; /* Medium weight */
+             color: var(--text-secondary);
+             flex-shrink: 0;
+        }
+        /* Adjust date input width */
+        .form-date {
+            max-width: 150px; /* Limit width of date inputs */
+        }
+         /* Column Visibility Toggle & Date Range Button */
+        .column-toggle-button, .date-range-button { /* Added date-range-button */
+            background-color: #fff;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            display: inline-flex; /* Ensure icon and text align */
+            align-items: center;
+        }
+        .column-toggle-button:hover, .date-range-button:hover {
+             background-color: var(--background-light);
+             border-color: var(--primary-green);
+             color: var(--text-primary);
+        }
+        .column-toggle-button i, .date-range-button i { margin-right: 0.3rem; }
+
+        .column-checklist {
+            display: none; /* Hidden by default */
+            position: absolute;
+            background-color: white;
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 0.5rem 0; /* Adjust padding */
+            z-index: 50; /* Ensure it's above table */
+            max-height: 250px; /* Limit height */
+            overflow-y: auto;
+            margin-top: 0.25rem; /* Space below button */
+            list-style: none; /* Remove default list styles */
+            right: 0; /* Align to the right of the button group */
+        }
+        .column-checklist li {
+            padding: 0;
+            margin: 0;
+        }
+        .column-checklist.visible { display: block; }
+        .column-checklist label {
+            display: flex;
+            align-items: center;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+         .column-checklist label:hover { background-color: var(--lighter-green); }
+        .column-checklist input[type="checkbox"] { margin-right: 0.5rem; }
+
+
+        /* --- View/Layout Controls Container --- */
+        .view-layout-controls {
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping */
+            align-items: center;
+            gap: 0.75rem; /* Space between control groups */
+            background-color: var(--background-light); /* Subtle background */
+            padding: 0.5rem 0.75rem; /* Padding around the controls */
+            border-radius: 0.5rem; /* Rounded corners */
+        }
+        .view-layout-controls .filter-group {
+             margin-bottom: 0; /* Remove bottom margin if any */
+        }
+
+
+        /* --- View Switcher --- */
+        .view-switcher button {
+            padding: 0.5rem 1rem; border: 1px solid var(--border-color); background-color: #fff;
+            color: var(--text-secondary); transition: all 0.2s ease;
+        }
+        .view-switcher button:first-child { border-radius: 0.375rem 0 0 0.375rem; }
+        .view-switcher button:last-child { border-radius: 0 0.375rem 0.375rem 0; border-left-width: 0; }
+        .view-switcher button.active {
+            background-color: var(--primary-green); color: #fff; border-color: var(--primary-green); z-index: 10;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .view-switcher button:hover:not(.active) { background-color: var(--background-light); }
+        .view-switcher button i { margin-right: 0.3rem; }
+
+        /* --- Table Styling (Detailed View) --- */
+        .table-container {
+            overflow-x: auto;
+            width: 100%;
+            border-radius: 0.5rem;
+             -webkit-overflow-scrolling: touch;
+        }
+        .table-view {
+             min-width: 950px; /* Adjusted min-width for new column */
+             width: 100%;
+             border-collapse: collapse;
+        }
+        .table-view th, .table-view td { padding: 0.85rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle; font-size: 0.9rem; }
+        .table-view th {
+            background-color: var(--primary-green);
+            color: white;
+            font-weight: 600;
+            white-space: nowrap;
+            position: sticky; top: 0; /* Keep header sticky */
+            z-index: 1;
+            border-left: 1px solid var(--dark-green);
+            border-right: 1px solid var(--dark-green);
+        }
+         .table-view th:first-child { border-left: none; }
+         .table-view th:last-child { border-right: none; }
+        .table-view th.sortable { cursor: pointer; position: relative; padding-right: 1.5rem; }
+        .table-view th.sortable .sort-icon { position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); font-size: 0.8em; color: var(--light-green); opacity: 0.7; transition: opacity 0.2s ease; }
+        .table-view th.sortable:hover .sort-icon { opacity: 1; }
+        .table-view th.sorted-asc .sort-icon, .table-view th.sorted-desc .sort-icon { opacity: 1; color: white; }
+        .table-view tbody tr { transition: background-color 0.2s ease-in-out; }
+        .table-view tbody tr:hover td { background-color: var(--lighter-green); cursor: pointer; }
+        .table-view tbody tr:hover:has(a.view-doc-button:hover) td,
+        .table-view tbody tr:hover:has(select:hover) td { background-color: transparent; cursor: default; }
+
+        .table-view td { white-space: nowrap; color: var(--text-secondary); }
+        .table-view td:first-child { font-weight: 500; color: var(--text-primary); } /* First cell styling */
+        .table-view td.wrap-text { white-space: normal; }
+        .table-view td.actions-cell { white-space: nowrap; }
+        /* Add truncation style for specific table cells if needed */
+         .table-view td.truncate-cell {
+             max-width: 200px; /* Adjust max width as needed */
+             overflow: hidden;
+             text-overflow: ellipsis;
+             white-space: nowrap;
+         }
+
+
+        /* --- Pagination Controls --- */
+        .pagination-controls {
+            display: flex;
+            justify-content: center; /* Center items */
+            align-items: center;
+            padding: 1rem 0.5rem; /* Add some padding */
+            margin-top: 0.5rem; /* Space above controls */
+            border-top: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            flex-wrap: wrap; /* Allow wrapping on small screens */
+            gap: 0.5rem; /* Add gap between elements */
+        }
+        .pagination-controls button, .pagination-controls .page-number, .pagination-controls .ellipsis {
+            background-color: #fff;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.4rem 0.8rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+            font-weight: 500;
+            min-width: 36px; /* Ensure buttons have minimum width */
+            text-align: center;
+        }
+        .pagination-controls .ellipsis {
+            border: none;
+            background: none;
+            cursor: default;
+            padding: 0.4rem 0.2rem; /* Reduce padding for ellipsis */
+        }
+        .pagination-controls button:hover:not(:disabled), .pagination-controls .page-number:hover:not(.active) {
+            background-color: var(--lighter-green);
+            border-color: var(--primary-green);
+            color: var(--dark-green);
+        }
+        .pagination-controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: var(--background-light);
+        }
+        .pagination-controls .page-number.active {
+            background-color: var(--primary-green);
+            border-color: var(--primary-green);
+            color: #fff;
+            font-weight: 600;
+            cursor: default;
+        }
+        .pagination-info { display: none; }
+
+
+        /* --- Tile View Styling --- */
+        .tile-view-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+        .tile-item { background-color: #fff; border: 1px solid var(--border-color); border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: transform 0.2s ease, box-shadow 0.2s ease; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; /* Prevent content spill */ }
+        .tile-item:hover:not(:has(select:hover)) { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.08); cursor: pointer; }
+        .tile-header {
+            background-color: var(--primary-green);
+            color: white;
+            padding: 0.75rem 1.25rem; /* Adjust padding */
+        }
+        .tile-header .tile-request-id { font-size: 0.75rem; color: var(--light-green); /* Lighter color on green */ margin-bottom: 0.25rem; display: block; font-weight: 500; }
+        .tile-header .tile-title {
+            font-size: 1.1rem; font-weight: 600; color: white; margin-bottom: 0.25rem;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+         }
+        .tile-header .tile-author { font-size: 0.9rem; color: var(--light-green); /* Lighter color on green */ margin-bottom: 0; }
+        .tile-body { padding: 1rem 1.25rem; flex-grow: 1; } /* Padding for body content */
+        .tile-body p { margin-bottom: 0.3rem; font-size: 0.9rem; color: var(--text-secondary); }
+        .tile-body strong { color: var(--text-primary); }
+        .tile-body .tile-requester { font-size: 0.9rem; color: var(--text-primary); margin-bottom: 0.75rem; }
+        .tile-actions { margin-top: auto; /* Push actions to bottom */ padding: 0.75rem 1.25rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-start; /* Align action to the left */ align-items: center; gap: 0.5rem; background-color: var(--background-light); /* Light background for footer */ }
+
+        /* --- List View Styling --- */
+        .list-view-container ul { list-style: none; padding: 0; margin: 0; }
+        .list-item {
+            background-color: #fff;
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--light-green); /* Default light green left border */
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+            overflow: hidden;
+            transition: border-left-color 0.2s ease; /* Smooth transition for border color */
+        }
+         .list-item:hover {
+             border-left-color: var(--primary-green); /* Darker green border on hover */
+         }
+         .list-item:hover .list-item-summary {
+             background-color: var(--lighter-green); /* Keep subtle background on summary hover */
+         }
+        .list-item-summary {
+            padding: 0.85rem 1rem; display: flex; justify-content: space-between; align-items: center;
+            cursor: pointer; transition: background-color 0.2s ease;
+            background-color: transparent; /* Make summary background transparent */
+            color: var(--text-primary);
+             border-bottom: 1px solid var(--border-color); /* Add border like table rows */
+        }
+        .list-item-summary .list-info { display: flex; flex-direction: column; flex-grow: 1; margin-right: 1rem; gap: 0.1rem; min-width: 0; /* Allow info section to shrink */ }
+        .list-item-summary .list-info span { display: block; }
+        .list-item-summary .list-info .list-request-id { font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem; font-weight: 500; }
+        .list-item-summary .list-info .list-requester-name { font-weight: 600; color: var(--dark-green); font-size: 1rem; }
+        .list-item-summary .list-info .list-book-title {
+             font-weight: 500; color: var(--text-primary); margin-top: 0.25rem;
+             overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .list-item-summary .list-info .list-author { font-size: 0.85rem; color: var(--text-secondary);}
+        .list-item-summary .list-info .list-volume { font-size: 0.8rem; color: var(--text-secondary); font-style: italic;}
+        .list-item-summary .list-info .list-email, .list-item-summary .list-info .list-affiliation { font-size: 0.85rem; color: var(--text-secondary); display: none; }
+        .list-item-summary .list-actions { display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; }
+        .list-item-summary .expand-icon { margin-left: 0.5rem; color: var(--text-secondary); transition: transform 0.3s ease; } /* Default icon color */
+        .list-item.expanded { border-left-color: var(--primary-green); }
+        .list-item.expanded .list-item-summary { background-color: var(--lighter-green); } /* Light green when expanded */
+        .list-item.expanded .list-item-summary .expand-icon { transform: rotate(180deg); }
+        .list-item-details { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-out, padding 0.4s ease-out, border-top-color 0.4s ease-out; padding: 0 1rem; background-color: var(--background-light); border-top: 1px solid transparent; }
+        .list-item.expanded .list-item-details { max-height: 500px; padding: 1rem 1rem; border-top: 1px solid var(--border-color); } /* Use standard border color */
+        .list-item-details p { margin-bottom: 0.4rem; font-size: 0.9rem; color: var(--text-secondary); }
+        .list-item-details strong { color: var(--text-primary); min-width: 100px; display: inline-block; }
+        .list-item-details .reason-tags-display .reason-tag-display { display: inline-block; background-color: #e0f2fe; color: #0369a1; padding: 0.1rem 0.5rem; margin: 0.1rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; }
+        .list-item-details .reason-details-text { background-color: #e5e7eb; padding: 0.5rem; border-radius: 0.25rem; margin-top: 0.25rem; font-size: 0.85rem; display: block; white-space: pre-wrap; }
+         /* Display rejection reason */
+         .rejection-reason-display {
+             background-color: var(--danger-red-light);
+             border: 1px solid var(--danger-red);
+             border-radius: 0.375rem;
+             padding: 0.5rem 0.75rem;
+             margin-top: 0.5rem;
+             font-size: 0.85rem;
+             color: var(--danger-red-dark);
+         }
+         .rejection-reason-display strong { color: var(--danger-red-dark); }
+
+
+         /* Style for the action dropdown (used in List and Tile views) */
+        .list-action-dropdown, .tile-action-dropdown {
+            padding: 0.4rem 2.2rem 0.4rem 0.8rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            appearance: none;
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23b45309' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.7rem center;
+            background-repeat: no-repeat;
+            background-size: 1em 1em;
+            min-width: 120px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            text-align: center; /* Center the selected option text */
+        }
+        /* Apply pending colors specifically */
+        .list-action-dropdown.status-pending, .tile-action-dropdown.status-pending {
+            background-color: var(--light-gold);
+            color: var(--dark-gold);
+            border-color: var(--gold-accent);
+        }
+         /* Style options within the dropdown */
+        .list-action-dropdown option, .tile-action-dropdown option {
+            background-color: white;
+            color: var(--text-primary);
+            text-align: left; /* Keep option text left-aligned */
+        }
+         /* Attempt hover style (browser support varies) */
+         .list-action-dropdown option:hover, .tile-action-dropdown option:hover {
+             background-color: var(--light-gold) !important; /* Use !important cautiously */
+             color: var(--dark-gold) !important;
+         }
+
+        .list-action-dropdown.status-pending:focus, .tile-action-dropdown.status-pending:focus {
+            outline: 2px solid transparent; outline-offset: 2px; border-color: var(--gold-accent);
+            box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2); /* Amber focus ring */
+        }
+
+
+        /* --- Common Styles --- */
+        /* Style for the "View Document" button (used on <a> tag) */
+        .view-doc-button {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--dark-gold);
+            background-color: var(--light-gold);
+            border: 1px solid var(--gold-accent);
+            border-radius: 0.375rem;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            text-align: center;
+        }
+        .view-doc-button:hover {
+            background-color: var(--gold-accent);
+            color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .view-doc-button i { margin-right: 0.25rem; }
+
+        /* MODIFIED: Status label styles to match dropdown */
+        .status-label {
+            font-weight: 500; /* Match dropdown weight */
+            font-size: 0.9rem; /* Match dropdown font size */
+            padding: 0.4rem 0.8rem; /* Match dropdown padding (adjust as needed) */
+            border-radius: 0.375rem; /* Match dropdown radius */
+            display: inline-block;
+            border: 1px solid transparent;
+            text-align: center; /* Center text */
+            min-width: 120px; /* Match dropdown width */
+            white-space: nowrap; /* Prevent wrapping */
+        }
+        .status-pending { background-color: #fef3c7; color: #b45309; border-color: #fde68a; } /* Amber */
+        .status-approved { background-color: #dcfce7; color: #166534; border-color: #bbf7d0; } /* Green */
+        .status-rejected { background-color: #fee2e2; color: #991b1b; border-color: #fecaca; } /* Red */
+
+        .form-select, .form-input, .form-date { /* Added .form-date */
+            border: 1px solid var(--border-color); border-radius: 0.375rem; padding: 0.5rem 0.75rem;
+            font-size: 0.9rem; transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            color: var(--text-secondary); /* Default text color for date placeholder */
+        }
+        .form-select:focus, .form-input:focus, .form-date:focus {
+            outline: 2px solid transparent; outline-offset: 2px; border-color: var(--primary-green);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); /* Emerald focus ring */
+        }
+         /* Style date input when a value is selected */
+        .form-date:valid {
+            color: var(--text-primary); /* Darker text color when date is chosen */
+        }
+        .form-select { appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.25em 1.25em; padding-right: 2.5rem; }
+
+        /* --- Modal Styles --- */
+        .reason-tags-display .reason-tag-display { display: inline-block; background-color: var(--sky-blue-light); color: var(--sky-blue-dark); padding: 0.1rem 0.5rem; margin: 0.1rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; } /* Sky blue */
+        textarea[readonly] { background-color: var(--background-light); cursor: default; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.65); display: flex; justify-content: center; align-items: center; z-index: 1000; visibility: hidden; opacity: 0; transition: opacity 0.3s ease, visibility 0s linear 0.3s; overflow-y: auto; padding: 20px 0; }
+        .modal-overlay.visible { visibility: visible; opacity: 1; transition: opacity 0.3s ease; }
+        .modal-content { background-color: #fff; padding: 2rem; border-radius: 0.75rem; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15); max-width: 90%; width: 600px; position: relative; margin: auto; text-align: left; border-top: 4px solid var(--primary-green); } /* Green top border */
+        .modal-content h2 { color: var(--dark-green); }
+        .close-button { position: absolute; top: 1rem; right: 1rem; font-size: 1.5rem; cursor: pointer; color: #9ca3af; transition: color 0.3s ease; }
+        .close-button:hover { color: var(--text-primary); }
+        #modalDetailsContent p strong { color: var(--dark-green); font-weight: 600; } /* Bolder labels */
+        #modalDetailsContent hr { border-color: var(--light-green); }
+        /* Modal Buttons */
+        .modal-button {
+            font-weight: 600; padding: 0.6rem 1.25rem; border-radius: 0.375rem;
+            focus:outline-none focus:ring-2 focus:ring-offset-2; transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .approve-button { background-color: var(--primary-green); color: white; border: 1px solid var(--primary-green); }
+        .approve-button:hover { background-color: var(--dark-green); border-color: var(--dark-green); }
+        .approve-button:focus { ring-color: var(--primary-green); }
+        .reject-button { background-color: var(--danger-red); color: white; border: 1px solid var(--danger-red); } /* Red-600 */
+        .reject-button:hover { background-color: var(--danger-red-dark); border-color: var(--danger-red-dark); } /* Red-800 */
+        .reject-button:focus { ring-color: var(--danger-red); }
+        /* Secondary button style (for Cancel) */
+        .secondary-button {
+            background-color: #fff; color: var(--text-secondary); border: 1px solid var(--border-color);
+        }
+         .secondary-button:hover { background-color: var(--background-light); }
+         .secondary-button:focus { ring-color: var(--primary-green); }
+
+         /* Rejection Reason Modal Specific Styles */
+         #reasonTagsContainer {
+             display: flex;
+             flex-wrap: wrap;
+             gap: 0.5rem;
+             margin-bottom: 1rem;
+         }
+         .reason-tag {
+             display: inline-block;
+             padding: 0.3rem 0.75rem;
+             border: 1px solid var(--border-color);
+             border-radius: 9999px; /* Pill shape */
+             font-size: 0.85rem;
+             cursor: pointer;
+             transition: all 0.2s ease;
+             background-color: #fff;
+             color: var(--text-secondary);
+         }
+         .reason-tag:hover {
+             background-color: var(--lighter-green);
+             border-color: var(--primary-green);
+         }
+         .reason-tag.active {
+             background-color: var(--sky-blue-light);
+             color: var(--sky-blue-dark);
+             border-color: var(--sky-blue-border);
+             font-weight: 500;
+         }
+         #rejectionOtherReasonContainer {
+             margin-top: 0.75rem;
+         }
+
+
+        /* --- Confirmation Message Styling --- */
+        .confirmation-message {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            color: white; padding: 0.8rem 1.5rem; border-radius: 0.5rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15); z-index: 1001;
+            opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+            font-size: 0.9rem; font-weight: 500;
+        }
+        /* MODIFIED: Added background colors for confirmation types */
+        .confirmation-message.success { background-color: var(--dark-green); }
+        .confirmation-message.error { background-color: var(--danger-red-dark); }
+        .confirmation-message.visible { opacity: 1; visibility: visible; transition: opacity 0.3s ease; }
+
+    </style>
 </head>
-<body>
-    <div id="side-bar"></div>
-  
+<body class="p-0">
     <!-- Navbar container -->
-    <div id="navbar-header"></div>
-    
-  <!-- Navbar header with proper structure -->
+  <div id="navbar-header"></div>
+    <div id="sidebar-container"></div>
+  
+    <div class="main-container max-w-7xl mx-auto p-6 md:p-8">
+        <h1 class="page-title text-2xl md:text-3xl font-bold mb-6 text-center">Document Access Requests</h1>
 
-    
-    <div class="container">
-        <div class="tab-header">
-            <h1 class="title">List of Request</h1>
-            <div class="tabs">
-                <button class="tab active" data-tab="list-of-request" data-title="List of Request">List of Requests</button>
-                <button class="tab" data-tab="active-requests" data-title="Active Requests">Active Requests</button>
-                <button class="tab" data-tab="expired-requests" data-title="Expired Requests">Expired Requests</button>
+        <div class="flex flex-col lg:flex-row justify-between items-center mb-6 gap-4 lg:gap-6">
+            <div class="filter-controls w-full lg:w-auto flex-grow lg:flex-grow-0">
+                <div class="filter-group">
+                    <label for="statusFilter">Status:</label>
+                    <select id="statusFilter" class="form-select">
+                        <option value="all">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                </div>
+                 <div class="filter-group">
+                    <button id="dateRangeButton" class="date-range-button" type="button">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span id="dateRangeButtonText">Date Range</span>
+                    </button>
+                 </div>
+                <div class="filter-group flex-grow sm:flex-grow-0">
+                    <label for="searchInput" class="sr-only">Search:</label> <input type="text" id="searchInput" class="form-input w-full sm:w-48" placeholder="Search...">
+                </div>
+            </div>
+
+            <div class="view-layout-controls flex-shrink-0">
+                 <div class="filter-group" id="layoutControlGroup"> <label for="columnOrderSelect">Layout:</label>
+                    <select id="columnOrderSelect" class="form-select">
+                        <option value="default">Default</option>
+                        <option value="requesterFirst">Requester First</option>
+                        <option value="bookFirst">Book First</option>
+                    </select>
+                </div>
+                 <div class="filter-group relative" id="columnToggleGroup"> <button id="columnToggleButton" class="column-toggle-button" type="button" style="display: none;"> <i class="fas fa-columns"></i> Columns
+                    </button>
+                    <ul id="columnChecklist" class="column-checklist">
+                        </ul>
+                </div>
+                <div class="view-switcher flex flex-shrink-0" role="group">
+                    <button type="button" data-view="list" title="List View">
+                        <i class="fas fa-list fa-fw"></i> <span class="hidden sm:inline">List</span>
+                    </button>
+                    <button type="button" data-view="detailed" title="Detailed Table View" class="active">
+                        <i class="fas fa-table fa-fw"></i> <span class="hidden sm:inline">Detailed</span>
+                    </button>
+                    <button type="button" data-view="tile" title="Tile View">
+                        <i class="fas fa-th-large fa-fw"></i> <span class="hidden sm:inline">Tile</span>
+                    </button>
+                </div>
             </div>
         </div>
-        <div class="list-content">
-            <div id="list-of-request" class="tab-content active">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>User Email</th>
-                            <th>Doc-ID</th>
-                            <th>Doc Name</th>
-                            <th>Requested Duration</th>
-                            <th>Request Date</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>user1@example.com</td>
-                            <td>DOC123</td>
-                            <td>Report.pdf</td>
-                            <td>7 days</td>
-                            <td>2023-10-26</td>
-                            <td>
-                                <button>Approve</button>
-                                <button>Reject</button>
-                                <select>
-                                    <option value="7">7 days</option>
-                                    <option value="14">14 days</option>
-                                    <option value="30">30 days</option>
-                                </select>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>user2@example.com</td>
-                            <td>DOC456</td>
-                            <td>Proposal.docx</td>
-                            <td>14 days</td>
-                            <td>2023-10-25</td>
-                            <td>
-                                <button>Approve</button>
-                                <button>Reject</button>
-                                <select>
-                                    <option value="7">7 days</option>
-                                    <option value="14">14 days</option>
-                                    <option value="30">30 days</option>
-                                </select>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div id="active-requests" class="tab-content">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>User Email</th>
-                            <th>Doc-ID/Doc Name</th>
-                            <th>Granted Duration</th>
-                            <th>Approval Date</th>
-                            <th>Expiration Date</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>user1@example.com</td>
-                            <td>DOC123</td>
-                            <td>7 days</td>
-                            <td>2023-10-26</td>
-                            <td>2023-11-02</td>
-                            <td>Active</td>
-                        </tr>
-                        <tr>
-                            <td>user2@example.com</td>
-                            <td>Proposal.docx</td>
-                            <td>14 days</td>
-                            <td>2023-10-25</td>
-                            <td>2023-11-08</td>
-                            <td>Expiring Soon</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div id="expired-requests" class="tab-content">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>User Email</th>
-                            <th>Doc-ID/Doc Name</th>
-                            <th>Granted Duration</th>
-                            <th>Approval Date</th>
-                            <th>Expiration Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>user3@example.com</td>
-                            <td>DOC789</td>
-                            <td>30 days</td>
-                            <td>2023-09-26</td>
-                            <td>2023-10-26</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+
+        <div id="requestsContentContainer">
+            <p class="text-center text-gray-600" id="loadingMessage">Loading requests...</p>
         </div>
     </div>
-    
+
+    <div id="requestDetailsModal" class="modal-overlay">
+       <div class="modal-content">
+            <span class="close-button" id="closeDetailsModalButton">&times;</span>
+            <h2 class="text-xl font-semibold mb-6 text-center">Request Details</h2>
+            <div id="modalDetailsContent">
+                <p><strong>Request ID:</strong> <span id="detailRequestId"></span></p>
+                <hr class="my-3">
+                <p><strong>Requester Name:</strong> <span id="detailFullName"></span></p>
+                <p><strong>Email:</strong> <span id="detailEmail"></span></p>
+                <p><strong>Affiliation:</strong> <span id="detailAffiliation"></span></p>
+                <p><strong>Date Requested:</strong> <span id="detailRequestedAt"></span></p>
+                <hr class="my-3">
+                <p><strong>Book Title:</strong> <span id="detailBookTitle"></span></p>
+                <p><strong>Author:</strong> <span id="detailAuthorName"></span></p>
+                <p><strong>Volume:</strong> <span id="detailVolume"></span></p>
+                <div class="mt-2"> <a id="detailDocumentLink" href="#" target="_blank" class="view-doc-button">View Document</a>
+                </div>
+                <hr class="my-3">
+                <div class="mt-4">
+                    <p class="text-sm font-bold mb-1">Reason(s) for Access:</p>
+                    <div id="detailReasons" class="reason-tags-display"></div>
+                </div>
+                <div id="detailReasonDetailsSection" class="mt-4 hidden">
+                    <label class="block text-sm font-bold mb-2">Reason Details:</label>
+                    <textarea id="detailReasonDetails" class="shadow-sm appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight bg-gray-50" rows="4" readonly></textarea>
+                </div>
+                 <div id="detailRejectionReasonSection" class="mt-4 hidden">
+                     <p class="rejection-reason-display"><strong>Rejection Reason:</strong><br><span id="detailRejectionReason"></span></p>
+                 </div>
+                <hr class="my-3">
+                <p class="mt-4"><strong>Status:</strong> <span id="detailStatus" class="status-label"></span></p>
+                <p id="detailProcessedAt" class="mt-2 text-sm text-gray-500 hidden"><strong>Processed At:</strong> <span></span></p>
+            </div>
+            <div id="modalActions" class="flex justify-center gap-4 mt-6">
+                </div>
+        </div>
+    </div>
+
+     <div id="rejectionReasonModal" class="modal-overlay">
+         <div class="modal-content" style="border-top-color: var(--danger-red);">
+             <span class="close-button" id="closeRejectionModalButton">&times;</span>
+             <h2 class="text-xl font-semibold mb-4 text-center text-red-700">Provide Rejection Reason</h2>
+             <p class="text-sm text-gray-600 mb-4">Select reason(s) for rejecting request <strong id="rejectModalRequestId"></strong>.</p>
+             <form id="rejectionForm">
+                 <input type="hidden" id="rejectionRequestId">
+                 <div class="mb-4">
+                     <label class="block text-sm font-medium text-gray-700 mb-2">Select Reason(s):</label>
+                     <div id="reasonTagsContainer">
+                        <span class="reason-tag" data-reason="Insufficient Information">Insufficient Information</span>
+                        <span class="reason-tag" data-reason="Duplicate Request">Duplicate Request</span>
+                        <span class="reason-tag" data-reason="Policy Violation">Policy Violation</span>
+                        <span class="reason-tag" data-reason="Document Unavailable">Document Unavailable</span>
+                        <span class="reason-tag" data-reason="Invalid Justification">Invalid Justification</span>
+                        <span class="reason-tag" data-reason="Other">Other (Specify Below)</span>
+                     </div>
+                 </div>
+                 <div id="rejectionOtherReasonContainer" class="mb-4 hidden">
+                     <label for="rejectionOtherReasonText" class="block text-sm font-medium text-gray-700 mb-1">Specify Other Reason:</label>
+                     <textarea id="rejectionOtherReasonText" name="rejectionOtherReason" rows="3" class="form-input w-full" placeholder="Please provide details..."></textarea>
+                 </div>
+                 <div class="flex justify-end gap-3 mt-6">
+                     <button type="button" id="cancelRejectionButton" class="modal-button secondary-button">Cancel</button>
+                     <button type="submit" class="modal-button reject-button">Submit Rejection</button>
+                 </div>
+             </form>
+         </div>
+     </div>
+
+     <div id="dateRangeModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-button" id="closeDateRangeModalButton">&times;</span>
+            <h2 class="text-xl font-semibold mb-6 text-center">Select Date Range</h2>
+            <form id="dateRangeForm">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label for="modalStartDate" class="block text-sm font-medium text-gray-700 mb-1">Start Date:</label>
+                        <input type="date" id="modalStartDate" name="startDate" class="form-date w-full">
+                    </div>
+                    <div>
+                        <label for="modalEndDate" class="block text-sm font-medium text-gray-700 mb-1">End Date:</label>
+                        <input type="date" id="modalEndDate" name="endDate" class="form-date w-full">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" id="cancelDateRangeButton" class="modal-button secondary-button">Cancel</button>
+                    <button type="submit" class="modal-button approve-button">Apply</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <div id="confirmationMessage" class="confirmation-message"> Action successful! </div>
+
     <script>
-       
-      </script>
-      <script>
+        // --- Mock Data ---
+        let requests = [];
+        let filteredAndSortedRequests = []; // Holds all filtered/sorted items
+
+        // --- State Variables ---
+        let currentSort = { column: 'requestedAt', direction: 'desc' };
+        let currentFilter = 'all';
+        let currentSearchTerm = '';
+        let startDateFilter = '';
+        let endDateFilter = '';
+        let currentView = 'detailed';
+        let currentPage = 1;
+        const itemsPerPage = 10;
+        let currentColumnOrder = 'default'; // Default layout
+        let visibleColumns = new Set(); // Holds keys of visible columns
+
+        // --- DOM Element References ---
+        const requestsContentContainer = document.getElementById('requestsContentContainer');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const statusFilterSelect = document.getElementById('statusFilter');
+        const dateRangeButton = document.getElementById('dateRangeButton'); // Added
+        const dateRangeButtonText = document.getElementById('dateRangeButtonText'); // Added
+        // const startDateInput = document.getElementById('startDateFilter'); // Removed
+        // const endDateInput = document.getElementById('endDateFilter');   // Removed
+        const searchInput = document.getElementById('searchInput');
+        const viewSwitcher = document.querySelector('.view-switcher');
+        const columnOrderSelect = document.getElementById('columnOrderSelect');
+        const columnToggleButton = document.getElementById('columnToggleButton');
+        const columnChecklist = document.getElementById('columnChecklist');
+        const layoutControlGroup = document.getElementById('layoutControlGroup');
+        const columnToggleGroup = document.getElementById('columnToggleGroup');
+        const requestDetailsModal = document.getElementById('requestDetailsModal');
+        const closeDetailsModalButton = document.getElementById('closeDetailsModalButton');
+        const modalDetailsContent = document.getElementById('modalDetailsContent');
+        const modalActions = document.getElementById('modalActions');
+        const confirmationMessage = document.getElementById('confirmationMessage');
+        // Rejection Modal Elements
+        const rejectionReasonModal = document.getElementById('rejectionReasonModal');
+        const closeRejectionModalButton = document.getElementById('closeRejectionModalButton');
+        const cancelRejectionButton = document.getElementById('cancelRejectionButton');
+        const rejectionForm = document.getElementById('rejectionForm');
+        const rejectionRequestIdInput = document.getElementById('rejectionRequestId');
+        const reasonTagsContainer = document.getElementById('reasonTagsContainer');
+        const rejectionOtherReasonContainer = document.getElementById('rejectionOtherReasonContainer');
+        const rejectionOtherReasonText = document.getElementById('rejectionOtherReasonText');
+        const rejectModalRequestIdSpan = document.getElementById('rejectModalRequestId');
+         // Date Range Modal Elements
+        const dateRangeModal = document.getElementById('dateRangeModal');
+        const closeDateRangeModalButton = document.getElementById('closeDateRangeModalButton');
+        const cancelDateRangeButton = document.getElementById('cancelDateRangeButton');
+        const dateRangeForm = document.getElementById('dateRangeForm');
+        const modalStartDateInput = document.getElementById('modalStartDate');
+        const modalEndDateInput = document.getElementById('modalEndDate');
+
+
+        // Modal detail elements
+        const detailRequestId = document.getElementById('detailRequestId');
+        const detailBookTitle = document.getElementById('detailBookTitle');
+        const detailAuthorName = document.getElementById('detailAuthorName');
+        const detailVolume = document.getElementById('detailVolume');
+        // const detailDocumentId = document.getElementById('detailDocumentId'); // Removed reference to static element
+        const detailFullName = document.getElementById('detailFullName');
+        const detailEmail = document.getElementById('detailEmail');
+        const detailAffiliation = document.getElementById('detailAffiliation');
+        const detailRequestedAt = document.getElementById('detailRequestedAt');
+        const detailDocumentLink = document.getElementById('detailDocumentLink');
+        const detailReasons = document.getElementById('detailReasons');
+        const detailReasonDetailsSection = document.getElementById('detailReasonDetailsSection');
+        const detailReasonDetails = document.getElementById('detailReasonDetails');
+        const detailRejectionReasonSection = document.getElementById('detailRejectionReasonSection'); // Added
+        const detailRejectionReason = document.getElementById('detailRejectionReason'); // Added
+        const detailStatus = document.getElementById('detailStatus');
+        const detailProcessedAt = document.getElementById('detailProcessedAt');
+
+        // --- Local Storage Keys ---
+        const STORAGE_KEY = 'documentAccessRequests';
+        const COLUMN_ORDER_KEY = 'documentAccessColumnOrder';
+        const VISIBLE_COLUMNS_KEY = 'documentAccessVisibleColumns'; // Added
+
+        // --- Column Definitions ---
+        // Define columns with their key, header text, and whether they are sortable/toggleable
+        const columnDefinitions = {
+            id: { header: 'Request ID', sortable: true, toggleable: true },
+            documentId: { header: 'Document ID', sortable: true, toggleable: true }, // Added Document ID
+            fullName: { header: 'Requester Name', sortable: true, toggleable: true },
+            email: { header: 'Email', sortable: false, toggleable: true },
+            affiliation: { header: 'Affiliation', sortable: false, toggleable: true },
+            bookTitle: { header: 'Book Title', sortable: true, toggleable: true },
+            authorName: { header: 'Author', sortable: true, toggleable: true },
+            requestedAt: { header: 'Date Requested', sortable: true, format: formatDate, toggleable: true },
+            status: { header: 'Status', sortable: true, format: (val, req) => formatStatus(val, req), toggleable: false }, // Status always visible, handles dropdown
+            processedAt: { header: 'Processed At', sortable: true, format: formatDateTime, toggleable: true },
+            actions: { header: 'Actions', sortable: false, format: (val, req) => `<a href="${req.documentUrl || '#'}" target="_blank" class="view-doc-button" data-action="view" title="View Document">View</a>`, toggleable: false } // Actions always visible
+        };
+
+        // Define different column order presets
+        const columnOrders = {
+            default: ['status', 'fullName', 'bookTitle'], // Only these 3 for default
+            requesterFirst: ['id', 'documentId', 'fullName', 'email', 'affiliation', 'bookTitle', 'authorName', 'requestedAt', 'status', 'processedAt', 'actions'], // Added documentId
+            bookFirst: ['id', 'documentId', 'bookTitle', 'authorName', 'fullName', 'email', 'affiliation', 'requestedAt', 'status', 'processedAt', 'actions'] // Added documentId
+        };
+
+        // --- Functions ---
+
+        /** Helper to format status cell (label or dropdown) */
+        function formatStatus(status, request) {
+            if (status === 'pending') {
+                 // Use list-action-dropdown styling for consistency, but apply to table cell context if needed
+                return `
+                    <select class="list-action-dropdown status-pending" data-action="process" data-request-id="${request.id}">
+                        <option value="" disabled selected>Pending</option>
+                        <option value="approved">Approve</option>
+                        <option value="rejected">Reject</option>
+                    </select>`;
+            } else {
+                const statusClass = `status-${status}`;
+                const statusText = status.charAt(0).toUpperCase() + status.slice(1);
+                return `<span class="status-label ${statusClass}">${statusText}</span>`;
+            }
+        }
+
+
+        /** Loads requests, column order, and visible columns from localStorage or initializes defaults. */
+        function loadData() {
+            // CJ/kuys: Replace this section with an API call to fetch initial data from PostgreSQL
+            // Example: fetch('/api/requests?sort=requestedAt&dir=desc&limit=all')
+            //          .then(response => response.json())
+            //          .then(data => { requests = data.requests; /* ... rest of setup ... */ })
+            //          .catch(error => console.error('Error loading requests:', error));
+
+            const storedRequests = localStorage.getItem(STORAGE_KEY);
+            if (storedRequests) { try { requests = JSON.parse(storedRequests); requests.forEach(req => { if (!req.bookTitle) req.bookTitle = 'Unknown Book'; if (!req.authorName) req.authorName = 'Unknown Author'; if (req.volume === undefined) req.volume = null; if (!req.processedAt) req.processedAt = null; if (!req.documentUrl) req.documentUrl = `#/view-doc/${req.id}`; if (!req.requestedAt) req.requestedAt = new Date(Date.now() - Math.random() * 10 * 86400000).toISOString(); if (!req.documentId) req.documentId = `DOC${Math.floor(Math.random() * 900) + 100}`; if (req.rejectionReason === undefined) req.rejectionReason = null; }); } catch (e) { console.error("Error parsing requests:", e); initializeMockData(); } } else { initializeMockData(); }
+
+            // Load column order preference (remains frontend logic)
+            const storedOrder = localStorage.getItem(COLUMN_ORDER_KEY);
+            if (storedOrder && columnOrders[storedOrder]) {
+                currentColumnOrder = storedOrder;
+            } else {
+                currentColumnOrder = 'default'; // Default if nothing stored or invalid
+            }
+             columnOrderSelect.value = currentColumnOrder; // Update dropdown selection
+
+             // Load visible columns preference (remains frontend logic)
+            const storedVisible = localStorage.getItem(VISIBLE_COLUMNS_KEY);
+            if (storedVisible) {
+                try {
+                    visibleColumns = new Set(JSON.parse(storedVisible));
+                } catch (e) {
+                    console.error("Error parsing visible columns:", e);
+                    // Default to all toggleable columns if parsing fails
+                    visibleColumns = new Set(Object.keys(columnDefinitions).filter(key => columnDefinitions[key].toggleable));
+                }
+            } else {
+                 // Default to all toggleable columns
+                visibleColumns = new Set(Object.keys(columnDefinitions).filter(key => columnDefinitions[key].toggleable));
+            }
+
+            renderColumnVisibilityControl(); // Populate checklist
+            applyFiltersAndSort(); // Initial filter/sort and render
+         }
+
+        /** Initializes mock data including requestedAt and documentId. */
+        function initializeMockData() {
+             // CJ/kuys: This function should be REMOVED when fetching real data.
+             // This is just placeholder data for the frontend development.
+             const now = new Date().toISOString(); const oneDayAgo = new Date(Date.now() - 86400000).toISOString(); const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString(); const threeDaysAgo = new Date(Date.now() - 3 * 86400000).toISOString(); const fourDaysAgo = new Date(Date.now() - 4 * 86400000).toISOString(); const fiveDaysAgo = new Date(Date.now() - 5 * 86400000).toISOString(); const sixDaysAgo = new Date(Date.now() - 6 * 86400000).toISOString(); const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+             requests = [
+                 { id: 'req-' + Date.now() + '-1', documentId: 'DOC101', requestedAt: threeDaysAgo, documentUrl: '#/view-doc/gatsby', bookTitle: 'The Great Gatsby', authorName: 'F. Scott Fitzgerald', volume: null, fullName: 'Alice Smith', email: 'alice.smith@example.com', affiliation: 'University of Example', reasons: ['Academic Research', 'Coursework/Study'], reasonDetails: '', status: 'pending', processedAt: null, rejectionReason: null },
+                 { id: 'req-' + Date.now() + '-2', documentId: 'DOC102', requestedAt: fiveDaysAgo, documentUrl: '#/view-doc/mockingbird', bookTitle: 'To Kill a Mockingbird', authorName: 'Harper Lee', volume: null, fullName: 'Bob Johnson', email: 'bob.j@company.net', affiliation: 'Tech Solutions Inc.', reasons: ['Professional Development', 'Other'], reasonDetails: 'Need to review for compliance standards.', status: 'pending', processedAt: null, rejectionReason: null },
+                 { id: 'req-' + Date.now() + '-3', documentId: 'DOC103', requestedAt: twoDaysAgo, documentUrl: '#/view-doc/1984', bookTitle: '1984', authorName: 'George Orwell', volume: null, fullName: 'Charlie Davis', email: 'charlie.d@web.org', affiliation: 'Independent Researcher', reasons: ['Personal Interest', 'Writing Project'], reasonDetails: 'Writing a book on digital archiving.', status: 'pending', processedAt: null, rejectionReason: null },
+                 { id: 'req-' + Date.now() + '-4', documentId: 'DOC104', requestedAt: sevenDaysAgo, documentUrl: '#/view-doc/pride', bookTitle: 'Pride and Prejudice', authorName: 'Jane Austen', volume: null, fullName: 'Diana Prince', email: 'diana.p@justice.gov', affiliation: 'Government Archives', reasons: ['Institutional Requirement'], reasonDetails: '', status: 'approved', processedAt: oneDayAgo, rejectionReason: null },
+                 { id: 'req-' + Date.now() + '-5', documentId: 'DOC105', requestedAt: sixDaysAgo, documentUrl: '#/view-doc/hitchhiker', bookTitle: 'The Hitchhiker\'s Guide to the Galaxy', authorName: 'Douglas Adams', volume: null, fullName: 'Clark Kent', email: 'clark.k@dailyplanet.com', affiliation: 'Daily Planet', reasons: ['Personal Interest'], reasonDetails: '', status: 'rejected', processedAt: twoDaysAgo, rejectionReason: 'Request outside of standard access policy.' },
+                 { id: 'req-' + Date.now() + '-6', documentId: 'DOC106', requestedAt: fourDaysAgo, documentUrl: '#/view-doc/moby', bookTitle: 'Moby Dick', authorName: 'Herman Melville', volume: null, fullName: 'Eva Green', email: 'eva.g@sea.org', affiliation: 'Marine Biology Institute', reasons: ['Academic Research'], reasonDetails: '', status: 'approved', processedAt: now, rejectionReason: null },
+                 { id: 'req-' + Date.now() + '-7', documentId: 'DOC107', requestedAt: sevenDaysAgo, documentUrl: '#/view-doc/war', bookTitle: 'War and Peace', authorName: 'Leo Tolstoy', volume: 'II', fullName: 'Frank Castle', email: 'frank.c@military.net', affiliation: 'Retired', reasons: ['Personal Interest'], reasonDetails: '', status: 'rejected', processedAt: oneDayAgo, rejectionReason: 'Duplicate request.' },
+                 { id: 'req-' + Date.now() + '-8', documentId: 'DOC107', requestedAt: oneDayAgo, documentUrl: '#/view-doc/war', bookTitle: 'War and Peace', authorName: 'Leo Tolstoy', volume: 'I', fullName: 'Grace Hopper', email: 'grace.h@navy.mil', affiliation: 'US Navy (Retired)', reasons: ['Academic Research'], reasonDetails: '', status: 'pending', processedAt: null, rejectionReason: null },
+                 { id: 'req-' + Date.now() + '-9', documentId: 'DOC108', requestedAt: now, documentUrl: '#/view-doc/sun', bookTitle: 'The Sun Also Rises', authorName: 'Ernest Hemingway', volume: null, fullName: 'Bruce Wayne', email: 'bruce@wayne.com', affiliation: 'Wayne Enterprises', reasons: ['Personal Interest'], reasonDetails: '', status: 'pending', processedAt: null, rejectionReason: null },
+                 { id: 'req-' + Date.now() + '-10', documentId: 'DOC109', requestedAt: oneDayAgo, documentUrl: '#/view-doc/catcher', bookTitle: 'The Catcher in the Rye', authorName: 'J.D. Salinger', volume: null, fullName: 'Selina Kyle', email: 'selina@cats.com', affiliation: 'Self-employed', reasons: ['Personal Interest'], reasonDetails: '', status: 'pending', processedAt: null, rejectionReason: null },
+                 { id: 'req-' + Date.now() + '-11', documentId: 'DOC110', requestedAt: twoDaysAgo, documentUrl: '#/view-doc/grapes', bookTitle: 'The Grapes of Wrath', authorName: 'John Steinbeck', volume: null, fullName: 'Peter Parker', email: 'peter.p@bugle.com', affiliation: 'Daily Bugle', reasons: ['Coursework/Study'], reasonDetails: '', status: 'approved', processedAt: now, rejectionReason: null },
+                 { id: 'req-' + Date.now() + '-12', documentId: 'DOC111', requestedAt: threeDaysAgo, documentUrl: '#/view-doc/brave', bookTitle: 'Brave New World', authorName: 'Aldous Huxley', volume: null, fullName: 'Tony Stark', email: 'tony@stark.com', affiliation: 'Stark Industries', reasons: ['Professional Development'], reasonDetails: '', status: 'pending', processedAt: null, rejectionReason: null },
+                 { id: 'req-' + Date.now() + '-13', documentId: 'DOC112', requestedAt: fourDaysAgo, documentUrl: '#/view-doc/amazon', bookTitle: 'A Comprehensive Analysis of the Long-Term Effects of Deforestation on Local Weather Patterns in the Amazon Basin.', authorName: 'Dr. Elena Vance', volume: null, fullName: 'Walter White', email: 'walter.w@science.edu', affiliation: 'Climate Research Center', reasons: ['Academic Research'], reasonDetails: '', status: 'approved', processedAt: oneDayAgo, rejectionReason: null }
+             ];
+             saveRequests(); // Save mock data if initializing
+        }
+
+        /** Saves the current `requests` array to localStorage. */
+        function saveRequests() {
+            // CJ/kuys: This function will likely be REMOVED or changed.
+            // Saving is handled by backend calls in handleAction.
+            // You might keep localStorage for *preferences* like column order, but not the main data.
+             try { localStorage.setItem(STORAGE_KEY, JSON.stringify(requests)); } catch (e) { console.error("Error saving requests:", e); alert("Could not save changes."); }
+        }
+         /** Saves the selected column order to localStorage. */
+        function saveColumnOrder() {
+             try { localStorage.setItem(COLUMN_ORDER_KEY, currentColumnOrder); } catch (e) { console.error("Error saving column order:", e); }
+        }
+         /** Saves the set of visible columns to localStorage. */
+        function saveVisibleColumns() {
+             try { localStorage.setItem(VISIBLE_COLUMNS_KEY, JSON.stringify(Array.from(visibleColumns))); } catch (e) { console.error("Error saving visible columns:", e); }
+        }
+
+
+        /** Formats an ISO date string to locale date/time string. */
+        function formatDateTime(isoString) { /* ... (same as before) ... */
+             if (!isoString) return 'N/A'; try { const d=new Date(isoString); return isNaN(d.getTime())?'Invalid':d.toLocaleString(); } catch(e){ return 'Error'; }
+        }
+         /** Formats an ISO date string to locale date string (Date only). */
+        function formatDate(isoString) { /* ... (same as before) ... */
+            if (!isoString) return 'N/A'; try { const date = new Date(isoString); if (isNaN(date.getTime())) return 'Invalid Date'; return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); } catch (e) { console.error("Error formatting date:", isoString, e); return 'Error'; }
+        }
+
+
+        /** MODIFIED: Applies filters (including date) and sorting, updates the full list, then calls the active view renderer. */
+        function applyFiltersAndSort() {
+            // CJ/kuys: This function needs significant changes for backend integration.
+            // Instead of filtering/sorting the 'requests' array here,
+            // you should trigger an API call to fetch data based on the
+            // current filter values (currentFilter, startDateFilter, endDateFilter, currentSearchTerm)
+            // and sorting parameters (currentSort.column, currentSort.direction).
+            // Pagination (currentPage, itemsPerPage) should also be sent to the backend.
+
+            // Example conceptual API call structure:
+            /*
+            const params = new URLSearchParams({
+                status: currentFilter,
+                startDate: startDateFilter,
+                endDate: endDateFilter,
+                search: currentSearchTerm,
+                sortBy: currentSort.column,
+                sortDir: currentSort.direction,
+                page: currentPage,
+                limit: itemsPerPage
+            });
+            fetch(`/api/requests?${params.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Assuming the API returns { requests: [...], totalItems: ... }
+                    requests = data.requests; // Update the local copy if needed for other views? Or maybe not.
+                    filteredAndSortedRequests = data.requests; // Use the data directly returned from API
+                    // You might need to update totalPages based on data.totalItems
+                    renderActiveView(); // Re-render with the fetched data
+                })
+                .catch(error => console.error('Error fetching filtered/sorted data:', error));
+            */
+
+            // --- Current Frontend Filtering/Sorting (To be replaced by backend logic) ---
+             let tempRequests = requests;
+
+             // Apply status filter
+             if (currentFilter !== 'all') { tempRequests = tempRequests.filter(req => req.status === currentFilter); }
+
+             // Apply date range filter
+             const startDate = startDateFilter ? new Date(startDateFilter).setHours(0, 0, 0, 0) : null;
+             const endDate = endDateFilter ? new Date(endDateFilter).setHours(23, 59, 59, 999) : null; // Include full end day
+
+             if (startDate || endDate) {
+                 tempRequests = tempRequests.filter(req => {
+                     if (!req.requestedAt) return false; // Skip requests without a date
+                     const requestedDate = new Date(req.requestedAt).getTime();
+                     const afterStart = startDate ? requestedDate >= startDate : true;
+                     const beforeEnd = endDate ? requestedDate <= endDate : true;
+                     return afterStart && beforeEnd;
+                 });
+             }
+
+             // Apply search term filter
+             if (currentSearchTerm) { const lowerSearchTerm = currentSearchTerm.toLowerCase(); tempRequests = tempRequests.filter(req => Object.values(req).some(val => String(val).toLowerCase().includes(lowerSearchTerm))); }
+
+             // Apply sort (using the current column order to access data)
+             if (currentSort.column) {
+                 tempRequests.sort((a, b) => {
+                     let valA = a[currentSort.column];
+                     let valB = b[currentSort.column];
+                     if (valA == null) valA = '';
+                     if (valB == null) valB = '';
+                     if (currentSort.column === 'processedAt' || currentSort.column === 'requestedAt') {
+                         valA = valA ? new Date(valA).getTime() : 0;
+                         valB = valB ? new Date(valB).getTime() : 0;
+                     } else if (typeof valA === 'string') {
+                         valA = valA.toLowerCase();
+                         valB = valB.toLowerCase();
+                     }
+                     let comp = (valA > valB) ? 1 : (valA < valB ? -1 : 0);
+                     return currentSort.direction === 'desc' ? (comp * -1) : comp;
+                 });
+             }
+
+             filteredAndSortedRequests = tempRequests; // Update the full list
+
+             // Reset to page 1 whenever filters/sort change OR when switching views
+             currentPage = 1;
+
+             renderActiveView(); // Render the currently selected view
+             // --- End of Frontend Filtering/Sorting ---
+        }
+
+        /** MODIFIED: Renders the view based on the `currentView` state and controls visibility. */
+        function renderActiveView() {
+            // Clear the main content container *before* rendering any view
+            requestsContentContainer.innerHTML = '';
+            if (filteredAndSortedRequests.length === 0) {
+                requestsContentContainer.innerHTML = '<p class="text-center text-gray-600 py-4">No requests match the current filters.</p>';
+                // Still need to manage control visibility even if no results
+            }
+
+             // Show/hide Layout and Columns controls based on view
+            const showLayoutControls = currentView === 'detailed';
+            layoutControlGroup.style.display = showLayoutControls ? 'flex' : 'none'; // Show/hide Layout group
+            columnToggleGroup.style.display = showLayoutControls && currentColumnOrder !== 'default' ? 'flex' : 'none'; // Show/hide Column group
+
+            // Ensure checklist is hidden if toggle button is hidden
+            if (columnToggleButton.style.display === 'none') {
+                 columnChecklist.classList.remove('visible');
+            }
+
+
+            // Render the appropriate view based on state only if there are results
+            if(filteredAndSortedRequests.length > 0) {
+                switch (currentView) {
+                    case 'list':
+                        renderList();
+                        break;
+                    case 'tile':
+                        renderTiles();
+                        break;
+                    case 'detailed':
+                    default:
+                        renderTable();
+                        break;
+                }
+            }
+            updateViewSwitcherUI();
+        }
+
+        /** MODIFIED: Renders the Detailed Table View based on selected column order and visibility. */
+        function renderTable() {
+            requestsContentContainer.innerHTML = ''; // Clear container
+
+            // CJ/kuys: If fetching paginated data from backend, totalItems might come from API response.
+            const totalItems = filteredAndSortedRequests.length; // Use length of data *returned by API* for current filters
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            if (currentPage > totalPages && totalPages > 0) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            // CJ/kuys: If fetching paginated data, paginatedRequests will be the array returned by the API.
+            // The slicing below is frontend pagination and should be removed if backend handles it.
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const paginatedRequests = filteredAndSortedRequests.slice(startIndex, endIndex);
+
+            const fragment = document.createDocumentFragment();
+            const tableWrapper = document.createElement('div');
+            tableWrapper.classList.add('table-container');
+            tableWrapper.id = 'detailedTableWrapper';
+
+            const table = document.createElement('table');
+            table.classList.add('table-view');
+
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+
+            // Determine which columns to render based on layout and visibility
+            let columnsToRender = [];
+            if (currentColumnOrder === 'default') {
+                columnsToRender = columnOrders.default; // Use fixed default order
+            } else {
+                // Start with the selected layout's order
+                const baseOrder = columnOrders[currentColumnOrder] || columnOrders.requesterFirst; // Fallback to requesterFirst if invalid
+                // Filter by visibility for non-default layouts
+                columnsToRender = baseOrder.filter(colKey => {
+                    const colDef = columnDefinitions[colKey];
+                    return colDef && (!colDef.toggleable || visibleColumns.has(colKey));
+                });
+            }
+
+
+            // Generate Header Row based on calculated order
+            columnsToRender.forEach(colKey => {
+                const colDef = columnDefinitions[colKey];
+                if (!colDef) return;
+
+                const th = document.createElement('th');
+                th.classList.add('px-6', 'py-3', 'text-left', 'text-xs', 'font-medium', 'text-white', 'uppercase', 'tracking-wider');
+                th.textContent = colDef.header;
+
+                if (colDef.sortable) {
+                    th.classList.add('sortable');
+                    th.dataset.sort = colKey;
+                    const icon = document.createElement('span');
+                    icon.classList.add('sort-icon');
+                    let iconClass = 'fa-solid fa-sort';
+                    if (currentSort.column === colKey) {
+                        th.classList.add(currentSort.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+                        iconClass = currentSort.direction === 'asc' ? 'fa-solid fa-sort-up' : 'fa-solid fa-sort-down';
+                    }
+                    icon.innerHTML = `<i class="${iconClass}"></i>`;
+                    th.appendChild(icon);
+                    th.addEventListener('click', () => handleSort(colKey));
+                }
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+
+            // Generate Table Body based on calculated order
+            const tbody = document.createElement('tbody');
+            tbody.classList.add('bg-white', 'divide-y', 'divide-gray-200');
+            if (paginatedRequests.length === 0 && totalItems > 0) {
+                tbody.innerHTML = `<tr><td colspan="${columnsToRender.length}" class="text-center py-4 text-gray-500">No requests on this page.</td></tr>`; // Dynamic colspan
+            } else if (paginatedRequests.length === 0 && totalItems === 0) {
+                // Handled by renderActiveView
+            } else {
+                paginatedRequests.forEach(request => {
+                    const tr = document.createElement('tr');
+                    tr.dataset.requestId = request.id;
+
+                    columnsToRender.forEach(colKey => {
+                        const colDef = columnDefinitions[colKey];
+                        if (!colDef) return;
+
+                        const td = document.createElement('td');
+                        td.classList.add('px-6', 'py-4', 'whitespace-nowrap', 'text-sm');
+
+                        let cellContent = request[colKey] ?? 'N/A';
+
+                        // Apply specific formatting or classes
+                        if (colDef.format) {
+                            cellContent = colDef.format(request[colKey], request);
+                            td.innerHTML = cellContent; // Use innerHTML for formatted content like status/actions
+                        } else {
+                            td.textContent = cellContent;
+                        }
+
+                        // Add styling based on column key
+                        if (colKey === 'id' || colKey === 'fullName' || colKey === 'documentId') { // Added documentId
+                            td.classList.add('font-medium', 'text-gray-900');
+                        } else if (colKey === 'affiliation') {
+                            td.classList.add('text-gray-500', 'wrap-text');
+                        } else if (colKey === 'actions') {
+                            td.classList.add('actions-cell');
+                        } else if (colKey !== 'status') { // Avoid double styling status
+                            td.classList.add('text-gray-500');
+                        }
+                        // Apply truncation to book title cell
+                        if (colKey === 'bookTitle') {
+                            td.classList.add('truncate-cell');
+                            td.title = request.bookTitle || ''; // Add title attribute for full name on hover
+                        }
+
+
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                });
+            }
+
+            table.appendChild(thead);
+            table.appendChild(tbody);
+            tableWrapper.appendChild(table);
+            fragment.appendChild(tableWrapper);
+
+            if (totalPages > 1) {
+                fragment.appendChild(renderPaginationControls(totalPages));
+            }
+
+            requestsContentContainer.appendChild(fragment);
+        }
+
+
+        /** MODIFIED: Renders the Tile View with action dropdown and green header, truncates title, adds Document ID. */
+        function renderTiles() {
+            const container = document.createElement('div');
+            container.classList.add('tile-view-container');
+            filteredAndSortedRequests.forEach(request => {
+                const tile = document.createElement('div');
+                tile.classList.add('tile-item');
+                tile.dataset.requestId = request.id;
+                const statusClass = `status-${request.status}`;
+                const statusText = request.status.charAt(0).toUpperCase() + request.status.slice(1);
+
+                let statusOrActionHtml = '';
+                if (request.status === 'pending') {
+                    statusOrActionHtml = `
+                        <select class="tile-action-dropdown status-pending" data-action="process" data-request-id="${request.id}">
+                            <option value="" disabled selected>Pending</option>
+                            <option value="approved">Approve</option>
+                            <option value="rejected">Reject</option>
+                        </select>`;
+                } else {
+                    statusOrActionHtml = `<span class="status-label ${statusClass}">${statusText}</span>`;
+                }
+
+                // Added title attribute to h3 for full title on hover
+                tile.innerHTML = `
+                    <div class="tile-header">
+                        <span class="tile-request-id">ID: ${request.id}</span>
+                        <h3 class="tile-title" title="${request.bookTitle || ''}">${request.bookTitle || 'N/A'} ${request.volume ? `(Vol. ${request.volume})` : ''}</h3>
+                        <p class="tile-author">by ${request.authorName || 'Unknown'}</p>
+                    </div>
+                    <div class="tile-body">
+                        <p><strong>Document ID:</strong> ${request.documentId || 'N/A'}</p> <p class="tile-requester"><strong>Requester:</strong> ${request.fullName || 'N/A'}</p>
+                        <p><strong>Affiliation:</strong> <span class="wrap-text">${request.affiliation || 'N/A'}</span></p>
+                        <p><strong>Requested:</strong> ${formatDate(request.requestedAt)}</p>
+                     </div>
+                    <div class="tile-actions">
+                        ${statusOrActionHtml}
+                    </div>`;
+                container.appendChild(tile);
+            });
+            requestsContentContainer.appendChild(container);
+        }
+
+        /** MODIFIED: Renders the Expandable List View with subtle background/border, truncates title, adds Document ID. */
+        function renderList() {
+            const list = document.createElement('ul');
+            list.classList.add('list-view-container');
+            filteredAndSortedRequests.forEach(request => {
+                const listItem = document.createElement('li');
+                listItem.classList.add('list-item');
+                const statusClass = `status-${request.status}`;
+                const statusText = request.status.charAt(0).toUpperCase() + request.status.slice(1);
+                const volumeText = request.volume ? `<span class="list-volume">(Vol. ${request.volume})</span>` : '';
+
+                const summary = document.createElement('div');
+                summary.classList.add('list-item-summary');
+                summary.dataset.requestId = request.id;
+
+                let statusOrActionHtml = '';
+                if (request.status === 'pending') {
+                    statusOrActionHtml = `
+                        <select class="list-action-dropdown status-pending" data-action="process" data-request-id="${request.id}">
+                            <option value="" disabled selected>Pending</option>
+                            <option value="approved">Approve</option>
+                            <option value="rejected">Reject</option>
+                        </select>`;
+                } else {
+                    statusOrActionHtml = `<span class="status-label ${statusClass}">${statusText}</span>`;
+                }
+
+                // Added title attribute to list-book-title span
+                summary.innerHTML = `
+                    <div class="list-info">
+                        <span class="list-request-id">ID: ${request.id}</span>
+                        <span class="list-requester-name" title="${request.fullName || ''}">${request.fullName || 'N/A'}</span>
+                        <span class="list-email" title="${request.email || ''}">${request.email || 'N/A'}</span>
+                        <span class="list-affiliation" title="${request.affiliation || ''}">${request.affiliation || 'N/A'}</span>
+                        <span class="list-book-title" title="${request.bookTitle || ''}">${request.bookTitle || 'N/A'} ${volumeText}</span>
+                        <span class="list-author">by ${request.authorName || 'N/A'}</span>
+                    </div>
+                    <div class="list-actions">
+                        ${statusOrActionHtml}
+                        <span class="expand-icon"><i class="fas fa-chevron-down"></i></span>
+                    </div>`;
+
+                const details = document.createElement('div');
+                details.classList.add('list-item-details');
+                const reasonsHtml = request.reasons?.map(r => `<span class="reason-tag-display">${r}</span>`).join('') || 'N/A';
+                const reasonDetailsHtml = (request.reasons?.includes('Other') && request.reasonDetails) ? `<p><strong>Reason Details:</strong><span class="reason-details-text">${request.reasonDetails}</span></p>` : '';
+                const processedAtHtml = request.processedAt ? `<p><strong>Processed At:</strong> ${formatDateTime(request.processedAt)}</p>` : '';
+                // ADDED: Display rejection reason if status is rejected
+                const rejectionReasonHtml = (request.status === 'rejected' && request.rejectionReason)
+                    ? `<p class="rejection-reason-display"><strong>Rejection Reason:</strong><br>${request.rejectionReason}</p>`
+                    : '';
+
+                details.innerHTML = `
+                    <p><strong>Requester Name:</strong> ${request.fullName || 'N/A'}</p>
+                    <p><strong>Email:</strong> ${request.email || 'N/A'}</p>
+                    <p><strong>Affiliation:</strong> ${request.affiliation || 'N/A'}</p>
+                    <p><strong>Date Requested:</strong> ${formatDateTime(request.requestedAt)}</p>
+                    <hr class="my-2 border-gray-200">
+                    <p><strong>Book Title:</strong> ${request.bookTitle || 'N/A'}</p>
+                    <p><strong>Author:</strong> ${request.authorName || 'N/A'}</p>
+                    ${request.volume ? `<p><strong>Volume:</strong> ${request.volume}</p>` : ''}
+                    <p><strong>Document ID:</strong> ${request.documentId || 'N/A'}</p> <div class="mt-2"> <a href="${request.documentUrl || '#'}" target="_blank" class="view-doc-button" data-action="view">View</a>
+                    </div>
+                    <hr class="my-2 border-gray-200">
+                    <div class="mb-2">
+                        <p class="mb-1"><strong>Reason(s):</strong></p>
+                        <div class="reason-tags-display">${reasonsHtml}</div>
+                    </div>
+                    ${reasonDetailsHtml}
+                    ${rejectionReasonHtml} ${request.processedAt ? '<hr class="my-2 border-gray-200">' : ''} ${processedAtHtml}
+                    `;
+                listItem.appendChild(summary);
+                listItem.appendChild(details);
+                list.appendChild(listItem);
+            });
+            requestsContentContainer.appendChild(list);
+        }
+
+        /** Creates and returns the pagination controls element with numbered buttons. */
+        function renderPaginationControls(totalPages) { /* ... (same as before) ... */
+            const controlsDiv = document.createElement('div');
+            controlsDiv.classList.add('pagination-controls');
+            controlsDiv.id = 'paginationControls';
+
+            const prevButton = document.createElement('button');
+            prevButton.id = 'prevPageBtn';
+            prevButton.innerHTML = '&laquo;';
+            prevButton.title = "Previous Page";
+            prevButton.disabled = currentPage === 1;
+            prevButton.addEventListener('click', () => goToPage(currentPage - 1));
+            controlsDiv.appendChild(prevButton);
+
+            const maxPagesToShow = 5;
+            const halfMax = Math.floor(maxPagesToShow / 2);
+            let startPage, endPage;
+            if (totalPages <= maxPagesToShow) { startPage = 1; endPage = totalPages; } else if (currentPage <= halfMax) { startPage = 1; endPage = maxPagesToShow - 1; } else if (currentPage + halfMax >= totalPages) { startPage = totalPages - (maxPagesToShow - 2); endPage = totalPages; } else { startPage = currentPage - (halfMax - 1); endPage = currentPage + (halfMax - 1); }
+            if (startPage > 1) { controlsDiv.appendChild(createPageButton(1)); if (startPage > 2) { controlsDiv.appendChild(createEllipsis()); } }
+            for (let i = startPage; i <= endPage; i++) { if (i > 0 && i <= totalPages) { controlsDiv.appendChild(createPageButton(i)); } }
+            if (endPage < totalPages) { if (endPage < totalPages - 1) { controlsDiv.appendChild(createEllipsis()); } controlsDiv.appendChild(createPageButton(totalPages)); }
+
+            const nextButton = document.createElement('button');
+            nextButton.id = 'nextPageBtn';
+            nextButton.innerHTML = '&raquo;';
+            nextButton.title = "Next Page";
+            nextButton.disabled = currentPage === totalPages;
+            nextButton.addEventListener('click', () => goToPage(currentPage + 1));
+            controlsDiv.appendChild(nextButton);
+
+            return controlsDiv;
+        }
+
+        /** Helper function to create a page number button. */
+        function createPageButton(pageNumber) { /* ... (same as before) ... */
+            const button = document.createElement('button');
+            button.classList.add('page-number');
+            button.textContent = pageNumber;
+            button.dataset.page = pageNumber;
+            if (pageNumber === currentPage) { button.classList.add('active'); button.disabled = true; } else { button.addEventListener('click', () => goToPage(pageNumber)); }
+            return button;
+        }
+
+         /** Helper function to create an ellipsis element. */
+        function createEllipsis() { /* ... (same as before) ... */
+            const ellipsis = document.createElement('span');
+            ellipsis.classList.add('ellipsis');
+            ellipsis.textContent = '...';
+            return ellipsis;
+        }
+
+
+        /** Navigates to a specific page in the detailed view. */
+        function goToPage(pageNumber) {
+            const totalPages = Math.ceil(filteredAndSortedRequests.length / itemsPerPage);
+            if (pageNumber >= 1 && pageNumber <= totalPages) {
+                currentPage = pageNumber;
+                // CJ/kuys: If using backend pagination, this should trigger applyFiltersAndSort()
+                // to fetch the new page data from the API.
+                // If using frontend pagination (as currently implemented), just re-render the table.
+                renderTable();
+            }
+        }
+
+        /** Updates the active state of the view switcher buttons. */
+        function updateViewSwitcherUI() { /* ... (same as before) ... */
+             viewSwitcher.querySelectorAll('button').forEach(button => { button.classList.toggle('active', button.dataset.view === currentView); });
+        }
+
+        /** Handles clicking on a sortable table header. */
+        function handleSort(columnKey) {
+             if (currentView !== 'detailed') return;
+             if (currentSort.column === columnKey) {
+                 currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+             } else {
+                 currentSort.column = columnKey;
+                 currentSort.direction = 'asc';
+             }
+             // CJ/kuys: This should trigger applyFiltersAndSort() to fetch sorted data from backend.
+             applyFiltersAndSort(); // This resets page to 1
+        }
+
+        /** MODIFIED: Opens the details modal, adds Document ID, shows rejection reason. */
+        function openDetailsModal(requestId) {
+            // CJ/kuys: If not all data is loaded initially, this might need an API call
+            // to fetch full details for the specific requestId.
+            // Example: fetch(`/api/requests/${requestId}`).then(...)
+            const request = requests.find(req => req.id === requestId); // Current frontend find
+            if (!request) { console.error("Req not found:", requestId); alert("Details not found."); return; }
+            detailRequestId.textContent = request.id; detailFullName.textContent = request.fullName || 'N/A'; detailEmail.textContent = request.email || 'N/A'; detailAffiliation.textContent = request.affiliation || 'N/A'; detailBookTitle.textContent = request.bookTitle || 'N/A'; detailAuthorName.textContent = request.authorName || 'N/A'; detailVolume.textContent = request.volume || 'N/A'; detailDocumentLink.href = request.documentUrl || '#';
+            detailRequestedAt.textContent = formatDateTime(request.requestedAt);
+            detailReasons.innerHTML = request.reasons?.map(r => `<span class="reason-tag-display">${r}</span>`).join('') || 'None'; if (request.reasons?.includes('Other') && request.reasonDetails) { detailReasonDetailsSection.classList.remove('hidden'); detailReasonDetails.value = request.reasonDetails; } else { detailReasonDetailsSection.classList.add('hidden'); detailReasonDetails.value = ''; }
+            const statusClass = `status-${request.status}`; const statusText = request.status.charAt(0).toUpperCase() + request.status.slice(1); detailStatus.className = `status-label ${statusClass}`; detailStatus.textContent = statusText; if (request.processedAt) { detailProcessedAt.classList.remove('hidden'); detailProcessedAt.querySelector('span').textContent = formatDateTime(request.processedAt); } else { detailProcessedAt.classList.add('hidden'); detailProcessedAt.querySelector('span').textContent = ''; }
+            modalActions.innerHTML = ''; if (request.status === 'pending') { modalActions.innerHTML = `<button class="approve-button modal-button">Approve</button><button class="reject-button modal-button">Reject</button>`; modalActions.querySelector('.approve-button').addEventListener('click', () => handleAction(requestId, 'approved')); modalActions.querySelector('.reject-button').addEventListener('click', () => handleAction(requestId, 'rejected')); } else { modalActions.innerHTML = `<p class="text-gray-600 font-medium">Request already ${request.status}.</p>`; }
+            detailDocumentLink.classList.add('view-doc-button');
+
+            // Add Document ID to modal
+            const existingDocIdP = modalDetailsContent.querySelector('#modalDocIdP');
+             if (existingDocIdP) existingDocIdP.remove();
+            const docIdElement = document.createElement('p');
+            docIdElement.id = 'modalDocIdP';
+            docIdElement.innerHTML = `<strong>Document ID:</strong> <span id="detailDocumentId">${request.documentId || 'N/A'}</span>`;
+            const viewButtonDiv = detailDocumentLink.parentElement;
+             if (viewButtonDiv) {
+                modalDetailsContent.insertBefore(docIdElement, viewButtonDiv);
+             } else {
+                 modalDetailsContent.appendChild(docIdElement);
+             }
+
+             // Show/Hide Rejection Reason
+             if (request.status === 'rejected' && request.rejectionReason) {
+                 detailRejectionReason.textContent = request.rejectionReason;
+                 detailRejectionReasonSection.classList.remove('hidden');
+             } else {
+                 detailRejectionReasonSection.classList.add('hidden');
+                 detailRejectionReason.textContent = '';
+             }
+
+
+            requestDetailsModal.classList.add('visible');
+        }
+
+        /** Closes the details modal. */
+        function closeDetailsModal() { /* ... (same as before) ... */
+             requestDetailsModal.classList.remove('visible');
+             // Remove dynamically added Document ID element
+             const existingDocId = modalDetailsContent.querySelector('#modalDocIdP');
+             if (existingDocId) {
+                 existingDocId.remove();
+             }
+        }
+
+         /** Opens the rejection reason modal */
+         function openRejectionModal(requestId) {
+            rejectionRequestIdInput.value = requestId;
+            rejectModalRequestIdSpan.textContent = requestId;
+            // Reset tags and textarea
+            reasonTagsContainer.querySelectorAll('.reason-tag').forEach(tag => tag.classList.remove('active'));
+            rejectionOtherReasonContainer.classList.add('hidden');
+            rejectionOtherReasonText.value = '';
+            rejectionOtherReasonText.required = false; // Reset required attribute
+
+            rejectionReasonModal.classList.add('visible');
+         }
+
+         /** Closes the rejection reason modal */
+         function closeRejectionModal() {
+             rejectionReasonModal.classList.remove('visible');
+             rejectionForm.reset(); // Reset the form (clears textarea)
+             // Also manually clear active class from tags just in case
+             reasonTagsContainer.querySelectorAll('.reason-tag').forEach(tag => tag.classList.remove('active'));
+             rejectionOtherReasonContainer.classList.add('hidden');
+         }
+
+         /** MODIFIED: Handles submission of the rejection reason, closes main modal too. */
+         function submitRejection(event) {
+             event.preventDefault(); // Prevent default form submission
+             const requestId = rejectionRequestIdInput.value;
+             const selectedTags = Array.from(reasonTagsContainer.querySelectorAll('.reason-tag.active'));
+             const otherReasonText = rejectionOtherReasonText.value.trim();
+             const isOtherSelected = !!reasonTagsContainer.querySelector('.reason-tag.active[data-reason="Other"]');
+
+             let reason = selectedTags
+                             .map(tag => tag.dataset.reason)
+                             .filter(reasonText => reasonText !== 'Other') // Exclude 'Other' itself
+                             .join(', ');
+
+             if (isOtherSelected) {
+                 if (!otherReasonText) {
+                     alert("Please specify a reason in the 'Other' text box.");
+                     rejectionOtherReasonText.focus();
+                     return;
+                 }
+                 if (reason) { // Add comma if other tags were also selected
+                     reason += `, Other: ${otherReasonText}`;
+                 } else {
+                     reason = `Other: ${otherReasonText}`;
+                 }
+             }
+
+             if (!reason) { // No tags selected and Other wasn't used or was empty
+                 alert("Please select at least one reason or specify 'Other'.");
+                 return;
+             }
+
+             // CJ/kuys: Replace this frontend logic with an API call to the backend.
+             // The API should update the status AND store the rejection reason.
+             // Example:
+             /*
+             fetch(`/api/requests/${requestId}/reject`, {
+                 method: 'PUT', // or POST
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify({ reason: reason }) // Send the combined reason string
+             })
+             .then(response => {
+                 if (!response.ok) { throw new Error('Failed to reject request'); }
+                 return response.json();
+             })
+             .then(updatedRequest => {
+                  // Success: Trigger email, show confirmation, close modal, refresh
+                  sendNotificationEmail(updatedRequest, 'rejected'); // Pass reason if needed
+                  showConfirmationMessage(`Request ${requestId} rejected. Reason recorded.`, 'error'); // Use error type
+                  closeRejectionModal();
+                  closeDetailsModal(); // Also close the main details modal
+                  applyFiltersAndSort(); // Re-fetch data
+             })
+             .catch(error => {
+                 console.error('Error rejecting request:', error);
+                 alert(`Failed to reject request ${requestId}.`);
+             });
+             */
+
+             // --- Current Frontend Logic (To be replaced) ---
+             const requestIndex = requests.findIndex(req => req.id === requestId);
+             if (requestIndex !== -1 && requests[requestIndex].status === 'pending') {
+                 requests[requestIndex].status = 'rejected';
+                 requests[requestIndex].rejectionReason = reason; // Store the combined reason
+                 requests[requestIndex].processedAt = new Date().toISOString();
+                 saveRequests(); // This will be removed
+
+                 sendNotificationEmail(requests[requestIndex], 'rejected'); // Simulate email
+
+                 showConfirmationMessage(`Request ${requestId} rejected. Reason recorded.`, 'error'); // Use error type
+                 closeRejectionModal();
+                 closeDetailsModal(); // Also close the main details modal
+                 applyFiltersAndSort(); // Re-render
+             } else {
+                 alert("Action failed or request is not pending.");
+                 closeRejectionModal();
+             }
+             // --- End of Frontend Logic ---
+         }
+
+
+        /** MODIFIED: Handles Approve/Reject action, opens rejection modal if needed. */
+        function handleAction(requestId, action) {
+            if (action === 'rejected') {
+                // Open the rejection reason modal instead of processing directly
+                openRejectionModal(requestId);
+            } else if (action === 'approved') {
+                // Process approval directly (as before)
+                // CJ/kuys: Replace this frontend logic with an API call to the backend.
+                // The backend should update the request status in the PostgreSQL database.
+                // Example API call:
+                /*
+                fetch(`/api/requests/${requestId}/status`, {
+                    method: 'PUT', // or PATCH
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: action }) // Send the new status 'approved'
+                })
+                .then(response => { if (!response.ok) throw new Error('Failed to approve'); return response.json(); })
+                .then(updatedRequest => {
+                     sendNotificationEmail(updatedRequest, 'approved');
+                     showConfirmationMessage(`Request ${requestId} approved. Email notification sent.`, 'success'); // Use success type
+                     closeDetailsModal();
+                     applyFiltersAndSort(); // Re-fetch
+                })
+                .catch(error => { console.error('Error approving:', error); alert(`Failed to approve request ${requestId}.`); });
+                */
+
+                // --- Current Frontend Logic (To be replaced) ---
+                const requestIndex = requests.findIndex(req => req.id === requestId);
+                if (requestIndex !== -1 && requests[requestIndex].status === 'pending') {
+                    requests[requestIndex].status = 'approved';
+                    requests[requestIndex].rejectionReason = null; // Clear any previous reason
+                    requests[requestIndex].processedAt = new Date().toISOString();
+                    saveRequests(); // To be removed
+                    sendNotificationEmail(requests[requestIndex], 'approved'); // Simulate email
+                    showConfirmationMessage(`Request ${requestId} approved. Email notification sent.`, 'success'); // Use success type
+                    closeDetailsModal();
+                    applyFiltersAndSort(); // Re-render
+                } else {
+                    alert("Action failed or request is not pending.");
+                }
+                // --- End of Frontend Logic ---
+            }
+        }
+
+        /**
+         * MODIFIED: Placeholder for sending notification email (approval or rejection).
+         * Replace this with an API call to your backend endpoint.
+         * @param {object} request - The request object containing details.
+         * @param {string} type - 'approved' or 'rejected'.
+         */
+        function sendNotificationEmail(request, type) {
+            // CJ/kuys: Implement API call to backend email service here.
+            // Send necessary details like recipient email, name, document title, status, and rejection reason (if applicable).
+            // Example:
+            /*
+            const emailData = {
+                recipientEmail: request.email,
+                recipientName: request.fullName,
+                documentTitle: request.bookTitle,
+                status: type,
+                rejectionReason: type === 'rejected' ? request.rejectionReason : null,
+                // Add document URL or access instructions if approved
+                documentUrl: type === 'approved' ? request.documentUrl : null
+            };
+             fetch('/api/email/send-notification', {
+                 method: 'POST',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify(emailData)
+             })
+             .then(response => {
+                 if (!response.ok) { console.error(`Failed to send ${type} email via API`); }
+                 else { console.log(`${type} email API call successful.`); }
+             })
+             .catch(error => console.error(`Error sending ${type} email:`, error));
+            */
+            console.log(`Simulating sending ${type} email to: ${request.email} for document: ${request.bookTitle}.`);
+            if (type === 'rejected' && request.rejectionReason) { // Check if reason exists
+                console.log(`   Reason: ${request.rejectionReason}`);
+            }
+        }
+
+
+        /** MODIFIED: Shows a confirmation message with different styles. */
+        function showConfirmationMessage(message, type = 'success') { // Default to 'success'
+             confirmationMessage.textContent = message;
+             // Remove previous type classes
+             confirmationMessage.classList.remove('success', 'error');
+             // Add the new type class
+             confirmationMessage.classList.add(type);
+             // Make visible
+             confirmationMessage.classList.add('visible');
+             // Hide after timeout
+             setTimeout(() => { confirmationMessage.classList.remove('visible'); }, 3000);
+        }
+
+         /** Populates the column visibility checklist */
+        function renderColumnVisibilityControl() {
+            columnChecklist.innerHTML = ''; // Clear existing items
+            const baseOrder = columnOrders[currentColumnOrder] || columnOrders.requesterFirst; // Use a full layout for checklist items
+
+            baseOrder.forEach(colKey => {
+                const colDef = columnDefinitions[colKey];
+                // Only include toggleable columns in the checklist
+                if (colDef && colDef.toggleable) {
+                    const li = document.createElement('li');
+                    const label = document.createElement('label');
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.value = colKey;
+                    checkbox.checked = visibleColumns.has(colKey);
+                    checkbox.addEventListener('change', handleColumnVisibilityChange);
+
+                    label.appendChild(checkbox);
+                    label.appendChild(document.createTextNode(` ${colDef.header}`)); // Add space
+                    li.appendChild(label);
+                    columnChecklist.appendChild(li);
+                }
+            });
+             // Show/hide based on current layout and view
+             columnToggleButton.style.display = (currentColumnOrder === 'default' || currentView !== 'detailed') ? 'none' : 'inline-flex';
+        }
+
+        /** Handles changes in column visibility checkboxes */
+        function handleColumnVisibilityChange(event) {
+            const colKey = event.target.value;
+            if (event.target.checked) {
+                visibleColumns.add(colKey);
+            } else {
+                visibleColumns.delete(colKey);
+            }
+            saveVisibleColumns(); // Save the new set
+            if (currentView === 'detailed') {
+                renderTable(); // Re-render the table with updated visibility
+            }
+        }
+
+
+        // --- Event Listeners ---
+
+        // Filter dropdown change
+        statusFilterSelect.addEventListener('change', (event) => {
+            currentFilter = event.target.value;
+            applyFiltersAndSort();
+        });
+
+        // Date Range Button Click
+        dateRangeButton.addEventListener('click', () => {
+            // Populate modal inputs with current filter values
+            modalStartDateInput.value = startDateFilter;
+            modalEndDateInput.value = endDateFilter;
+            dateRangeModal.classList.add('visible');
+        });
+
+        // Date Range Modal Close/Cancel
+        closeDateRangeModalButton.addEventListener('click', () => dateRangeModal.classList.remove('visible'));
+        cancelDateRangeButton.addEventListener('click', () => dateRangeModal.classList.remove('visible'));
+        dateRangeModal.addEventListener('click', (event) => { if (event.target === dateRangeModal) dateRangeModal.classList.remove('visible'); });
+
+         // Date Range Modal Apply
+        dateRangeForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            startDateFilter = modalStartDateInput.value;
+            endDateFilter = modalEndDateInput.value;
+            dateRangeModal.classList.remove('visible');
+            // Update button text
+            if (startDateFilter || endDateFilter) {
+                dateRangeButtonText.textContent = `${startDateFilter || '...'} - ${endDateFilter || '...'}`;
+            } else {
+                dateRangeButtonText.textContent = 'Date Range';
+            }
+            applyFiltersAndSort();
+        });
+
+
+        // Column Order Select change
+        columnOrderSelect.addEventListener('change', (event) => {
+            currentColumnOrder = event.target.value;
+            saveColumnOrder(); // Save preference
+            renderColumnVisibilityControl(); // Re-render checklist and show/hide button
+            if (currentView === 'detailed') {
+                renderTable(); // Re-render table immediately if in detailed view
+            }
+        });
+
+        // Column Toggle Button click
+        columnToggleButton.addEventListener('click', (event) => {
+             event.stopPropagation(); // Prevent body click listener from closing it immediately
+             columnChecklist.classList.toggle('visible');
+        });
+
+        // Search input changes (with debounce)
+        searchInput.addEventListener('input', (event) => {
+            clearTimeout(searchInput.timer);
+            searchInput.timer = setTimeout(() => {
+                currentSearchTerm = event.target.value;
+                applyFiltersAndSort();
+            }, 300);
+        });
+
+        // View Switcher clicks
+        viewSwitcher.addEventListener('click', (event) => {
+            const button = event.target.closest('button');
+            if (button && button.dataset.view) {
+                const newView = button.dataset.view;
+                if (newView !== currentView) {
+                    currentView = newView;
+                    applyFiltersAndSort(); // This resets page and renders correct view
+                }
+            }
+        });
+
+        // Event delegation for clicks within the content container
+        requestsContentContainer.addEventListener('click', (event) => {
+            const targetElement = event.target;
+            const viewButton = targetElement.closest('a.view-doc-button');
+            const actionButton = targetElement.closest('button[data-action]'); // Keep for modal potentially
+            const pageButton = targetElement.closest('.pagination-controls button, .pagination-controls .page-number');
+
+            // Check for "View Document" button click
+            if (viewButton && viewButton.dataset.action === 'view') {
+                event.stopPropagation();
+                return;
+            }
+
+            // Check for List Item Summary click (for expanding/collapsing)
+            const summaryElement = targetElement.closest('.list-item-summary');
+             if (currentView === 'list' && summaryElement && !targetElement.closest('select.list-action-dropdown')) {
+                if (targetElement.closest('a, button')) return;
+                summaryElement.parentElement.classList.toggle('expanded');
+                return;
+            }
+
+            // Check for Tile or Table Row click (for opening modal)
+            const clickableItem = targetElement.closest('.tile-item[data-request-id], tr[data-request-id]');
+            if (clickableItem && clickableItem.dataset.requestId && !viewButton && !actionButton && !targetElement.closest('select') && !pageButton) {
+                 openDetailsModal(clickableItem.dataset.requestId);
+            }
+
+            // Note: Clicks on pagination buttons are handled by their individual listeners
+        });
+
+        // Event listener for 'change' events specifically for the action dropdowns
+        requestsContentContainer.addEventListener('change', (event) => {
+            const targetElement = event.target;
+            // Check for List view dropdown OR Tile view dropdown OR Table view dropdown
+            if (targetElement.matches('select.list-action-dropdown, select.tile-action-dropdown, .table-view select[data-action="process"]') && targetElement.dataset.action === 'process') {
+                event.stopPropagation(); // Prevent summary click/toggle or modal open
+                const action = targetElement.value;
+                const requestId = targetElement.dataset.requestId;
+                if (action && requestId) {
+                    handleAction(requestId, action); // Will open rejection modal if 'rejected'
+                }
+                 // Reset dropdown back to 'Pending' after selection (optional, for better UX)
+                if (targetElement.tagName === 'SELECT') {
+                    targetElement.value = "";
+                }
+            }
+        });
+
+        // Close column checklist if clicking outside
+        document.addEventListener('click', (event) => {
+            if (columnChecklist.classList.contains('visible') && !columnToggleButton.contains(event.target) && !columnChecklist.contains(event.target)) {
+                columnChecklist.classList.remove('visible');
+            }
+        });
+
+
+        // Modal close listeners (remain the same)
+        closeDetailsModalButton.addEventListener('click', closeDetailsModal);
+        requestDetailsModal.addEventListener('click', (event) => { if (event.target === requestDetailsModal) closeDetailsModal(); });
+        document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && requestDetailsModal.classList.contains('visible')) closeDetailsModal(); });
+
+        // Rejection Modal Listeners
+        closeRejectionModalButton.addEventListener('click', closeRejectionModal);
+        cancelRejectionButton.addEventListener('click', closeRejectionModal);
+        rejectionReasonModal.addEventListener('click', (event) => { if (event.target === rejectionReasonModal) closeRejectionModal(); });
+        rejectionForm.addEventListener('submit', submitRejection);
+
+        // Add listener for rejection reason tags
+         reasonTagsContainer.addEventListener('click', (event) => {
+             if (event.target.classList.contains('reason-tag')) {
+                 const tag = event.target;
+                 tag.classList.toggle('active');
+                 const reason = tag.dataset.reason;
+                 if (reason === 'Other') {
+                     rejectionOtherReasonContainer.classList.toggle('hidden', !tag.classList.contains('active'));
+                     rejectionOtherReasonText.required = tag.classList.contains('active'); // Make required if Other is selected
+                     if (tag.classList.contains('active')) {
+                         rejectionOtherReasonText.focus();
+                     } else {
+                         rejectionOtherReasonText.value = ''; // Clear if deselected
+                     }
+                 }
+             }
+         });
+
+
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+             loadingMessage.style.display = 'none';
+             loadData(); // Use loadData to load requests, column order, and visibility
+        });
+
+    </script>
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
           fetch('./side_bar.html')
               .then(response => response.text())
               .then(data => {
-                  document.getElementById('side-bar').innerHTML = data;
+                  document.getElementById('sidebar-container').innerHTML = data;
+                  
+                  // Initialize sidebar functionality after loading
+                  if (typeof highlightActiveSidebarLink === 'function') {
+                    highlightActiveSidebarLink();
+                  }
+                  
+                  // Setup  ut if it exists
+                  if (typeof setupLogout === 'function') {
+                    setupLogout();
+                  }
               })
               .catch(error => console.error('Error loading sidebar:', error));
   
@@ -154,7 +1816,7 @@
               .catch(error => console.error('Error loading navbar:', error));
         });
       </script>
-    
-    <script src="/admin/Components/js/side_bar.js"></script>
+  
+
 </body>
 </html>

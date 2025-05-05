@@ -20,30 +20,36 @@ body {
 
 }
 
-.logo {
+/* Ensure these styles apply with higher specificity */
+#navbar-header .logo,
+.header .logo {
     width: 1200px;
     display: flex;
     align-items: center;
 }
 
-.logo-spud {
+#navbar-header .logo-spud,
+.header .logo-spud {
     width: 80px; 
     height: 80px; 
     background-size: contain; 
     background-repeat: no-repeat;
     background-position: center; 
+    margin-right: 15px !important; /* Force margin with !important to override other styles */
 }
 
-.spud-text {
+#navbar-header .spud-text,
+.header .spud-text {
     font-size: 1.2em;
     font-weight: bold;
 }
 
-.content {
+#navbar-header .content,
+.header .content {
     display: flex;
     flex-direction: column; 
-    margin: 0 10px;
-    padding: 0 0px;
+    margin: 0 !important; /* Force zero margin with !important */
+    padding: 0 !important; /* Force zero padding with !important */
 }
 
 .content p {

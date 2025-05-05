@@ -216,11 +216,11 @@ export async function fetchDocuments(
             FROM compiled_document_items cdi 
             WHERE cdi.compiled_document_id = cd.id
           )::BIGINT as child_count,
-          NULL::TIMESTAMP as deleted_at
+          cd.deleted_at
         FROM 
           compiled_documents cd
         WHERE 
-          1=1 ${categoryCompWhereClause}
+          cd.deleted_at IS NULL ${categoryCompWhereClause}
       ),
       count_query AS (
         SELECT COUNT(*) as total_count FROM combined_docs
@@ -806,4 +806,133 @@ async function getTotalDocumentCount(whereClause: string, params: any[]): Promis
   
   // Return total
   return regularDocsCount + compiledDocsCount;
+}
+
+/**
+ * Soft deletes a compiled document by setting deleted_at timestamp
+ * @param compiledDocId The compiled document ID to soft delete
+ * @returns The ID of the soft deleted document
+ */
+export async function softDeleteCompiledDocument(compiledDocId: number): Promise<number> {
+  try {
+    // Begin transaction
+    await client.queryObject("BEGIN");
+    
+    // 1. First check if the document exists in the compiled_documents table
+    const checkCompiledQuery = `
+      SELECT id, category, volume, start_year, end_year, deleted_at 
+      FROM compiled_documents 
+      WHERE id = $1
+    `;
+    
+    const compiledResult = await client.queryObject(checkCompiledQuery, [compiledDocId]);
+    
+    if (compiledResult.rows.length === 0) {
+      throw new Error(`Compiled document with ID ${compiledDocId} not found in compiled_documents table`);
+    }
+    
+    const compiledData = compiledResult.rows[0] as any;
+    
+    if (compiledData.deleted_at) {
+      throw new Error(`Compiled document with ID ${compiledDocId} is already archived`);
+    }
+    
+    // Get current timestamp for consistency
+    const currentTime = new Date();
+    
+    // 2. Get all child documents for the compiled document from the junction table
+    const childDocsQuery = `
+      SELECT document_id
+      FROM compiled_document_items
+      WHERE compiled_document_id = $1
+    `;
+    
+    const childDocsResult = await client.queryObject(childDocsQuery, [compiledDocId]);
+    const childDocs = childDocsResult.rows.map((row: any) => row.document_id);
+    
+    console.log(`Found ${childDocs.length} child documents for compiled document ${compiledDocId}`);
+    
+    // 3. Mark all child documents as archived and ensure they reference their parent
+    if (childDocs.length > 0) {
+      const updateChildrenQuery = `
+        UPDATE documents
+        SET 
+          deleted_at = $1,
+          compiled_parent_id = $2
+        WHERE id = ANY($3::int[])
+      `;
+      
+      await client.queryObject(updateChildrenQuery, [currentTime, compiledDocId, childDocs]);
+      console.log(`Archived ${childDocs.length} child documents and set their parent ID to ${compiledDocId}`);
+    }
+    
+    // 4. Update the compiled document record in compiled_documents table
+    const updateCompiledQuery = `
+      UPDATE compiled_documents
+      SET deleted_at = $1
+      WHERE id = $2
+    `;
+    
+    await client.queryObject(updateCompiledQuery, [currentTime, compiledDocId]);
+    console.log(`Updated deleted_at in compiled_documents table for ID ${compiledDocId}`);
+    
+    // 5. Check if there's a corresponding entry in the documents table
+    // If there is, update it too
+    const checkDocumentQuery = `
+      SELECT id
+      FROM documents
+      WHERE id = $1
+    `;
+    
+    const documentResult = await client.queryObject(checkDocumentQuery, [compiledDocId]);
+    
+    if (documentResult.rows.length > 0) {
+      // Document exists in documents table, update it
+      const updateDocumentQuery = `
+        UPDATE documents
+        SET deleted_at = $1
+        WHERE id = $2
+      `;
+      
+      await client.queryObject(updateDocumentQuery, [currentTime, compiledDocId]);
+      console.log(`Updated deleted_at in documents table for ID ${compiledDocId}`);
+    } else {
+      // No entry in documents table, we need to create one to ensure proper archive display
+      const insertDocumentQuery = `
+        INSERT INTO documents (
+          id, title, document_type, deleted_at, is_compiled
+        ) VALUES (
+          $1, 
+          (SELECT COALESCE((SELECT title FROM documents WHERE id = $1), 'Compiled Document ' || $1::text)),
+          (SELECT category FROM compiled_documents WHERE id = $1),
+          $2,
+          true
+        )
+        ON CONFLICT (id) DO UPDATE
+        SET 
+          deleted_at = $2,
+          is_compiled = true
+      `;
+      
+      await client.queryObject(insertDocumentQuery, [compiledDocId, currentTime]);
+      console.log(`Created or updated document entry for compiled document ${compiledDocId}`);
+    }
+    
+    // Commit the transaction
+    await client.queryObject("COMMIT");
+    
+    console.log(`Successfully archived compiled document ${compiledDocId} and ${childDocs.length} child documents`);
+    
+    return compiledDocId;
+  } catch (error) {
+    // Roll back transaction on error
+    try {
+      await client.queryObject("ROLLBACK");
+    } catch (rollbackError) {
+      console.error(`Error rolling back transaction for compiledDocId ${compiledDocId}:`, rollbackError);
+    }
+    
+    console.error(`Error soft deleting compiled document ${compiledDocId}:`, error);
+    throw error;
+  }
 }

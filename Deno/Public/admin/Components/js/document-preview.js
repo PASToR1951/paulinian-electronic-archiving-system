@@ -126,7 +126,20 @@ async function showPreviewModal(documentId) {
             readDocumentBtn.onclick = function() {
                 // Use docData if it has file_path, otherwise fetch document details again
                 if (docData && docData.file_path) {
-                    const pdfPath = `/${docData.file_path}`;
+                    // Ensure we have a fully qualified URL by adding protocol and host if missing
+                    let pdfPath = docData.file_path;
+                    
+                    // If the path doesn't start with http or /, add the leading /
+                    if (!pdfPath.startsWith('http') && !pdfPath.startsWith('/')) {
+                        pdfPath = '/' + pdfPath;
+                    }
+                    
+                    // If the path is relative (starts with /), prepend the current origin
+                    if (pdfPath.startsWith('/')) {
+                        pdfPath = window.location.origin + pdfPath;
+                    }
+                    
+                    console.log(`Opening document with path: ${pdfPath}`);
                     window.open(pdfPath, '_blank');
                 } else {
                     // Fetch document details if file_path is not available
@@ -140,7 +153,20 @@ async function showPreviewModal(documentId) {
                         .then(document => {
                             if (document && document.file_path) {
                                 // Open the PDF in a new tab
-                                const pdfPath = `/${document.file_path}`;
+                                // Ensure we have a fully qualified URL by adding protocol and host if missing
+                                let pdfPath = document.file_path;
+                                
+                                // If the path doesn't start with http or /, add the leading /
+                                if (!pdfPath.startsWith('http') && !pdfPath.startsWith('/')) {
+                                    pdfPath = '/' + pdfPath;
+                                }
+                                
+                                // If the path is relative (starts with /), prepend the current origin
+                                if (pdfPath.startsWith('/')) {
+                                    pdfPath = window.location.origin + pdfPath;
+                                }
+                                
+                                console.log(`Opening document with path: ${pdfPath}`);
                                 window.open(pdfPath, '_blank');
                             } else {
                                 alert('PDF path not found for this document');
