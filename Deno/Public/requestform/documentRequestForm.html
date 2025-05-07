@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request Document Access</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <style>
+        .request-form-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .request-form-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #2e7d32;
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: #e0e0e0;
+            color: #333;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .error-message {
+            color: #d32f2f;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+
+        .success-message {
+            color: #2e7d32;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="request-form-modal">
+        <div class="request-form-content">
+            <h2>Request Document Access</h2>
+            <form id="documentRequestForm">
+                <div class="form-group">
+                    <label for="fullName">Full Name *</label>
+                    <input type="text" id="fullName" name="fullName" required placeholder="Enter your full name">
+                    <div class="error-message" id="fullNameError"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email *</label>
+                    <input type="email" id="email" name="email" required placeholder="Enter your email address">
+                    <div class="error-message" id="emailError"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="affiliation">Affiliation *</label>
+                    <input type="text" id="affiliation" name="affiliation" required placeholder="Enter your institution/organization">
+                    <div class="error-message" id="affiliationError"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="reason">Reason(s) for Access *</label>
+                    <select id="reason" name="reason" required>
+                        <option value="">Select a reason</option>
+                        <option value="research">Research</option>
+                        <option value="academic">Academic Study</option>
+                        <option value="personal">Personal Interest</option>
+                        <option value="other">Other</option>
+                    </select>
+                    <div class="error-message" id="reasonError"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="reasonDetails">Reason Details *</label>
+                    <textarea id="reasonDetails" name="reasonDetails" required placeholder="Please provide more details about your request"></textarea>
+                    <div class="error-message" id="reasonDetailsError"></div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit Request</button>
+                </div>
+
+                <div class="success-message" id="successMessage">
+                    Your request has been submitted successfully. We will review it and get back to you soon.
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html> 

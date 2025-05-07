@@ -458,6 +458,66 @@ export class DocumentModel {
       return null;
     }
   }
+
+  /**
+   * Get the file path for a document by its ID
+   * @param id Document ID
+   * @returns Path to the document file or null if not found
+   */
+  static async getDocumentPath(id: number | string): Promise<string | null> {
+    try {
+      // Convert string ID to number if needed
+      const documentId = typeof id === 'string' ? parseInt(id, 10) : id;
+      
+      // Check if ID is valid
+      if (isNaN(documentId)) {
+        console.error(`[DocumentModel] Invalid document ID: ${id}`);
+        return null;
+      }
+      
+      console.log(`[DocumentModel] Getting file path for document ID: ${documentId}`);
+      
+      const result = await client.queryObject<{ file_path: string }>(
+        "SELECT file_path FROM documents WHERE id = $1 AND deleted_at IS NULL",
+        [documentId]
+      );
+      
+      if (result.rows.length === 0) {
+        console.error(`[DocumentModel] Document not found for ID: ${documentId}`);
+        return null;
+      }
+      
+      let filePath = result.rows[0].file_path;
+      console.log(`[DocumentModel] Raw file path from DB: ${filePath}`);
+      
+      // Ensure path is absolute
+      if (!filePath.startsWith('/') && !filePath.match(/^[A-Z]:\//i)) {
+        // Convert relative path to absolute path
+        const workingDir = Deno.cwd();
+        filePath = `${workingDir}/${filePath}`;
+        console.log(`[DocumentModel] Converted to absolute path: ${filePath}`);
+      }
+      
+      // Normalize the path to handle any ../ or ./ references
+      filePath = filePath.replace(/\\/g, '/');
+      console.log(`[DocumentModel] Normalized path: ${filePath}`);
+      
+      // Check if file exists
+      try {
+        const fileInfo = await Deno.stat(filePath);
+        console.log(`[DocumentModel] File exists: ${filePath} (${fileInfo.size} bytes)`);
+      } catch (error) {
+        console.warn(`[DocumentModel] File does not exist at path: ${filePath}`);
+        console.warn(`[DocumentModel] Error details: ${error instanceof Error ? error.message : String(error)}`);
+        // Still return the path even if file doesn't exist, so email service can handle it
+      }
+      
+      return filePath;
+    } catch (error) {
+      console.error(`[DocumentModel] Error fetching document path for ID ${id}:`, error instanceof Error ? error.message : String(error));
+      return null;
+    }
+  }
 }
 
 /**

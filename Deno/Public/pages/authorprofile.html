@@ -116,9 +116,11 @@
 
     </style>
 </head>
-<body class="bg-gray-50 text-gray-900">
+<body class="bg-gray-50 text-gray-900" >
+    <!-- Header Component -->
+    <div id="header"></div>
 
-    <div class="container mx-auto p-4 md:p-8 min-h-screen font-sans">
+    <div class="container mx-auto p-4 md:p-8 min-h-screen font-sans"style="width: 1200px; max-width: 100%; margin: 0 auto;">
 
         <div class="grid grid-cols-1 gap-6">
 
@@ -159,7 +161,7 @@
             <div class="shadow-lg border border-gray-200 rounded-lg bg-white flex flex-col">
                 <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
                     <h2 class="text-xl font-bold text-gray-800">Works (<span id="publications-count">0</span>)</h2>
-                    <p id="publications-description" class="mt-1 text-gray-600 text-sm">Browse, search, and filter the list of publications.</p>
+                    <p id="publications-description" class="mt-1 text-gray-600 text-sm">Browse, search, and filter the list of works.</p>
                 </div>
                 <div class="px-4 py-5 sm:p-6 flex-grow">
                     <div id="view-publications-container">
@@ -167,7 +169,7 @@
                             <div class="mb-6">
                                 <label for="publication-search" class="sr-only">Search works by title</label>
                                 <div class="relative">
-                                    <input type="text" id="publication-search" placeholder="Search works by title..." class="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-md text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500 bg-white" aria-label="Search publications by title">
+                                    <input type="text" id="publication-search" placeholder="Search works by title..." class="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-md text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500 bg-white" aria-label="Search works by title">
                                     <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                                 </div>
                             </div>
@@ -239,7 +241,33 @@
             </div>
         </div>
 
-    </div> <script>
+    </div>
+
+    <!-- Footer or other components would go here -->
+
+    <!-- Load jQuery and scripts for components -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script>
+        // Wait for the document to be ready
+        $(document).ready(function() {
+            // Use jQuery's load method which is specifically designed for loading HTML fragments
+            $("#header").load("../Components/header.html", function() {
+                // This callback runs after the header is loaded
+                console.log("Header loaded successfully");
+                
+                // Load the header-init.js script to handle user login state
+                $.getScript("../Components/js/header-init.js")
+                    .done(function() {
+                        console.log("Header init script loaded successfully");
+                    })
+                    .fail(function(jqxhr, settings, exception) {
+                        console.error("Error loading header-init.js:", exception);
+                    });
+            });
+        });
+    </script>
+
+    <script>
     // --- CONFIGURATION ---
     // BACKEND: Consider making these configurable or fetching from backend if needed
     const ALL_CATEGORIES = ['Thesis', 'Dissertation', 'Confluence', 'Synergy'];
@@ -333,86 +361,89 @@
      * @returns {Promise<AuthorData|null>} A promise that resolves with the author data or null if fetch fails.
      */
     async function fetchAuthorData() {
-        // CJ Diri: Database queries and hooks.
-        const useSampleData = true; // <-- SET TO false TO USE ACTUAL API CALL
-
-        // --- Sample Data (for testing) ---
-        // CJ Diri: Replace this sample data block with the actual API call below when backend is ready.
-        if (useSampleData) {
-            console.log("Using sample author data for testing.");
-            await new Promise(resolve => setTimeout(resolve, 300)); // Simulate network delay
-            const sampleData = {
-                 author_id: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
-                 full_name: "Dr. Evelyn Reed (Sample)",
-                 affiliation: "Starlight University (Sample)",
-                 department: "Astrophysics (Sample)",
-                 email: "e.reed.sample@starlight.edu",
-                 linkedin: "https://linkedin.com/in/evelynreedsample",
-                 bio: "This is sample biography data. Dr. Evelyn Reed is a leading researcher in the field of exoplanetary science. Her work focuses on the atmospheric composition of distant worlds and the search for habitable environments beyond our solar system. She is passionate about science communication and mentoring the next generation of astronomers.",
-                 profile_picture: null, // Use null to test placeholder
-                 publications: [
-                     { id: "pub1", title: "Sample: Atmospheric Characterization of GJ 1214b", category: "Synergy", year: 2015, link: "https://example.com/Synergy1", tags: ["Exoplanets", "Atmosphere", "Spectroscopy"], abstract: "SAMPLE ABSTRACT: This paper details the spectroscopic analysis of the exoplanet GJ 1214b's atmosphere using data from space-based observatories. We find evidence for high-altitude clouds or hazes obscuring deeper atmospheric layers." },
-                     { id: "pub2", title: "Sample: Searching for Biosignatures on TRAPPIST-1e", category: "Synergy", year: 2018, tags: ["Exoplanets", "Biosignatures", "Habitable Zones"], abstract: "SAMPLE ABSTRACT: An investigation into potential atmospheric biosignatures on the potentially habitable exoplanet TRAPPIST-1e." },
-                     { id: "pub3", title: "Sample: Novel Techniques in Exoplanet Detection", category: "Confluence", year: 2019, link: "https://example.com/conf1", tags: ["Exoplanets", "Telescopes", "Instrumentation", "Data Analysis", "Machine Learning", "Statistics"] }, // No abstract
-                     { id: "pub4", title: "Sample: The Evolution of Planetary Atmospheres", category: "Dissertation", year: 2010, tags: ["Planetary Science", "Atmospheric Evolution", "Modeling"], abstract: "SAMPLE ABSTRACT: A comprehensive modeling study exploring the long-term evolution of terrestrial planet atmospheres." },
-                     { id: "pub5", title: "Sample: Early Universe Cosmology Models", category: "Thesis", year: 2006, tags: ["Cosmology", "Early Universe", "Inflation"], abstract: null }, // Explicitly null abstract
-                     { id: "pub6", title: "Sample: Data Visualization in Astrophysics", category: "Confluence", year: 2022, link: "https://example.com/viz", tags: ["Data Analysis", "Visualization", "Python"], abstract: "Exploring effective methods for visualizing large astronomical datasets." },
-                 ],
-                 created_at: new Date().toISOString(),
-                 updated_at: new Date().toISOString(),
-            };
-             // Ensure publications is an array (good practice even for sample data)
-             if (!Array.isArray(sampleData.publications)) {
-                 sampleData.publications = [];
-             }
-             delete sampleData.orcid_id; // Remove if present
-             return sampleData;
-        }
-        // --- End Sample Data ---
-
-
-        // --- Actual API Call ---
-        // BACKEND: Determine how to get the author ID (e.g., from URL path, query param)
-        // Example: const authorId = window.location.pathname.split('/').pop();
-        const authorId = "a1b2c3d4-e5f6-7890-1234-567890abcdef"; // Placeholder ID
-        const apiUrl = `${API_BASE_URL}/author/${authorId}`; // BACKEND: Verify/Update this URL
-
-        console.log(`Fetching author data from: ${apiUrl}`);
+        // Get the author ID from the URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const authorId = urlParams.get('id') || "a1b2c3d4-e5f6-7890-1234-567890abcdef"; // Use param or fallback to default
+        
+        console.log(`Looking for author with ID: ${authorId}`);
 
         try {
-            const response = await fetch(apiUrl); // BACKEND: Add headers if needed (Authorization, Accept)
-
-            if (!response.ok) {
-                // Handle HTTP errors (e.g., 404 Not Found, 500 Server Error)
-                console.error(`API Error: ${response.status} ${response.statusText}`);
-                // You could try to parse error details from response body if API provides them
-                // const errorBody = await response.text();
-                // console.error("Error details:", errorBody);
-                return null; // Indicate failure
+            // First, get the author data
+            const authorUrl = `${API_BASE_URL}/authors/all`;
+            console.log(`Fetching authors from: ${authorUrl}`);
+            
+            const authorResponse = await fetch(authorUrl);
+            if (!authorResponse.ok) {
+                throw new Error(`Failed to fetch authors: ${authorResponse.status} ${authorResponse.statusText}`);
             }
-
-            /** @type {AuthorData} */
-            const data = await response.json();
-
-            // Data Validation (Basic): Ensure publications is an array
-            if (!Array.isArray(data.publications)) {
-                 console.warn("Fetched data is missing or has invalid 'publications' array. Setting to empty array.");
-                 data.publications = [];
+            
+            const authorsData = await authorResponse.json();
+            console.log(`Fetched ${authorsData.count || 0} authors successfully`);
+            
+            // Find this specific author in the results
+            const authorData = authorsData.authors?.find(author => author.id === authorId);
+            if (!authorData) {
+                throw new Error(`Author with ID ${authorId} not found`);
             }
-
-             // Remove ORCID ID if present, as specified in original comments
-             delete data.orcid_id;
-
-
-            console.log("Author data fetched successfully.");
-            return data;
-
+            
+            console.log(`Found author: ${authorData.full_name || authorData.id}`);
+            
+            // Next, fetch this author's works
+            const worksUrl = `${API_BASE_URL}/authors/${authorId}/works`;
+            console.log(`Fetching author's works from: ${worksUrl}`);
+            
+            const worksResponse = await fetch(worksUrl);
+            if (!worksResponse.ok) {
+                console.warn(`Warning: Could not fetch works: ${worksResponse.status} ${worksResponse.statusText}`);
+                // Continue with empty publications array rather than failing completely
+                authorData.publications = [];
+            } else {
+                const worksData = await worksResponse.json();
+                console.log(`Fetched ${worksData.works?.length || 0} works for this author`);
+                
+                // Process the documents to match the expected Publication format
+                authorData.publications = (worksData.works || []).map(doc => ({
+                    id: doc.id,
+                    title: doc.title,
+                    category: doc.category || doc.document_type || 'Uncategorized',
+                    year: doc.year || (doc.publication_date ? new Date(doc.publication_date).getFullYear() : null),
+                    link: doc.file_path ? `/storage/${doc.file_path}` : null,
+                    tags: doc.topics ? doc.topics.map(t => t.name) : (doc.tags || []),
+                    abstract: doc.abstract || doc.description || null
+                }));
+            }
+            
+            return authorData;
+            
         } catch (error) {
-            // Handle network errors or JSON parsing errors
-            console.error("Failed to fetch or parse author data:", error);
-            return null; // Indicate failure
+            console.error("Error fetching author data:", error);
+            
+            // Fall back to sample data for testing
+            console.log("Using sample author data as fallback");
+            await new Promise(resolve => setTimeout(resolve, 300)); // Simulate network delay
+            const sampleData = {
+                id: authorId,
+                full_name: "Dr. Evelyn Reed (Sample)",
+                affiliation: "Starlight University (Sample)",
+                department: "Astrophysics (Sample)",
+                email: "e.reed.sample@starlight.edu",
+                linkedin: "https://linkedin.com/in/evelynreedsample",
+                bio: "This is sample biography data. Dr. Evelyn Reed is a leading researcher in the field of exoplanetary science. Her work focuses on the atmospheric composition of distant worlds and the search for habitable environments beyond our solar system. She is passionate about science communication and mentoring the next generation of astronomers.",
+                profile_picture: null, // Use null to test placeholder
+                publications: [
+                    { id: "pub1", title: "Sample: Atmospheric Characterization of GJ 1214b", category: "Synergy", year: 2015, link: "https://example.com/Synergy1", tags: ["Exoplanets", "Atmosphere", "Spectroscopy"], abstract: "SAMPLE ABSTRACT: This paper details the spectroscopic analysis of the exoplanet GJ 1214b's atmosphere using data from space-based observatories. We find evidence for high-altitude clouds or hazes obscuring deeper atmospheric layers." },
+                    { id: "pub2", title: "Sample: Searching for Biosignatures on TRAPPIST-1e", category: "Synergy", year: 2018, tags: ["Exoplanets", "Biosignatures", "Habitable Zones"], abstract: "SAMPLE ABSTRACT: An investigation into potential atmospheric biosignatures on the potentially habitable exoplanet TRAPPIST-1e." },
+                    { id: "pub3", title: "Sample: Novel Techniques in Exoplanet Detection", category: "Confluence", year: 2019, link: "https://example.com/conf1", tags: ["Exoplanets", "Telescopes", "Instrumentation", "Data Analysis", "Machine Learning", "Statistics"] }, // No abstract
+                    { id: "pub4", title: "Sample: The Evolution of Planetary Atmospheres", category: "Dissertation", year: 2010, tags: ["Planetary Science", "Atmospheric Evolution", "Modeling"], abstract: "SAMPLE ABSTRACT: A comprehensive modeling study exploring the long-term evolution of terrestrial planet atmospheres." },
+                    { id: "pub5", title: "Sample: Early Universe Cosmology Models", category: "Thesis", year: 2006, tags: ["Cosmology", "Early Universe", "Inflation"], abstract: null }, // Explicitly null abstract
+                    { id: "pub6", title: "Sample: Data Visualization in Astrophysics", category: "Confluence", year: 2022, link: "https://example.com/viz", tags: ["Data Analysis", "Visualization", "Python"], abstract: "Exploring effective methods for visualizing large astronomical datasets." },
+                ],
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            };
+            
+            return sampleData;
         }
-        // --- End Actual API Call ---
     }
 
     // --- HELPER FUNCTIONS ---

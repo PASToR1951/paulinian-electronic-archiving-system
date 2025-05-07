@@ -5,6 +5,208 @@
 
 console.log('Document edit module loaded');
 
+// Add toast notification styles
+(function() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            max-width: 250px;
+            font-size: 14px;
+            padding: 10px 15px;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 9999;
+            opacity: 0;
+            transform: translateY(10px);
+            animation: slide-in-toast 0.3s forwards;
+        }
+        
+        @keyframes slide-in-toast {
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .toast-success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border-left: 3px solid #2e7d32;
+        }
+        
+        .toast-error {
+            background-color: #ffebee;
+            color: #c62828;
+            border-left: 3px solid #c62828;
+        }
+        
+        /* Success Popup Styles */
+        .success-popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        
+        .success-popup {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            padding: 25px 30px;
+            text-align: center;
+            max-width: 300px;
+            animation: popup-appear 0.3s ease-out;
+        }
+        
+        @keyframes popup-appear {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .success-popup-icon {
+            color: #2e7d32;
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .success-popup-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .success-popup-message {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .success-popup-button {
+            background-color: #2e7d32;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .success-popup-button:hover {
+            background-color: #1b5e20;
+        }
+        
+        /* Dropdown Styles */
+        .dropdown-list {
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1000;
+            margin-top: 2px;
+        }
+        
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s;
+        }
+        
+        .dropdown-item:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .dropdown-item .item-name {
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+        
+        .dropdown-item .item-detail {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .dropdown-item .item-detail-small {
+            font-size: 11px;
+            color: #888;
+        }
+        
+        .dropdown-item.no-results,
+        .dropdown-item.error,
+        .dropdown-item.loading {
+            color: #888;
+            font-style: italic;
+        }
+        
+        .dropdown-item.create-new {
+            color: #2e7d32;
+            font-weight: 500;
+        }
+        
+        .dropdown-item.create-new i {
+            margin-right: 5px;
+        }
+        
+        /* Selected items styles */
+        .selected-author,
+        .selected-topic {
+            display: inline-block;
+            background-color: #e3f2fd;
+            color: #1565c0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin: 4px;
+            font-size: 14px;
+        }
+        
+        .selected-topic {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .remove-author,
+        .remove-topic {
+            margin-left: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .remove-author:hover,
+        .remove-topic:hover {
+            color: #f44336;
+        }
+    `;
+    document.head.appendChild(style);
+})();
+
+// Function to show a toast notification
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    
+    document.body.appendChild(toast);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.remove();
+        }
+    }, 3000);
+}
+
 // Document edit module
 window.documentEdit = {
     // Function to show the edit modal for a single document
@@ -40,7 +242,7 @@ window.documentEdit = {
             }
             
             // Fetch document data and populate the form
-            this.fetchDocumentData(documentId)
+            this.fetchDocumentData(documentId, false)
                 .then(data => {
                     // Remove loading overlay
                     const loadingOverlay = modal.querySelector('.loading-overlay');
@@ -119,7 +321,7 @@ window.documentEdit = {
             }
             
             // Fetch compiled document data and populate the form
-            this.fetchDocumentData(documentId)
+            this.fetchDocumentData(documentId, true)
                 .then(data => {
                     // Remove loading overlay
                     const loadingOverlay = modal.querySelector('.loading-overlay');
@@ -377,6 +579,20 @@ window.documentEdit = {
                 fileInput.addEventListener('change', changeListener);
             }
             
+            // Initialize author search input
+            const authorSearchInput = document.getElementById('edit-single-document-author-search');
+            if (authorSearchInput && typeof window.initAuthorSearchInput === 'function') {
+                this.initializeAuthorSearch(authorSearchInput, 'edit-single-document-selected-authors');
+            } else {
+                console.warn('Author search input or initialization function not found');
+            }
+            
+            // Initialize research agenda search
+            const topicSearchInput = document.getElementById('edit-single-document-topic-search');
+            if (topicSearchInput) {
+                this.initializeResearchAgendaSearch(topicSearchInput, 'edit-single-document-selected-topics');
+            }
+            
             // Read document button
             const readBtn = document.getElementById('edit-single-document-read-btn');
             if (readBtn) {
@@ -449,6 +665,20 @@ window.documentEdit = {
                 
                 // Add the event listener
                 form.addEventListener('submit', submitListener);
+            }
+            
+            // Initialize author search input
+            const authorSearchInput = document.getElementById('edit-compiled-document-author-search');
+            if (authorSearchInput && typeof window.initAuthorSearchInput === 'function') {
+                this.initializeAuthorSearch(authorSearchInput, 'edit-compiled-document-selected-authors');
+            } else {
+                console.warn('Author search input or initialization function not found');
+            }
+            
+            // Initialize research agenda search
+            const topicSearchInput = document.getElementById('edit-compiled-document-topic-search');
+            if (topicSearchInput) {
+                this.initializeResearchAgendaSearch(topicSearchInput, 'edit-compiled-document-selected-topics');
             }
             
             // File upload handling
@@ -583,145 +813,445 @@ window.documentEdit = {
         console.log('Modal event listeners setup complete');
     },
     
-    // Fetch document data from the API
-    fetchDocumentData: function(documentId) {
-        console.log(`Fetching document data for ID: ${documentId}`);
-        
-        // Try both endpoints available in the system
-        const endpoints = [
-            `/api/documents/${documentId}`,
-            `/api/document/${documentId}` // Alternate endpoint format
-        ];
-        
-        // Try the first endpoint, fallback to the second if needed
-        return fetch(endpoints[0])
-            .then(response => {
-                if (!response.ok) {
-                    console.log(`First endpoint failed with status ${response.status}, trying alternate endpoint...`);
-                    return fetch(endpoints[1]);
-                }
-                return response;
-            })
-            .then(response => {
-                if (!response.ok) {
-                    // If we got here, both endpoints failed
-                    throw new Error(`Failed to fetch document: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log(`Document data fetched successfully:`, data);
-                // If the response is empty or doesn't have the expected structure,
-                // create a default object with the document ID
-                if (!data || Object.keys(data).length === 0) {
-                    console.warn(`Empty data returned for document ${documentId}, using defaults`);
-                    return {
+    // Fetch document data for editing
+    fetchDocumentData: function(documentId, isCompiled) {
+        return new Promise((resolve, reject) => {
+            console.log(`Fetching document data for ID: ${documentId}`);
+            
+            // Try different potential endpoints for the document
+            let endpoints = [];
+            
+            if (isCompiled) {
+                // For compiled documents, try compiled-specific endpoints first
+                endpoints = [
+                    `/api/compiled-documents/${documentId}`,
+                    `/api/documents/${documentId}`,
+                    `/api/document/${documentId}`
+                ];
+            } else {
+                // For regular documents, try standard endpoints
+                endpoints = [
+                    `/api/documents/${documentId}`,
+                    `/api/document/${documentId}`
+                ];
+            }
+            
+            // Try each endpoint in sequence
+            this.tryEndpoints(endpoints)
+                .then(data => {
+                    console.log('Document data fetched successfully:', data);
+                    
+                    // Ensure we have at least a bare minimum document structure
+                    if (!data || typeof data !== 'object') {
+                        console.warn('Document data is not an object, creating default structure');
+                        data = {
+                            id: documentId,
+                            title: 'Unknown Document',
+                            document_type: '',
+                            date_published: null,
+                            authors: [],
+                            research_agenda: []
+                        };
+                    }
+                    
+                    // Ensure document ID is set
+                    if (!data.id) {
+                        data.id = documentId;
+                    }
+                    
+                    // Make sure other essential fields exist
+                    if (!data.title) data.title = 'Untitled Document';
+                    if (!data.document_type) data.document_type = '';
+                    
+                    // Normalize field names - some APIs might use different names
+                    if (!data.date_published && data.publication_date) {
+                        data.date_published = data.publication_date;
+                    }
+                    
+                    // For API compatibility, make sure all expected fields exist
+                    if (!data.authors) data.authors = [];
+                    if (!data.research_agenda && data.topics) {
+                        data.research_agenda = data.topics;
+                    } else if (!data.research_agenda) {
+                        data.research_agenda = [];
+                    }
+                    
+                    resolve(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching document data:', error);
+                    
+                    // Create fallback document object in case of failure
+                    const fallbackData = {
                         id: documentId,
-                        title: 'Untitled Document',
+                        title: 'Error Loading Document',
                         document_type: '',
-                        date_published: new Date().toISOString(),
-                        abstract: '',
+                        date_published: null,
                         authors: [],
                         research_agenda: []
                     };
+                    
+                    // Attempt to fetch the most critical data separately
+                    this.fetchMinimalDocumentData(documentId)
+                        .then(minimalData => {
+                            // Combine fallback with any data we were able to get
+                            const combinedData = { ...fallbackData, ...minimalData };
+                            resolve(combinedData);
+                        })
+                        .catch(minimalError => {
+                            console.error('Even minimal data fetch failed:', minimalError);
+                            // Use complete fallback
+                            resolve(fallbackData);
+                        });
+                });
+        });
+    },
+    
+    // Helper function to fetch minimal document data when main endpoints fail
+    fetchMinimalDocumentData: function(documentId) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const minimalData = { id: documentId };
+                
+                // Try to at least get the title
+                try {
+                    const titleResponse = await fetch(`/api/documents/${documentId}/title`);
+                    if (titleResponse.ok) {
+                        const titleData = await titleResponse.json();
+                        minimalData.title = titleData.title || 'Unknown Title';
+                    }
+                } catch (titleError) {
+                    console.warn('Failed to fetch document title:', titleError);
                 }
                 
-                // Fetch authors information separately if not included
-                const fetchAuthorsPromise = (!data.authors || !Array.isArray(data.authors) || data.authors.length === 0) 
-                    ? this.fetchAuthorsForDocument(documentId)
-                    : Promise.resolve(data.authors);
+                // Try to get authors
+                try {
+                    const authors = await this.fetchAuthorsForDocument(documentId);
+                    minimalData.authors = authors;
+                } catch (authorsError) {
+                    console.warn('Failed to fetch document authors:', authorsError);
+                }
                 
-                // Fetch research agenda separately if not included
-                const fetchResearchAgendaPromise = (!data.research_agenda || !Array.isArray(data.research_agenda)) 
-                    ? this.fetchResearchAgendaForDocument(documentId)
-                    : Promise.resolve(data.research_agenda);
+                // Try to get research agenda
+                try {
+                    const researchAgenda = await this.fetchResearchAgendaForDocument(documentId);
+                    minimalData.research_agenda = researchAgenda;
+                } catch (agendaError) {
+                    console.warn('Failed to fetch document research agenda:', agendaError);
+                }
                 
-                // Wait for both promises to resolve
-                return Promise.all([fetchAuthorsPromise, fetchResearchAgendaPromise])
-                    .then(([authors, researchAgenda]) => {
-                        // Merge the data
-                        return {
-                            ...data,
-                            authors: authors || [],
-                            research_agenda: researchAgenda || []
-                        };
-                    });
-            });
+                resolve(minimalData);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    },
+    
+    // Helper function to try multiple endpoints in sequence
+    tryEndpoints: function(endpoints) {
+        return new Promise(async (resolve, reject) => {
+            let lastError = null;
+            
+            for (const endpoint of endpoints) {
+                try {
+                    console.log(`Trying to fetch from endpoint: ${endpoint}`);
+                    const response = await fetch(endpoint);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        
+                        // If the response is empty or doesn't have the expected structure,
+                        // create a default object with the document ID
+                        if (!data || Object.keys(data).length === 0) {
+                            // Extract ID from endpoint URL
+                            const idMatch = endpoint.match(/\/(\d+)$/);
+                            const docId = idMatch ? idMatch[1] : 'unknown';
+                            
+                            console.warn(`Empty data returned for document ${docId}, using defaults`);
+                            return resolve({
+                                id: docId,
+                                title: 'Untitled Document',
+                                document_type: '',
+                                date_published: new Date().toISOString(),
+                                abstract: '',
+                                authors: [],
+                                research_agenda: []
+                            });
+                        }
+                        
+                        // Ensure document ID is available
+                        const docId = data.id;
+                        if (!docId) {
+                            console.warn('Document data missing ID, extracting from endpoint');
+                            // Try to extract ID from the endpoint URL
+                            const idMatch = endpoint.match(/\/(\d+)$/);
+                            data.id = idMatch ? idMatch[1] : 'unknown';
+                        }
+                        
+                        // Fetch authors information separately if not included
+                        const fetchAuthorsPromise = (!data.authors || !Array.isArray(data.authors) || data.authors.length === 0) 
+                            ? this.fetchAuthorsForDocument(data.id)
+                            : Promise.resolve(data.authors);
+                        
+                        // Fetch research agenda separately if not included
+                        const fetchResearchAgendaPromise = (!data.research_agenda || !Array.isArray(data.research_agenda)) 
+                            ? this.fetchResearchAgendaForDocument(data.id)
+                            : Promise.resolve(data.research_agenda);
+                        
+                        // Wait for both promises to resolve
+                        return Promise.all([fetchAuthorsPromise, fetchResearchAgendaPromise])
+                            .then(([authors, researchAgenda]) => {
+                                // Merge the data
+                                resolve({
+                                    ...data,
+                                    authors: authors || [],
+                                    research_agenda: researchAgenda || []
+                                });
+                            });
+                    } else {
+                        console.log(`Endpoint ${endpoint} failed with status ${response.status}`);
+                        lastError = new Error(`Failed to fetch document: ${response.status}`);
+                    }
+                } catch (error) {
+                    console.log(`Error trying endpoint ${endpoint}:`, error);
+                    lastError = error;
+                }
+            }
+            
+            // If we got here, all endpoints failed
+            console.error('All endpoints failed for document fetch');
+            reject(lastError || new Error('Failed to fetch document data from any endpoint'));
+        });
     },
     
     // Fetch authors for a document separately
     fetchAuthorsForDocument: function(documentId) {
         console.log(`Fetching authors for document ${documentId}`);
-        return fetch(`/api/document-authors/${documentId}`)
-            .then(response => {
-                if (!response.ok) {
-                    console.warn(`Failed to fetch authors for document ${documentId}: ${response.status}`);
-                    return [];
+        
+        // Try multiple potential endpoints
+        const endpoints = [
+            `/api/document-authors/${documentId}`,
+            `/api/documents/${documentId}/authors`,
+            `/document-authors/${documentId}`
+        ];
+        
+        return new Promise(async (resolve, reject) => {
+            try {
+                let authors = [];
+                let succeeded = false;
+                
+                // Try each endpoint sequentially
+                for (const endpoint of endpoints) {
+                    try {
+                        console.log(`Trying to fetch authors from: ${endpoint}`);
+                        const response = await fetch(endpoint);
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            console.log(`Authors data from ${endpoint}:`, data);
+                            
+                            // Handle different API response formats
+                            if (data.authors && Array.isArray(data.authors)) {
+                                authors = data.authors;
+                                succeeded = true;
+                                console.log(`Found ${authors.length} authors at ${endpoint}`);
+                                break;
+                            } else if (Array.isArray(data)) {
+                                authors = data;
+                                succeeded = true;
+                                console.log(`Found ${authors.length} authors at ${endpoint} (array format)`);
+                                break;
+                            } else if (data.document_authors && Array.isArray(data.document_authors)) {
+                                authors = data.document_authors;
+                                succeeded = true;
+                                console.log(`Found ${authors.length} authors at ${endpoint} (document_authors format)`);
+                                break;
+                            } else {
+                                console.warn(`Response from ${endpoint} doesn't contain authors in expected format:`, data);
+                            }
+                        } else {
+                            console.warn(`Failed to fetch authors from ${endpoint}: ${response.status}`);
+                        }
+                    } catch (endpointError) {
+                        console.warn(`Error fetching authors from ${endpoint}:`, endpointError);
+                    }
                 }
-                return response.json();
-            })
-            .then(data => {
-                console.log(`Authors data for document ${documentId}:`, data);
-                return data.authors || [];
-            })
-            .catch(error => {
-                console.error(`Error fetching authors for document ${documentId}:`, error);
-                return [];
-            });
+                
+                // If no authors found, try one more strategy - get document and extract authors
+                if (!succeeded && authors.length === 0) {
+                    try {
+                        console.log('Trying to extract authors from document data');
+                        const docResponse = await fetch(`/api/documents/${documentId}`);
+                        
+                        if (docResponse.ok) {
+                            const docData = await docResponse.json();
+                            
+                            if (docData.authors && Array.isArray(docData.authors)) {
+                                authors = docData.authors;
+                                console.log(`Extracted ${authors.length} authors from document data`);
+                            }
+                        }
+                    } catch (docError) {
+                        console.warn('Error extracting authors from document:', docError);
+                    }
+                }
+                
+                // Process authors to ensure consistent format
+                const formattedAuthors = authors.map(author => {
+                    // Handle string-only authors
+                    if (typeof author === 'string') {
+                        return { id: 'unknown', full_name: author };
+                    }
+                    
+                    // Handle object authors with different property names
+                    let authorObj = { ...author };
+                    
+                    // Ensure id exists
+                    if (!authorObj.id && authorObj.author_id) {
+                        authorObj.id = authorObj.author_id;
+                    } else if (!authorObj.id) {
+                        authorObj.id = 'unknown';
+                    }
+                    
+                    // Ensure full_name exists
+                    if (!authorObj.full_name && authorObj.name) {
+                        authorObj.full_name = authorObj.name;
+                    } else if (!authorObj.full_name) {
+                        authorObj.full_name = 'Unknown Author';
+                    }
+                    
+                    return authorObj;
+                });
+                
+                console.log(`Returning ${formattedAuthors.length} formatted authors`);
+                resolve(formattedAuthors);
+            } catch (error) {
+                console.error(`Error in fetchAuthorsForDocument:`, error);
+                resolve([]); // Resolve with empty array instead of rejecting
+            }
+        });
     },
     
-    // Fetch research agenda for a document separately
+    // Fetch keywords for a document separately
     fetchResearchAgendaForDocument: function(documentId) {
-        console.log(`Fetching research agenda for document ${documentId}`);
+        console.log(`[KEYWORDS] Fetching keywords for document ${documentId}`);
         
-        // Try the junction table endpoint first
-        return fetch(`/document-research-agenda/${documentId}`)
-            .then(response => {
-                if (!response.ok) {
-                    console.warn(`No research agenda found in primary endpoint for document ${documentId}: ${response.status}`);
-                    // If that fails, try the old endpoint that fetches from research_agenda table directly
-                    return fetch(`/api/research-agenda/by-document/${documentId}`)
-                        .then(oldResponse => {
-                            if (!oldResponse.ok) {
-                                console.warn(`No research agenda found in backup endpoint for document ${documentId}: ${oldResponse.status}`);
-                                return [];
+        // Try multiple potential endpoints
+        const endpoints = [
+            `/document-research-agenda/${documentId}`,
+            `/api/document-research-agenda/${documentId}`,
+            `/api/documents/${documentId}/topics`,
+            `/api/documents/${documentId}/research-agenda`
+        ];
+        
+        return new Promise(async (resolve, reject) => {
+            try {
+                let agendaItems = [];
+                let succeeded = false;
+                
+                // Try each endpoint sequentially
+                for (const endpoint of endpoints) {
+                    try {
+                        console.log(`[KEYWORDS] Trying endpoint: ${endpoint}`);
+                        const response = await fetch(endpoint);
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            console.log(`[KEYWORDS] Response from ${endpoint}:`, data);
+                            
+                            // Handle different response formats
+                            if (Array.isArray(data)) {
+                                agendaItems = data;
+                                succeeded = true;
+                                break;
+                            } else if (data.items && Array.isArray(data.items)) {
+                                agendaItems = data.items;
+                                succeeded = true;
+                                break;
+                            } else if (data.agenda_items && Array.isArray(data.agenda_items)) {
+                                agendaItems = data.agenda_items;
+                                succeeded = true;
+                                break;
+                            } else if (data.topics && Array.isArray(data.topics)) {
+                                agendaItems = data.topics;
+                                succeeded = true;
+                                break;
+                            } else if (data.research_agenda && Array.isArray(data.research_agenda)) {
+                                agendaItems = data.research_agenda;
+                                succeeded = true;
+                                break;
                             }
-                            return oldResponse.json();
-                        })
-                        .catch(error => {
-                            console.error(`Error checking backup research agenda endpoint: ${error}`);
-                            return [];
-                        });
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log(`Research agenda data for document ${documentId}:`, data);
-                // Handle different data formats from different endpoints
-                if (Array.isArray(data)) {
-                    // Old format - direct array of items
-                    if (data.length > 0 && data[0].agenda_item) {
-                        return data.map(item => item.agenda_item);
+                        }
+                    } catch (endpointError) {
+                        console.warn(`[KEYWORDS] Error fetching from ${endpoint}:`, endpointError);
                     }
-                    // New format - array of research agenda items
-                    if (data.length > 0 && data[0].name) {
-                        return data.map(item => item.name);
-                    }
-                } else if (data.agenda_items && Array.isArray(data.agenda_items)) {
-                    // Possible wrapper format
-                    return data.agenda_items;
                 }
-                return [];
-            })
-            .catch(error => {
-                console.error(`Error fetching research agenda for document ${documentId}: ${error}`);
-                return [];
-            });
+                
+                // If no items found, try direct document query as a last resort
+                if (!succeeded || agendaItems.length === 0) {
+                    try {
+                        console.log('[KEYWORDS] Trying to extract from document data');
+                        const docResponse = await fetch(`/api/documents/${documentId}`);
+                        
+                        if (docResponse.ok) {
+                            const docData = await docResponse.json();
+                            
+                            // Try different field names that might contain keywords data
+                            if (docData.research_agenda && Array.isArray(docData.research_agenda)) {
+                                agendaItems = docData.research_agenda;
+                            } else if (docData.topics && Array.isArray(docData.topics)) {
+                                agendaItems = docData.topics;
+                            } else if (docData.subject_areas && Array.isArray(docData.subject_areas)) {
+                                agendaItems = docData.subject_areas;
+                            }
+                        }
+                    } catch (docError) {
+                        console.warn('[KEYWORDS] Error extracting from document:', docError);
+                    }
+                }
+                
+                // Format the items
+                const formattedItems = agendaItems.map(item => {
+                    // Handle string-only items
+                    if (typeof item === 'string') {
+                        return {
+                            id: 'unknown',
+                            name: item
+                        };
+                    }
+                    
+                    // Handle object items
+                    const itemObj = { ...item };
+                    
+                    // Ensure name exists
+                    if (!itemObj.name && itemObj.title) {
+                        itemObj.name = itemObj.title;
+                    } else if (!itemObj.name && itemObj.agenda_name) {
+                        itemObj.name = itemObj.agenda_name;
+                    } else if (!itemObj.name && itemObj.topic) {
+                        itemObj.name = itemObj.topic;
+                    } else if (!itemObj.name) {
+                        console.warn('[KEYWORDS] Item has no name:', itemObj);
+                        itemObj.name = 'Unknown Item';
+                    }
+                    
+                    return itemObj;
+                }).filter(item => item !== null);
+                
+                console.log(`[KEYWORDS] Final formatted items (${formattedItems.length}):`, formattedItems);
+                resolve(formattedItems);
+            } catch (error) {
+                console.error(`[KEYWORDS] Error in fetchResearchAgendaForDocument:`, error);
+                reject(error);
+            }
+        });
     },
     
     // Populate the edit form with document data
     populateEditForm: function(data) {
-        // Set form values
+        console.log('Populating edit form with data:', data);
+        
+        // Set form fields
         document.getElementById('edit-single-document-title').value = data.title || '';
         document.getElementById('edit-single-document-type').value = data.document_type || '';
         
@@ -734,11 +1264,123 @@ window.documentEdit = {
             document.getElementById('edit-single-document-date').value = '';
         }
         
-        // Populate authors (assuming data.authors is an array of author objects)
+        // Ensure data.authors is an array
+        if (!data.authors || !Array.isArray(data.authors)) {
+            console.warn('Document has no authors or authors is not an array, fetching authors separately');
+            // Try to fetch authors
+            this.fetchAuthorsForDocument(data.id)
+                .then(authors => {
+                    data.authors = authors;
+                    this.populateAuthorsContainer(data.authors);
+                })
+                .catch(error => {
+                    console.error('Error fetching authors:', error);
+                    data.authors = [];
+                });
+        } else {
+            this.populateAuthorsContainer(data.authors);
+        }
+        
+        // Ensure data.research_agenda is an array
+        if (!data.research_agenda || !Array.isArray(data.research_agenda)) {
+            console.warn('Document has no research agenda or research_agenda is not an array, fetching research agenda separately');
+            // Try to fetch research agenda
+            this.fetchResearchAgendaForDocument(data.id)
+                .then(researchAgenda => {
+                    data.research_agenda = researchAgenda;
+                    this.populateResearchAgendaContainer(data.research_agenda);
+                })
+                .catch(error => {
+                    console.error('Error fetching research agenda:', error);
+                    data.research_agenda = [];
+                });
+        } else {
+            this.populateResearchAgendaContainer(data.research_agenda);
+        }
+        
+        // Populate abstract
+        const abstractElement = document.getElementById('edit-single-document-abstract');
+        if (abstractElement) {
+            abstractElement.value = data.abstract || '';
+        }
+        
+        // Populate preview section
+        document.getElementById('edit-single-document-preview-title').textContent = data.title || 'Document Title';
+        document.getElementById('edit-single-document-preview-type').textContent = data.document_type || '-';
+        document.getElementById('edit-single-document-preview-date').textContent = data.date_published ? new Date(data.date_published).toLocaleDateString() : '-';
+        
+        // The abstract element in the preview might not exist since we reorganized the UI
+        const previewAbstractElement = document.getElementById('edit-single-document-preview-abstract');
+        if (previewAbstractElement) {
+            previewAbstractElement.textContent = data.abstract || 'No abstract available.';
+        }
+        
+        // Initialize search inputs after a short delay to allow containers to be populated
+        setTimeout(() => {
+            // Initialize author search
+            const authorSearchInput = document.getElementById('edit-single-document-author-search');
+            const selectedAuthorsContainerId = 'edit-single-document-selected-authors';
+            
+            if (authorSearchInput) {
+                // Try to initialize with our new enhanced version
+                try {
+                    this.initializeAuthorSearch(authorSearchInput, selectedAuthorsContainerId);
+                    console.log('Author search initialized successfully');
+                } catch (error) {
+                    console.error('Error initializing author search:', error);
+                    this.dummyAuthorSearchInit(authorSearchInput); // Fallback
+                }
+            }
+            
+            // Initialize research agenda search
+            const topicSearchInput = document.getElementById('edit-single-document-topic-search');
+            const selectedTopicsContainerId = 'edit-single-document-selected-topics';
+            
+            if (topicSearchInput) {
+                // Try to initialize with our enhanced version
+                try {
+                    this.initializeResearchAgendaSearch(topicSearchInput, selectedTopicsContainerId);
+                    console.log('Research agenda search initialized successfully');
+                } catch (error) {
+                    console.error('Error initializing research agenda search:', error);
+                    // No fallback needed, basic functionality will work without it
+                }
+            }
+        }, 100);
+        
+        // Set document type icon
+        const typeIcon = document.getElementById('edit-single-document-type-icon');
+        if (typeIcon) {
+            const iconPath = this.getDocumentTypeIcon(data.document_type);
+            typeIcon.src = iconPath;
+        }
+        
+        // Set up "View Document" button
+        const viewDocBtn = document.getElementById('edit-single-document-view-btn');
+        if (viewDocBtn && data.id) {
+            viewDocBtn.href = `/open-doc.html?id=${data.id}`;
+            viewDocBtn.classList.remove('disabled');
+        }
+    },
+    
+    // Helper function to populate authors container
+    populateAuthorsContainer: function(authors) {
         const selectedAuthorsContainer = document.getElementById('edit-single-document-selected-authors');
-        if (selectedAuthorsContainer && data.authors && Array.isArray(data.authors)) {
-            selectedAuthorsContainer.innerHTML = '';
-            data.authors.forEach(author => {
+        if (!selectedAuthorsContainer) {
+            console.error('Authors container not found');
+            return;
+        }
+        
+        // Clear existing content
+        selectedAuthorsContainer.innerHTML = '';
+        
+        // Populate with authors
+        if (authors && Array.isArray(authors) && authors.length > 0) {
+            console.log(`Populating authors container with ${authors.length} authors:`, authors);
+            authors.forEach(author => {
+                // Skip if author is null or undefined
+                if (!author) return;
+                
                 const authorElement = document.createElement('div');
                 authorElement.className = 'selected-author';
                 authorElement.dataset.id = author.id || 'unknown';
@@ -756,64 +1398,75 @@ window.documentEdit = {
                     e.target.parentElement.remove();
                 });
             });
+        } else {
+            console.warn('No authors found for this document');
+        }
+    },
+    
+    // Helper function to populate keywords container
+    populateResearchAgendaContainer: function(researchAgenda) {
+        const selectedTopicsContainer = document.getElementById('edit-single-document-selected-topics');
+        if (!selectedTopicsContainer) {
+            console.error('Keywords container not found');
+            return;
         }
         
-        // Populate research agenda (renamed from topics)
-        const selectedTopicsContainer = document.getElementById('edit-single-document-selected-topics');
-        if (selectedTopicsContainer && data.research_agenda && Array.isArray(data.research_agenda)) {
-            selectedTopicsContainer.innerHTML = '';
-            data.research_agenda.forEach(item => {
+        // Clear existing content
+        selectedTopicsContainer.innerHTML = '';
+        
+        // Populate with keywords items
+        if (researchAgenda && Array.isArray(researchAgenda) && researchAgenda.length > 0) {
+            console.log(`Populating keywords container with ${researchAgenda.length} items:`, researchAgenda);
+            researchAgenda.forEach(item => {
+                // Skip if item is null or undefined
+                if (!item) return;
+                
+                // Handle different formats of keywords items
+                let itemId = 'unknown';
+                let itemName = '';
+                
+                if (typeof item === 'string') {
+                    itemName = item;
+                } else if (item.id && item.name) {
+                    itemId = item.id;
+                    itemName = item.name;
+                } else if (item.id && item.title) {
+                    itemId = item.id;
+                    itemName = item.title;
+                } else if (item.name) {
+                    itemId = 'unknown';
+                    itemName = item.name;
+                } else if (item.title) {
+                    itemId = 'unknown';
+                    itemName = item.title;
+                }
+                
+                if (!itemName) {
+                    console.warn('Keywords item has no name, skipping', item);
+                    return;
+                }
+                
                 const topicElement = document.createElement('div');
                 topicElement.className = 'selected-topic';
-                topicElement.dataset.id = item.id || 'unknown';
+                topicElement.dataset.id = itemId;
                 topicElement.innerHTML = `
-                    ${item.name || item}
-                    <span class="remove-topic" data-id="${item.id || 'unknown'}">&times;</span>
+                    ${itemName}
+                    <span class="remove-topic" data-id="${itemId}">&times;</span>
                 `;
+                
+                // Add to container
                 selectedTopicsContainer.appendChild(topicElement);
+                
+                // Add click handler to remove button
+                const removeBtn = topicElement.querySelector('.remove-topic');
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', () => {
+                        topicElement.remove();
+                    });
+                }
             });
-            
-            // Add event listeners to remove buttons
-            const removeButtons = selectedTopicsContainer.querySelectorAll('.remove-topic');
-            removeButtons.forEach(button => {
-                button.addEventListener('click', (e) => {
-                    e.target.parentElement.remove();
-                });
-            });
-        }
-        
-        // Populate preview section
-        document.getElementById('edit-single-document-preview-title').textContent = data.title || 'Document Title';
-        document.getElementById('edit-single-document-preview-type').textContent = data.document_type || '-';
-        document.getElementById('edit-single-document-preview-date').textContent = data.date_published ? new Date(data.date_published).toLocaleDateString() : '-';
-        
-        // The abstract element in the preview might not exist since we reorganized the UI
-        const abstractElement = document.getElementById('edit-single-document-preview-abstract');
-        if (abstractElement) {
-            abstractElement.textContent = data.abstract || 'No abstract available.';
-        }
-        
-        // Set author text
-        if (data.authors && Array.isArray(data.authors) && data.authors.length > 0) {
-            const authorNames = data.authors.map(a => a.full_name || a.name || a).join(', ');
-            document.getElementById('edit-single-document-preview-author').innerHTML = `<i class="fas fa-user"></i> ${authorNames}`;
         } else {
-            document.getElementById('edit-single-document-preview-author').innerHTML = `<i class="fas fa-user"></i> No authors`;
-        }
-        
-        // Set research agenda text (renamed from topics)
-        if (data.research_agenda && Array.isArray(data.research_agenda) && data.research_agenda.length > 0) {
-            const agendaNames = data.research_agenda.map(t => t.name || t).join(', ');
-            document.getElementById('edit-single-document-preview-topics').textContent = agendaNames;
-        } else {
-            document.getElementById('edit-single-document-preview-topics').textContent = '-';
-        }
-        
-        // Set document type icon
-        const typeIcon = document.getElementById('edit-single-document-type-icon');
-        if (typeIcon) {
-            const iconPath = this.getDocumentTypeIcon(data.document_type);
-            typeIcon.src = iconPath;
+            console.warn('No keywords items found for this document');
         }
     },
     
@@ -1002,7 +1655,7 @@ window.documentEdit = {
         }
         
         // Update the preview
-        this.fetchDocumentData(parentId).then(data => {
+        this.fetchDocumentData(parentId, true).then(data => {
             // Filter out the removed child
             const updatedChildren = (data.children || []).filter(child => child.id != childId);
             this.updateChildDocumentsPreview(updatedChildren);
@@ -1230,222 +1883,422 @@ window.documentEdit = {
             });
     },
     
-    // Save document changes
+    // Show success message
+    showSaveSuccess: function() {
+        // Create success popup
+        const popup = document.createElement('div');
+        popup.className = 'success-popup-overlay';
+        popup.innerHTML = `
+            <div class="success-popup">
+                <div class="success-popup-icon">✓</div>
+                <div class="success-popup-title">Changes Saved</div>
+                <div class="success-popup-message">Your changes have been saved successfully.</div>
+                <button class="success-popup-button">OK</button>
+            </div>
+        `;
+        
+        // Add to document
+        document.body.appendChild(popup);
+        
+        // Add button click handler to close
+        const button = popup.querySelector('.success-popup-button');
+        if (button) {
+            button.addEventListener('click', () => {
+                document.body.removeChild(popup);
+            });
+        }
+        
+        // Auto-close after 3 seconds
+        setTimeout(() => {
+            if (document.body.contains(popup)) {
+                document.body.removeChild(popup);
+            }
+        }, 3000);
+    },
+    
+    // Show error message
+    showSaveError: function(error) {
+        // Create small toast notification
+        const toast = document.createElement('div');
+        toast.className = 'toast toast-error';
+        toast.textContent = error instanceof Error ? error.message : error;
+        
+        // Add to document
+        document.body.appendChild(toast);
+        
+        // Auto-close after 5 seconds
+        setTimeout(() => {
+            if (document.body.contains(toast)) {
+                document.body.removeChild(toast);
+            }
+        }, 5000);
+    },
+    
+    // Hide modal by ID
+    hideModal: function(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'none';
+        } else {
+            console.warn(`Modal with ID ${modalId} not found`);
+        }
+    },
+    
+    // Save changes to a document
     saveDocument: function(formData) {
+        console.log('Saving document changes...');
+        
         const documentId = formData.get('document_id');
-        console.log('Saving document:', documentId);
+        if (!documentId) {
+            console.error('No document ID provided for save operation');
+            this.showSaveError('Invalid document ID');
+            return;
+        }
+        
+        // Create data object from form data
+        const data = {
+            id: documentId,
+            title: formData.get('title'),
+            document_type: formData.get('document_type'),
+            date_published: formData.get('date_published')
+        };
+        
+        console.log('Document data to save:', data);
         
         // Gather selected authors
         const selectedAuthors = [];
         document.querySelectorAll('#edit-single-document-selected-authors .selected-author').forEach(element => {
             selectedAuthors.push({
                 id: element.dataset.id,
-                full_name: element.textContent.trim().replace('×', '')
+                name: element.textContent.trim().replace('×', '')
             });
         });
         
+        console.log('Selected authors:', selectedAuthors);
+        
         // Gather selected research agenda items
-        const selectedResearchAgenda = [];
+        const selectedTopics = [];
         document.querySelectorAll('#edit-single-document-selected-topics .selected-topic').forEach(element => {
-            selectedResearchAgenda.push(element.textContent.trim().replace('×', ''));
+            selectedTopics.push({
+                id: element.dataset.id,
+                name: element.textContent.trim().replace('×', '')
+            });
         });
         
-        // Prepare document data
-        const documentData = {
-            title: formData.get('title'),
-            document_type: formData.get('document_type'),
-            date_published: formData.get('date_published'),
-            authors: selectedAuthors.map(author => author.id)
-        };
+        console.log('Selected research agenda items:', selectedTopics);
         
-        // Update document
+        // First, update basic document data
         fetch(`/api/documents/${documentId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(documentData)
+            body: JSON.stringify({
+                ...data,
+                authors: selectedAuthors.map(author => author.id)
+            })
         })
         .then(response => {
             if (!response.ok) {
+                console.error('Error updating document:', response.status);
                 return response.json().then(data => Promise.reject(data.error || 'Failed to update document'));
             }
             return response.json();
         })
-        .then(data => {
-            console.log('Document updated:', data);
+        .then(result => {
+            console.log('Document updated successfully:', result);
             
             // Now save research agenda items to both endpoints
-            if (selectedResearchAgenda.length > 0) {
+            const agendaItemNames = selectedTopics.map(item => item.name);
+            
                 // First try the old endpoint for backward compatibility
-                fetch(`/document-research-agenda`, {
+            return fetch(`/api/documents/${documentId}/topics`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        document_id: documentId,
-                        agenda_items: selectedResearchAgenda
-                    })
+                body: JSON.stringify({ topics: agendaItemNames })
                 })
                 .then(response => {
                     if (!response.ok) {
                         console.warn('Warning: Research agenda items may not have been saved correctly to old endpoint');
                     }
+                return result; // Continue with the original result
                 })
                 .catch(error => {
                     console.error('Error saving research agenda items to old endpoint:', error);
-                });
+                return result; // Continue with the original result
+            });
+        })
+        .then(result => {
+            // Now save to the new research agenda endpoint
+            const agendaItemIds = selectedTopics
+                .filter(item => item.id !== 'new')
+                .map(item => item.id);
                 
-                // Now also use the new linkage endpoint that creates entries in the junction table
-                fetch(`/api/document-research-agenda/link`, {
+            const agendaItemNames = selectedTopics
+                .filter(item => item.id === 'new')
+                .map(item => item.name);
+                
+            return fetch(`/document-research-agenda`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         document_id: documentId,
-                        agenda_items: selectedResearchAgenda
+                        agenda_ids: agendaItemIds,
+                        agenda_names: agendaItemNames,
+                        agenda_items: selectedTopics.map(item => item.name) // For backward compatibility
                     })
                 })
                 .then(response => {
                     if (!response.ok) {
-                        console.warn('Warning: Failed to link research agenda items in junction table');
-                        return response.json().then(data => Promise.reject(data.error || 'Failed to link research agenda items'));
-                    }
+                    console.warn('Warning: Failed to link research agenda items using main endpoint, trying fallback');
+                    // Try fallback endpoint
+                    return fetch(`/api/document-research-agenda/link`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            document_id: documentId,
+                            agenda_items: selectedTopics.map(item => item.name)
+                        })
+                    })
+                    .then(fallbackResponse => {
+                        if (!fallbackResponse.ok) {
+                            console.warn('Warning: Failed to link research agenda items in fallback endpoint');
+                            return fallbackResponse.json().then(data => Promise.reject(data.error || 'Failed to link research agenda items'));
+                        }
+                        return fallbackResponse.json();
+                    });
+                }
+                
                     return response.json();
                 })
                 .then(result => {
                     console.log('Research agenda linking result:', result);
+                return result;
                 })
                 .catch(error => {
                     console.error('Error linking research agenda items:', error);
+                return result; // Continue with the original result
+            });
+        })
+        .then(result => {
+            // Handle file upload if provided
+            const fileInput = document.getElementById('edit-single-document-file');
+            if (fileInput && fileInput.files.length > 0) {
+                const fileFormData = new FormData();
+                fileFormData.append('file', fileInput.files[0]);
+                
+                return fetch(`/api/documents/${documentId}/file`, {
+                    method: 'POST',
+                    body: fileFormData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => Promise.reject(data.error || 'Failed to upload file'));
+                    }
+                    return response.json();
                 });
             }
             
-            // Show success message
+            return result;
+        })
+        .then(result => {
+            // Show success message and close modal
             this.showSaveSuccess();
-            
-            // Hide modal
-            this.hideModal('edit-single-document-modal');
+            document.getElementById('edit-single-document-modal').style.display = 'none';
             
             // Refresh document list if available
-            if (window.documentList && typeof window.documentList.loadDocuments === 'function') {
-                window.documentList.loadDocuments(1, true);
+            if (window.documentList && typeof window.documentList.reloadDocuments === 'function') {
+                window.documentList.reloadDocuments();
             }
         })
         .catch(error => {
-            console.error('Save error:', error);
+            console.error('Error saving document:', error);
             this.showSaveError(error);
         });
     },
     
-    // Save compiled document changes
+    // Save changes to a compiled document
     saveCompiledDocument: function(formData) {
+        console.log('Saving compiled document changes...');
+        
         const documentId = formData.get('document_id');
-        console.log('Saving compiled document:', documentId);
+        if (!documentId) {
+            console.error('No document ID provided for save operation');
+            this.showSaveError('Invalid document ID');
+            return;
+        }
+        
+        // Create data object from form data
+        const data = {
+            id: documentId,
+            title: formData.get('title'),
+            document_type: formData.get('document_type'),
+            date_published: formData.get('date_published'),
+            is_compiled: true
+        };
+        
+        console.log('Compiled document data to save:', data);
         
         // Gather selected authors
         const selectedAuthors = [];
         document.querySelectorAll('#edit-compiled-document-selected-authors .selected-author').forEach(element => {
             selectedAuthors.push({
                 id: element.dataset.id,
-                full_name: element.textContent.trim().replace('×', '')
+                name: element.textContent.trim().replace('×', '')
             });
         });
         
+        console.log('Selected authors:', selectedAuthors);
+        
         // Gather selected research agenda items
-        const selectedResearchAgenda = [];
+        const selectedTopics = [];
         document.querySelectorAll('#edit-compiled-document-selected-topics .selected-topic').forEach(element => {
-            selectedResearchAgenda.push(element.textContent.trim().replace('×', ''));
+            selectedTopics.push({
+                id: element.dataset.id,
+                name: element.textContent.trim().replace('×', '')
+            });
         });
         
-        // Prepare document data
-        const documentData = {
-            title: formData.get('title'),
-            document_type: formData.get('document_type'),
-            date_published: formData.get('date_published'),
-            authors: selectedAuthors.map(author => author.id)
-        };
+        console.log('Selected research agenda items:', selectedTopics);
         
-        // Update document
-        fetch(`/api/compiled-documents/${documentId}`, {
+        // First, update basic document data
+        fetch(`/api/documents/${documentId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(documentData)
+            body: JSON.stringify({
+                ...data,
+                authors: selectedAuthors.map(author => author.id)
+            })
         })
         .then(response => {
             if (!response.ok) {
-                return response.json().then(data => Promise.reject(data.error || 'Failed to update document'));
+                console.error('Error updating compiled document:', response.status);
+                return response.json().then(data => Promise.reject(data.error || 'Failed to update compiled document'));
             }
             return response.json();
         })
-        .then(data => {
-            console.log('Compiled document updated:', data);
+        .then(result => {
+            console.log('Compiled document updated successfully:', result);
             
             // Now save research agenda items to both endpoints
-            if (selectedResearchAgenda.length > 0) {
+            const agendaItemNames = selectedTopics.map(item => item.name);
+            
                 // First try the old endpoint for backward compatibility
-                fetch(`/document-research-agenda`, {
+            return fetch(`/api/documents/${documentId}/topics`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        document_id: documentId,
-                        agenda_items: selectedResearchAgenda
-                    })
+                body: JSON.stringify({ topics: agendaItemNames })
                 })
                 .then(response => {
                     if (!response.ok) {
                         console.warn('Warning: Research agenda items may not have been saved correctly to old endpoint');
                     }
+                return result; // Continue with the original result
                 })
                 .catch(error => {
                     console.error('Error saving research agenda items to old endpoint:', error);
-                });
+                return result; // Continue with the original result
+            });
+        })
+        .then(result => {
+            // Now save to the new research agenda endpoint
+            const agendaItemIds = selectedTopics
+                .filter(item => item.id !== 'new')
+                .map(item => item.id);
                 
-                // Now also use the new linkage endpoint that creates entries in the junction table
-                fetch(`/api/document-research-agenda/link`, {
+            const agendaItemNames = selectedTopics
+                .filter(item => item.id === 'new')
+                .map(item => item.name);
+                
+            return fetch(`/document-research-agenda`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         document_id: documentId,
-                        agenda_items: selectedResearchAgenda
+                        agenda_ids: agendaItemIds,
+                        agenda_names: agendaItemNames,
+                        agenda_items: selectedTopics.map(item => item.name) // For backward compatibility
                     })
                 })
                 .then(response => {
                     if (!response.ok) {
-                        console.warn('Warning: Failed to link research agenda items in junction table');
-                        return response.json().then(data => Promise.reject(data.error || 'Failed to link research agenda items'));
-                    }
+                    console.warn('Warning: Failed to link research agenda items using main endpoint, trying fallback');
+                    // Try fallback endpoint
+                    return fetch(`/api/document-research-agenda/link`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            document_id: documentId,
+                            agenda_items: selectedTopics.map(item => item.name)
+                        })
+                    })
+                    .then(fallbackResponse => {
+                        if (!fallbackResponse.ok) {
+                            console.warn('Warning: Failed to link research agenda items in fallback endpoint');
+                            return fallbackResponse.json().then(data => Promise.reject(data.error || 'Failed to link research agenda items'));
+                        }
+                        return fallbackResponse.json();
+                    });
+                }
+                
                     return response.json();
                 })
                 .then(result => {
                     console.log('Research agenda linking result:', result);
+                return result;
                 })
                 .catch(error => {
                     console.error('Error linking research agenda items:', error);
+                return result; // Continue with the original result
+            });
+        })
+        .then(result => {
+            // Handle file upload if provided
+            const fileInput = document.getElementById('edit-compiled-document-file');
+            if (fileInput && fileInput.files.length > 0) {
+                const fileFormData = new FormData();
+                fileFormData.append('file', fileInput.files[0]);
+                
+                return fetch(`/api/documents/${documentId}/file`, {
+                    method: 'POST',
+                    body: fileFormData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => Promise.reject(data.error || 'Failed to upload file'));
+                    }
+                    return response.json();
                 });
             }
             
-            // Show success message
+            return result;
+        })
+        .then(result => {
+            // Show success message and close modal
             this.showSaveSuccess();
-            
-            // Hide modal
-            this.hideModal('edit-compiled-document-modal');
+            document.getElementById('edit-compiled-document-modal').style.display = 'none';
             
             // Refresh document list if available
-            if (window.documentList && typeof window.documentList.loadDocuments === 'function') {
-                window.documentList.loadDocuments(1, true);
+            if (window.documentList && typeof window.documentList.reloadDocuments === 'function') {
+                window.documentList.reloadDocuments();
             }
         })
         .catch(error => {
-            console.error('Save error:', error);
+            console.error('Error saving compiled document:', error);
             this.showSaveError(error);
         });
     },
@@ -1465,7 +2318,544 @@ window.documentEdit = {
         
         // Return the mapped icon path or default
         return iconMap[normType] || '/admin/Components/icons/Category-icons/default_category_icon.png';
-    }
+    },
+    
+    // Initialize Author Search
+    initializeAuthorSearch: function(inputElement, selectedContainerId) {
+        if (!inputElement) return;
+        
+        console.log('Initializing author search input:', inputElement.id);
+        
+        // Try to use the global function first if available
+        if (typeof window.initAuthorSearchInput === 'function' && window.initAuthorSearchInput !== this.dummyAuthorSearchInit) {
+            try {
+                console.log('Using global author search initialization');
+                window.initAuthorSearchInput(inputElement);
+                return;
+            } catch (error) {
+                console.error('Error using global author search function, falling back to internal implementation:', error);
+                // Continue with internal implementation
+            }
+        } else {
+            console.log('Using internal author search implementation');
+        }
+        
+        // Create author dropdown container
+        const dropdownId = `${inputElement.id}-dropdown`;
+        
+        // First remove any existing dropdown to avoid duplicates
+        const existingDropdown = document.getElementById(dropdownId);
+        if (existingDropdown) {
+            existingDropdown.remove();
+        }
+        
+        // Create new dropdown element with absolute positioning
+        const dropdownContainer = document.createElement('div');
+        dropdownContainer.style.position = 'relative';
+        dropdownContainer.style.width = '100%';
+        
+        const dropdown = document.createElement('div');
+        dropdown.id = dropdownId;
+        dropdown.className = 'dropdown-list';
+        dropdown.style.display = 'none';
+        dropdownContainer.appendChild(dropdown);
+        
+        // Insert the dropdown container after the input element
+        const parent = inputElement.parentNode;
+        if (parent.nextSibling) {
+            parent.parentNode.insertBefore(dropdownContainer, parent.nextSibling);
+        } else {
+            parent.parentNode.appendChild(dropdownContainer);
+        }
+        
+        console.log(`Created author dropdown with ID: ${dropdownId}`);
+        
+        // Debounce function for search delay
+        const debounce = (func, delay) => {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), delay);
+            };
+        };
+        
+        // Search authors as user types
+        const searchAuthors = debounce(async (query) => {
+            if (query.length < 2) {
+                dropdown.innerHTML = '';
+                dropdown.style.display = 'none';
+                return;
+            }
+            
+            // Show loading indicator
+            dropdown.innerHTML = '<div class="dropdown-item loading"><i class="fas fa-spinner fa-spin"></i> Searching authors...</div>';
+            dropdown.style.display = 'block';
+            
+            try {
+                // Try multiple potential author search endpoints
+                let response;
+                let authorsData;
+                let authors = [];
+                
+                // First try the search endpoints
+                let endpoints = [
+                    `/api/authors/search?q=${encodeURIComponent(query)}`,
+                    `/authors/search?q=${encodeURIComponent(query)}`,
+                    `/api/authors?name=${encodeURIComponent(query)}`
+                ];
+                
+                // Try each endpoint until one works
+                for (const endpoint of endpoints) {
+                    try {
+                        console.log(`Trying author search endpoint: ${endpoint}`);
+                        response = await fetch(endpoint);
+                        
+                        if (response.ok) {
+                            authorsData = await response.json();
+                            console.log(`Found working author endpoint: ${endpoint}`);
+                            
+                            // Format the data based on response structure
+                            if (authorsData.authors) {
+                                authors = authorsData.authors;
+                            } else if (Array.isArray(authorsData)) {
+                                authors = authorsData;
+                            }
+                            
+                            if (authors.length > 0) {
+                                break; // We found results, stop trying endpoints
+                            } else {
+                                console.log('Endpoint returned 0 authors, trying next endpoint');
+                            }
+                        } else {
+                            console.warn(`Endpoint ${endpoint} failed with status ${response.status}`);
+                        }
+                    } catch (err) {
+                        console.warn(`Error with endpoint ${endpoint}:`, err);
+                    }
+                }
+                
+                // If no search endpoints worked or returned results, try getting all authors as fallback
+                if (authors.length === 0) {
+                    console.log('No authors found via search endpoints, trying to fetch all authors');
+                    try {
+                        const allAuthorsResponse = await fetch('/api/authors/all');
+                        
+                        if (allAuthorsResponse.ok) {
+                            const allAuthorsData = await allAuthorsResponse.json();
+                            
+                            // Filter authors by the search query manually
+                            if (allAuthorsData.authors && Array.isArray(allAuthorsData.authors)) {
+                                const lowerQuery = query.toLowerCase();
+                                authors = allAuthorsData.authors.filter(author => {
+                                    const fullName = (author.full_name || '').toLowerCase();
+                                    const affiliation = (author.affiliation || '').toLowerCase();
+                                    const spudId = (author.spud_id || '').toLowerCase();
+                                    
+                                    return fullName.includes(lowerQuery) || 
+                                           affiliation.includes(lowerQuery) ||
+                                           spudId.includes(lowerQuery);
+                                });
+                            }
+                            
+                            console.log(`Found ${authors.length} authors by filtering all authors`);
+                        }
+                    } catch (err) {
+                        console.warn('Error fetching all authors:', err);
+                    }
+                }
+                
+                // Update dropdown with results
+                dropdown.innerHTML = '';
+                
+                if (authors.length === 0) {
+                    dropdown.innerHTML = '<div class="dropdown-item no-results">No authors found</div>';
+                    
+                    // Add option to create new author
+                    if (query.length >= 3) {
+                        const createItem = document.createElement('div');
+                        createItem.className = 'dropdown-item create-new';
+                        createItem.innerHTML = `<div class="item-name"><i class="fas fa-plus"></i> Create "${query}"</div>`;
+                        
+                        // Add click handler to create and select new author
+                        createItem.addEventListener('click', () => {
+                            this.selectAuthor('new', query, selectedContainerId);
+                            dropdown.style.display = 'none';
+                            inputElement.value = '';
+                        });
+                        
+                        dropdown.appendChild(createItem);
+                    }
+                } else {
+                    authors.forEach(author => {
+                        const item = document.createElement('div');
+                        item.className = 'dropdown-item';
+                        item.dataset.id = author.id;
+                        item.dataset.name = author.full_name || author.name;
+                        
+                        // Format with name and affiliation if available
+                        let authorDisplay = `<div class="item-name">${author.full_name || author.name}</div>`;
+                        if (author.affiliation) {
+                            authorDisplay += `<div class="item-detail">${author.affiliation}</div>`;
+                        }
+                        if (author.spud_id) {
+                            authorDisplay += `<div class="item-detail-small">ID: ${author.spud_id}</div>`;
+                        }
+                        
+                        item.innerHTML = authorDisplay;
+                        
+                        // Add click handler to select the author
+                        item.addEventListener('click', () => {
+                            this.selectAuthor(author.id, author.full_name || author.name, selectedContainerId);
+                            dropdown.style.display = 'none';
+                            inputElement.value = '';
+                        });
+                        
+                        dropdown.appendChild(item);
+                    });
+                }
+                
+                // Position dropdown directly under the input field
+                dropdown.style.display = 'block';
+            } catch (error) {
+                console.error('Error searching authors:', error);
+                dropdown.innerHTML = '<div class="dropdown-item error">Error searching authors</div>';
+            }
+        }, 300);
+        
+        // Add input event listener
+        inputElement.addEventListener('input', (e) => {
+            searchAuthors(e.target.value);
+        });
+        
+        // Handle focus to reshow dropdown if there's a value
+        inputElement.addEventListener('focus', () => {
+            if (inputElement.value.length >= 2) {
+                searchAuthors(inputElement.value);
+            }
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!inputElement.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+    },
+    
+    // A dummy function for the fallback implementation
+    dummyAuthorSearchInit: function(inputElement) {
+        console.log('Using fallback author search implementation');
+    },
+    
+    // Select an author and add to the selected list
+    selectAuthor: function(authorId, authorName, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        // Check if author already selected
+        const existingAuthor = container.querySelector(`.selected-author[data-id="${authorId}"]`);
+        if (existingAuthor) return;
+        
+        // Create author element
+        const authorElement = document.createElement('div');
+        authorElement.className = 'selected-author';
+        authorElement.dataset.id = authorId;
+        authorElement.innerHTML = `
+            ${authorName}
+            <span class="remove-author" data-id="${authorId}">&times;</span>
+        `;
+        
+        // Add to container
+        container.appendChild(authorElement);
+        
+        // Add click handler to remove button
+        const removeBtn = authorElement.querySelector('.remove-author');
+        if (removeBtn) {
+            removeBtn.addEventListener('click', () => {
+                authorElement.remove();
+            });
+        }
+    },
+    
+    // Initialize Research Agenda Search
+    initializeResearchAgendaSearch: function(inputElement, selectedContainerId) {
+        if (!inputElement) return;
+        
+        console.log('Initializing research agenda search input:', inputElement.id);
+        
+        // Create dropdown container
+        const dropdownId = `${inputElement.id}-dropdown`;
+        
+        // First remove any existing dropdown to avoid duplicates
+        const existingDropdown = document.getElementById(dropdownId);
+        if (existingDropdown) {
+            existingDropdown.remove();
+        }
+        
+        // Create new dropdown element with absolute positioning
+        const dropdownContainer = document.createElement('div');
+        dropdownContainer.style.position = 'relative';
+        dropdownContainer.style.width = '100%';
+        
+        const dropdown = document.createElement('div');
+        dropdown.id = dropdownId;
+        dropdown.className = 'dropdown-list';
+        dropdown.style.display = 'none';
+        dropdownContainer.appendChild(dropdown);
+        
+        // Insert the dropdown container after the input element
+        const parent = inputElement.parentNode;
+        if (parent.nextSibling) {
+            parent.parentNode.insertBefore(dropdownContainer, parent.nextSibling);
+        } else {
+            parent.parentNode.appendChild(dropdownContainer);
+        }
+        
+        console.log(`Created research agenda dropdown with ID: ${dropdownId}`);
+        
+        // Debounce function for search delay
+        const debounce = (func, delay) => {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), delay);
+            };
+        };
+        
+        // Search research agenda items as user types
+        const searchAgendaItems = debounce(async (query) => {
+            if (query.length < 2) {
+                dropdown.innerHTML = '';
+                dropdown.style.display = 'none';
+                return;
+            }
+            
+            // Show loading indicator
+            dropdown.innerHTML = '<div class="dropdown-item loading"><i class="fas fa-spinner fa-spin"></i> Searching research agenda items...</div>';
+            dropdown.style.display = 'block';
+            
+            try {
+                // Try multiple potential research agenda endpoints
+                let items = [];
+                let response;
+                
+                // Define all potential endpoints to try
+                let endpoints = [
+                    `/research-agenda-items/search?q=${encodeURIComponent(query)}`,
+                    `/api/research-agenda-items/search?q=${encodeURIComponent(query)}`,
+                    `/document-research-agenda/search?q=${encodeURIComponent(query)}`
+                ];
+                
+                // Try each endpoint until one works
+                for (const endpoint of endpoints) {
+                    try {
+                        console.log(`Trying research agenda endpoint: ${endpoint}`);
+                        response = await fetch(endpoint);
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            console.log(`Found working research agenda endpoint: ${endpoint}`, data);
+                            
+                            // Format the data based on response structure
+                            if (data.items) {
+                                items = data.items;
+                            } else if (Array.isArray(data)) {
+                                items = data;
+                            } else if (data.agendaItems) {
+                                items = data.agendaItems;
+                            }
+                            
+                            if (items.length > 0) {
+                                break; // We found results, stop trying endpoints
+                            } else {
+                                console.log('Endpoint returned 0 items, trying next endpoint');
+                            }
+                        } else {
+                            console.warn(`Endpoint ${endpoint} failed with status ${response.status}`);
+                        }
+                    } catch (err) {
+                        console.warn(`Error with endpoint ${endpoint}:`, err);
+                    }
+                }
+                
+                // If no search endpoints worked or returned results, try getting all research agenda items
+                if (items.length === 0) {
+                    console.log('No items found via search endpoints, trying to fetch all research agenda items');
+                    try {
+                        // Try the all research agenda items endpoint
+                        const allItemsResponse = await fetch('/research-agenda-items/search?q=');
+                        
+                        if (allItemsResponse.ok) {
+                            const allItemsData = await allItemsResponse.json();
+                            console.log('All research agenda items:', allItemsData);
+                            
+                            // Filter items by the search query manually
+                            if (allItemsData.items && Array.isArray(allItemsData.items)) {
+                                const lowerQuery = query.toLowerCase();
+                                items = allItemsData.items.filter(item => {
+                                    const name = (item.name || '').toLowerCase();
+                                    const description = (item.description || '').toLowerCase();
+                                    
+                                    return name.includes(lowerQuery) || description.includes(lowerQuery);
+                                });
+                            } else if (Array.isArray(allItemsData)) {
+                                const lowerQuery = query.toLowerCase();
+                                items = allItemsData.filter(item => {
+                                    const name = (item.name || '').toLowerCase();
+                                    const description = (item.description || '').toLowerCase();
+                                    
+                                    return name.includes(lowerQuery) || description.includes(lowerQuery);
+                                });
+                            }
+                            
+                            console.log(`Found ${items.length} research agenda items by filtering all items`);
+                        }
+                    } catch (err) {
+                        console.warn('Error fetching all research agenda items:', err);
+                    }
+                }
+                
+                // Update dropdown with results
+                dropdown.innerHTML = '';
+                
+                // Always add option to create a new item
+                const exactMatchFound = items.some(item => 
+                    (item.name || '').toLowerCase() === query.toLowerCase()
+                );
+                
+                if (items.length > 0) {
+                    items.forEach(item => {
+                        const dropdownItem = document.createElement('div');
+                        dropdownItem.className = 'dropdown-item';
+                        dropdownItem.dataset.id = item.id;
+                        dropdownItem.dataset.name = item.name;
+                        
+                        // Add item details including description if available
+                        let itemDisplay = `<div class="item-name">${item.name}</div>`;
+                        if (item.description) {
+                            itemDisplay += `<div class="item-detail">${item.description}</div>`;
+                        }
+                        
+                        dropdownItem.innerHTML = itemDisplay;
+                        
+                        // Add click handler to select the item
+                        dropdownItem.addEventListener('click', () => {
+                            this.selectResearchAgendaItem(item.id, item.name, selectedContainerId);
+                            dropdown.style.display = 'none';
+                            inputElement.value = '';
+                        });
+                        
+                        dropdown.appendChild(dropdownItem);
+                    });
+                } else {
+                    dropdown.innerHTML = '<div class="dropdown-item no-results">No research agenda items found</div>';
+                }
+                
+                // If no exact match found, add option to create new item 
+                if (!exactMatchFound && query.length >= 3) {
+                    const createItem = document.createElement('div');
+                    createItem.className = 'dropdown-item create-new';
+                    createItem.innerHTML = `<div class="item-name"><i class="fas fa-plus"></i> Create "${query}"</div>`;
+                    
+                    // Add click handler to create and select new item
+                    createItem.addEventListener('click', () => {
+                        this.selectResearchAgendaItem('new', query, selectedContainerId);
+                        dropdown.style.display = 'none';
+                        inputElement.value = '';
+                    });
+                    
+                    dropdown.appendChild(createItem);
+                }
+                
+                // Position dropdown directly under the input field
+                dropdown.style.display = 'block';
+            } catch (error) {
+                console.error('Error searching research agenda items:', error);
+                dropdown.innerHTML = '<div class="dropdown-item error">Error searching</div>';
+            }
+        }, 300);
+        
+        // Add input event listener
+        inputElement.addEventListener('input', (e) => {
+            searchAgendaItems(e.target.value);
+        });
+        
+        // Handle focus to reshow dropdown if there's a value
+        inputElement.addEventListener('focus', () => {
+            if (inputElement.value.length >= 2) {
+                searchAgendaItems(inputElement.value);
+            }
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!inputElement.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+    },
+    
+    // Create and select a new research agenda item
+    createAndSelectResearchAgenda: async function(name, containerId) {
+        if (!name.trim()) return;
+        
+        try {
+            // Create the new research agenda item - FIX: Use correct endpoint path
+            const response = await fetch('/research-agenda-items', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: name.trim() })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to create research agenda item: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            console.log('Created new research agenda item:', result);
+            
+            // Select the newly created item
+            this.selectResearchAgenda(result.id || 'new', name.trim(), containerId);
+        } catch (error) {
+            console.error('Error creating research agenda item:', error);
+            alert('Error creating research agenda item. Please try again.');
+            
+            // Still select it with a temporary ID
+            this.selectResearchAgenda('new', name.trim(), containerId);
+        }
+    },
+    
+    // Select a research agenda item and add to the selected list
+    selectResearchAgendaItem: function(itemId, itemName, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        // Check if item already selected
+        const existingItem = container.querySelector(`.selected-topic[data-id="${itemId}"]`);
+        if (existingItem) return;
+        
+        // Create item element
+        const itemElement = document.createElement('div');
+        itemElement.className = 'selected-topic';
+        itemElement.dataset.id = itemId;
+        itemElement.innerHTML = `
+            ${itemName}
+            <span class="remove-topic" data-id="${itemId}">&times;</span>
+        `;
+        
+        // Add to container
+        container.appendChild(itemElement);
+        
+        // Add click handler to remove button
+        const removeBtn = itemElement.querySelector('.remove-topic');
+        if (removeBtn) {
+            removeBtn.addEventListener('click', () => {
+                itemElement.remove();
+            });
+        }
+    },
 };
 
 // Initialize document edit components when the DOM is loaded
@@ -1475,4 +2865,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set up global functions for use in other scripts
     window.showEditModal = window.documentEdit.showEditModal.bind(window.documentEdit);
     window.showCompiledEditModal = window.documentEdit.showCompiledEditModal.bind(window.documentEdit);
+    
+    // Create a fallback author search function if the main one isn't available
+    if (typeof window.initAuthorSearchInput !== 'function') {
+        console.log('Author search function not found, creating fallback implementation');
+        window.initAuthorSearchInput = function(inputElement) {
+            // This is a simplified fallback implementation
+            console.log('Using fallback author search implementation');
+            // The document edit module will use its own implementation
+        };
+    }
 }); 

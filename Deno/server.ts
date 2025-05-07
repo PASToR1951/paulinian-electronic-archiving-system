@@ -1,5 +1,16 @@
 // server.ts
 
+// Load environment variables from .env file
+import { config } from "https://deno.land/x/dotenv@v3.2.0/mod.ts";
+// Load env variables with absolute path to ensure it's found
+config({ 
+  path: "D:/Documents/Capstone/Peas/paulinian-electronic-archiving-system/deno/.env", 
+  export: true 
+});
+console.log("Environment variables loaded from .env file");
+console.log("SMTP Username:", Deno.env.get("SMTP_USERNAME"));
+console.log("SMTP Password set:", Deno.env.get("SMTP_PASSWORD") ? "Yes" : "No");
+
 // -----------------------------
 // SECTION: Imports
 // -----------------------------
@@ -25,6 +36,11 @@ import { AuthorModel } from "./models/authorModel.ts";
 import { DocumentModel } from "./models/documentModel.ts";
 import { ResearchAgendaModel } from "./models/researchAgendaModel.ts";
 import { unifiedArchiveRoutes, unifiedArchiveAllowedMethods } from "./routes/unifiedArchiveRoutes.ts";
+import { authRoutes } from "./routes/authRoutes.ts"; // Import auth routes
+import { createDocumentRequestRoutes } from "./routes/documentRequestRoutes.ts";
+import { DocumentRequestModel } from "./models/documentRequestModel.ts";
+import { DocumentRequestController } from "./controllers/documentRequestController.ts";
+import { emailRoutes } from "./routes/emailRoutes.ts"; // Import email routes
 
 // -----------------------------
 // SECTION: Configuration
@@ -36,6 +52,25 @@ const PORT = Deno.env.get("PORT") || 8000;
 // -----------------------------
 const app = new Application();
 const router = new Router();
+// Record when the server started
+export const SERVER_START_TIME = Date.now();
+
+// Update the cachedServerStartTime in authRoutes if possible
+try {
+  // Use dynamic import to get the module
+  import("./routes/authRoutes.ts").then(authRoutesModule => {
+    // Check if the module exports a function to set server time
+    if (authRoutesModule.setServerStartTime) {
+      authRoutesModule.setServerStartTime(SERVER_START_TIME);
+    } else {
+      console.warn("authRoutes.ts does not export setServerStartTime function");
+    }
+  }).catch(err => {
+    console.error("Failed to update auth routes with server start time:", err);
+  });
+} catch (error) {
+  console.error("Error updating auth routes with server start time:", error);
+}
 
 // -----------------------------
 // SECTION: Middleware (Optional)
@@ -113,6 +148,14 @@ routes.forEach(route => {
     router.put(route.path, route.handler);
   } else if (method === 'delete') {
     router.delete(route.path, route.handler);
+  }
+});
+
+// Register email routes
+emailRoutes.forEach(route => {
+  const method = route.method.toLowerCase();
+  if (method === 'post') {
+    router.post(route.path, route.handler);
   }
 });
 
@@ -223,7 +266,18 @@ router.get("/api/documents", async (ctx) => {
     
     // Return the data
     ctx.response.body = {
-      documents: response.documents,
+      documents: response.documents.map(doc => {
+        // Ensure each document has author_names field populated
+        let authors = [];
+        if (doc.authors && Array.isArray(doc.authors)) {
+          authors = doc.authors.map(a => a.full_name || `Author ${a.id}`);
+        }
+        
+        return {
+          ...doc,
+          author_names: authors.length > 0 ? authors : []
+        };
+      }),
       totalPages: response.totalPages,
       totalDocuments: response.totalCount,
       page
@@ -339,8 +393,25 @@ router.get("/api/authors/all", async (ctx) => {
     // Get all authors from the model
     const authors = await AuthorModel.getAll();
     
+    // Get work counts for each author
+    const authorWorksCountQuery = `
+      SELECT author_id, COUNT(document_id) as works_count 
+      FROM document_authors 
+      GROUP BY author_id
+    `;
+    const authorWorksResult = await client.queryObject(authorWorksCountQuery);
+    
+    // Create a map of author ID to works count
+    const authorWorksMap = new Map();
+    authorWorksResult.rows.forEach((row: any) => {
+      authorWorksMap.set(row.author_id, parseInt(row.works_count, 10));
+    });
+    
     // Format the data in a frontend-friendly way
     const formattedAuthors = authors.map(author => {
+      // Get works count from map or default to 0
+      const worksCount = authorWorksMap.get(author.id) || 0;
+      
       return {
         id: author.id, // Keep the UUID as the internal ID for API calls
         spud_id: author.spud_id || '', // Include spud_id for display purposes
@@ -350,8 +421,8 @@ router.get("/api/authors/all", async (ctx) => {
         email: author.email || '',
         bio: author.biography || '',
         profilePicUrl: author.profile_picture || '',
-        // Default to zero works - will be populated by client
-        worksCount: 0
+        // Populate with actual work count from database
+        worksCount: worksCount
       };
     });
     
@@ -1002,6 +1073,122 @@ router.get('/api/affiliations', async (ctx) => {
     ctx.response.status = 500;
     ctx.response.type = "json";
     ctx.response.body = { error: error instanceof Error ? error.message : "Unknown error" };
+  }
+});
+
+// Add a server ping endpoint for client health checks
+router.get("/ping", (ctx) => {
+    ctx.response.status = 200;
+    ctx.response.body = {
+        status: "ok",
+        serverStartTime: SERVER_START_TIME
+    };
+});
+
+// Initialize document request system
+const documentRequestModel = new DocumentRequestModel(client);
+const documentRequestController = new DocumentRequestController(documentRequestModel, DocumentModel);
+const documentRequestRoutes = createDocumentRequestRoutes(documentRequestController);
+
+// Add document request routes
+app.use(documentRequestRoutes.routes());
+app.use(documentRequestRoutes.allowedMethods());
+
+// Add an endpoint to view email logs for document requests (admin only)
+router.get("/api/email-logs", async (ctx) => {
+  try {
+    // Get user info from auth header
+    const authHeader = ctx.request.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      ctx.response.status = 401;
+      ctx.response.body = { error: "Unauthorized: Authentication required" };
+      return;
+    }
+    
+    // Extract token
+    const token = authHeader.split(" ")[1];
+    
+    // Check if user is admin
+    try {
+      // We'll use the verification function from authRoutes
+      const { verifySession } = await import("./routes/authRoutes.ts");
+      const session = await verifySession(token);
+      
+      if (!session || session.role !== "admin") {
+        ctx.response.status = 403;
+        ctx.response.body = { error: "Forbidden: Admin access required" };
+        return;
+      }
+    } catch (err) {
+      ctx.response.status = 401;
+      ctx.response.body = { error: "Invalid authentication token" };
+      return;
+    }
+    
+    // Get date from query parameter or use today
+    const url = new URL(ctx.request.url);
+    const dateParam = url.searchParams.get("date");
+    const date = dateParam || new Date().toISOString().split('T')[0];
+    
+    // Validate date format
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      ctx.response.status = 400;
+      ctx.response.body = { error: "Invalid date format. Please use YYYY-MM-DD format" };
+      return;
+    }
+    
+    // Construct log file path
+    const logFile = `./logs/email-activity-${date}.log`;
+    
+    try {
+      // Check if file exists
+      await Deno.stat(logFile);
+    } catch (error) {
+      ctx.response.status = 404;
+      ctx.response.body = { 
+        error: `No log file found for ${date}`,
+        date: date
+      };
+      return;
+    }
+    
+    // Read log file
+    const logContent = await Deno.readTextFile(logFile);
+    
+    // Parse logs
+    const logEntries = logContent
+      .split('\n')
+      .filter(line => line.trim())
+      .map(line => JSON.parse(line));
+    
+    // Filter for document sending activities
+    const documentActivities = logEntries.filter(entry => 
+      entry.action.startsWith('DOCUMENT_')
+    );
+    
+    // Calculate statistics
+    const successful = documentActivities.filter(e => e.action === 'DOCUMENT_SENT_SUCCESS').length;
+    const failed = documentActivities.filter(e => 
+      e.action === 'DOCUMENT_SENT_FAILURE' || e.action === 'DOCUMENT_SENT_ERROR'
+    ).length;
+    
+    // Return logs and statistics
+    ctx.response.status = 200;
+    ctx.response.body = {
+      date: date,
+      total: documentActivities.length,
+      successful: successful,
+      failed: failed,
+      logs: documentActivities
+    };
+    
+  } catch (error) {
+    console.error("Error retrieving email logs:", error);
+    ctx.response.status = 500;
+    ctx.response.body = { 
+      error: "Server error while retrieving email logs",
+      details: error instanceof Error ? error.message : String(error)
+    };
   }
 });
 

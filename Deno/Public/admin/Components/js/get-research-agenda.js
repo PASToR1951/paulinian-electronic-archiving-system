@@ -83,21 +83,21 @@ function initializeResearchAgendaSearch(inputElement, suggestionsElement, select
         suggestionsElement.style.display = "block";
 
         try {
-            // Use the research agenda items search endpoint
+            // Use the keywords items search endpoint
             const response = await fetch(`/research-agenda-items/search?q=${encodeURIComponent(query)}`, {
                 credentials: 'include'
             });
             
             // Log the raw response for debugging
-            console.log("Research agenda search raw response status:", response.status);
+            console.log("Keywords search raw response status:", response.status);
             
             const data = await response.json();
-            console.log("Research agenda search response data:", data);
+            console.log("Keywords search response data:", data);
             
             displayResearchAgendaResults(data, inputElement, suggestionsElement, selectedContainer);
         } catch (error) {
-            console.error("Error fetching research agenda items:", error);
-            suggestionsElement.innerHTML = "<div class='topic-suggestion-item text-danger'>Error fetching research agenda items</div>";
+            console.error("Error fetching keywords:", error);
+            suggestionsElement.innerHTML = "<div class='topic-suggestion-item text-danger'>Error fetching keywords</div>";
         }
     };
 

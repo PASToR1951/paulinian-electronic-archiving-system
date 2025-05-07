@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Access Request</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            line-height: 1.6;
+        }
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); /* Semi-transparent black background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* Ensure it's on top */
+            visibility: hidden; /* Initially hidden */
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            overflow-y: auto; /* Allow scrolling if content is long */
+        }
+
+        .modal-overlay.visible {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Modal Content - Base Style */
+        .modal-content {
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 90%; /* Responsive width */
+            width: 500px; /* Default max width */
+            position: relative; /* Needed for close button positioning */
+            /* Ensure content inside modal is initially visible */
+            display: block;
+            text-align: center; /* Center text in modal content */
+            margin: 20px auto; /* Add some vertical margin for scrolling */
+        }
+
+         /* Specific style for Terms and Conditions Modal Content */
+        .terms-modal-content {
+            width: 600px; /* Wider for terms */
+            max-height: 80vh; /* Max height to enable scrolling */
+            overflow-y: auto; /* Enable vertical scrolling */
+            text-align: left; /* Align text left for readability */
+        }
+
+
+        /* Close Button (Optional but good practice) */
+        .close-button {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #aaa;
+            transition: color 0.3s ease;
+        }
+
+        .close-button:hover {
+            color: #777;
+        }
+
+        /* Section within modal that should be hidden */
+        .modal-section-hidden {
+            display: none;
+        }
+
+        /* Checkmark Animation */
+        .checkmark-circle {
+            width: 80px;
+            height: 80px;
+            stroke-width: 4;
+            stroke: #4CAF50; /* Green color */
+            fill: none;
+            margin: 20px auto 20px; /* Added margin top */
+            border-radius: 50%;
+            stroke-dasharray: 480;
+            stroke-dashoffset: 480;
+            animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+            display: block; /* Ensure it's a block element for centering */
+        }
+
+        .checkmark-check {
+            transform-origin: 50% 50%;
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
+            animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards; /* Delay checkmark animation */
+        }
+
+        @keyframes stroke {
+            100% {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        /* Class to hide the reason description section */
+        .reason-description-hidden {
+            display: none;
+        }
+
+        /* Styles for Reason Tags */
+        .reason-tag {
+            display: inline-block;
+            background-color: #e2e8f0; /* Tailwind gray-200 */
+            color: #4a5568; /* Tailwind gray-700 */
+            padding: 0.2rem 0.6rem; /* Adjusted padding to make smaller */
+            margin: 0.2rem;
+            border-radius: 9999px; /* Full rounded */
+            cursor: pointer;
+            transition: background-color 0.2s ease, color 0.2s ease;
+            font-size: 0.75rem; /* Adjusted font size to make smaller */
+            font-weight: 600; /* Tailwind font-semibold */
+        }
+
+        .reason-tag:hover {
+            background-color: #cbd5e0; /* Tailwind gray-300 */
+        }
+
+        .reason-tag.selected {
+            background-color: #48bb78; /* Tailwind green-500 */
+            color: #fff; /* White text */
+        }
+
+        /* Style for the checkbox when checked */
+        input[type="checkbox"]:checked {
+            accent-color: #48bb78; /* Tailwind green-500 */
+        }
+
+        /* Style for highlighting the reason tags container on error */
+        .highlight-error {
+            border: 2px solid #ef4444; /* Changed back to red-500 */
+            padding: 0.5rem; /* Add some padding so border doesn't cut into tags */
+            border-radius: 0.25rem; /* Match form field border-radius */
+        }
+
+        /* Styles for the polished receipt */
+        .polished-receipt {
+            border: none; /* Remove dashed border */
+            padding: 2rem; /* Increased padding */
+            margin-top: 1rem;
+            background: linear-gradient(to bottom, #f7fafc, #e2e8f0); /* Subtle gradient */
+            border-radius: 0.75rem; /* More rounded corners */
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1); /* More prominent shadow */
+            text-align: center; /* Center content within the receipt */
+            font-family: "Inter", sans-serif; /* Use main font */
+            font-size: 1rem; /* Slightly larger font */
+            color: #2d3748; /* Tailwind gray-800 */
+        }
+
+        .polished-receipt .receipt-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem; /* Larger header */
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #2f855a; /* Tailwind green-700 */
+            border-bottom: 2px solid #48bb78; /* Solid green border */
+            padding-bottom: 1rem;
+        }
+
+        .polished-receipt .receipt-unique-number {
+            text-align: center;
+            font-size: 1.5rem; /* Reduced font size */
+            font-weight: bold;
+            color: #2f855a; /* Tailwind green-700 */
+            margin: 1.5rem 0; /* Adjusted vertical margin */
+            padding: 0.75rem; /* Adjusted padding */
+            border: 3px solid #48bb78; /* Thicker green border */
+            border-radius: 0.5rem; /* More rounded */
+            background-color: #c6f6d5; /* Tailwind green-100 */
+            display: inline-block; /* Make it inline-block to center the block itself */
+        }
+
+        .polished-receipt .receipt-unique-number p {
+            margin: 0.25rem 0; /* Adjust spacing within number block */
+        }
+
+        .polished-receipt .receipt-footer {
+            text-align: center;
+            margin-top: 2rem; /* More top margin */
+            font-size: 0.9rem; /* Slightly larger footer font */
+            color: #4a5568; /* Tailwind gray-700 */
+        }
+
+        .polished-receipt .receipt-footer a {
+             color: #4299e1; /* Tailwind blue-500 for links in footer */
+             text-decoration: underline;
+        }
+
+        /* Focus styles for input and textarea */
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        textarea:focus {
+            outline: none; /* Remove default outline */
+            border-color: #48bb78; /* Tailwind green-500 border */
+            box-shadow: 0 0 0 3px rgba(72, 187, 120, 0.5); /* Green shadow */
+            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out; /* Smooth transition */
+        }
+
+        /* Styles for the Sliding Button */
+        .slide-to-agree-container {
+            width: 100%;
+            max-width: 300px; /* Max width for the slider */
+            height: 50px;
+            background-color: #e2e8f0; /* Tailwind gray-200 */
+            border-radius: 25px; /* Half of height for pill shape */
+            position: relative;
+            overflow: hidden; /* Hide overflowing slider handle */
+            cursor: pointer;
+            margin: 20px auto 0; /* Center the slider */
+            display: flex;
+            align-items: center;
+            justify-content: center; /* Center text initially */
+            font-weight: bold;
+            color: #4a5568; /* Tailwind gray-700 */
+            transition: background-color 0.3s ease;
+        }
+
+        .slide-to-agree-container.agreed {
+             background-color: #48bb78; /* Tailwind green-500 when agreed */
+             color: #fff; /* White text when agreed */
+        }
+
+        .slide-track {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .slide-handle {
+            width: 50px; /* Same as container height for a circle/pill */
+            height: 50px;
+            background-color: #48bb78; /* Tailwind green-500 */
+            border-radius: 50%; /* Circle shape */
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 1.5rem;
+            transition: left 0.3s ease; /* Smooth sliding animation */
+        }
+
+        .slide-handle:active {
+             cursor: grabbing;
+        }
+
+        .slide-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            pointer-events: none; /* Allow clicks to pass through to the container */
+            transition: opacity 0.3s ease;
+        }
+
+        .slide-to-agree-container.agreed .slide-text {
+            opacity: 0; /* Hide text when agreed */
+        }
+
+         .slide-handle i {
+             pointer-events: none; /* Ensure icon doesn't interfere with dragging */
+         }
+
+         /* Add a simple arrow icon using a pseudo-element or inline SVG/Font Awesome */
+         .slide-handle::after {
+             content: '\203A'; /* Right arrow character */
+             font-size: 2rem;
+             line-height: 1;
+         }
+
+          .slide-to-agree-container.agreed .slide-handle::after {
+              content: '\2713'; /* Checkmark character */
+              font-size: 1.5rem;
+          }
+
+
+    </style>
+</head>
+<body class="p-6">
+
+    <div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-md">
+
+        <h1 class="text-2xl font-bold mb-6 text-center">Document Details</h1>
+
+        <div class="mb-8 p-6 bg-gray-100 rounded-md">
+            <h2 class="text-xl font-semibold mb-4">Abstract</h2>
+            <p class="text-gray-700">
+                This is a placeholder for the document abstract. Public users can only view this section.
+                The full content of the document is restricted to registered users and administrators.
+                To gain full access, please fill out the request form below. This abstract summarizes
+                the key findings and scope of the document, which details the advancements in
+                archival techniques for digital records, focusing on long-term preservation and
+                accessibility for future research.
+                </p>
+        </div>
+
+        <div class="flex items-center justify-center mb-8">
+            <button id="requestAccessButton"
+                    class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-md focus:outline-none focus:shadow-outline transition duration-300 ease-in-out">
+                Request Full Access
+            </button>
+        </div>
+
+        </div>
+
+    <div id="accessRequestModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-button" id="closeAccessModalButton">&times;</span> <div id="formSection">
+                <h2 class="text-xl font-semibold mb-6 text-center">Request Full Document Access</h2>
+
+                <form id="accessForm">
+                    <div class="mb-4">
+                        <label for="full_name" class="block text-green-700 text-sm font-bold mb-2 text-left">
+                            Full Name:
+                        </label>
+                        <input type="text" id="full_name" name="full_name"
+                               class="shadow appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                               required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="email" class="block text-green-700 text-sm font-bold mb-2 text-left">
+                            Email:
+                        </label>
+                        <input type="email" id="email" name="email"
+                               class="shadow appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                               required>
+                    </div>
+
+                    <div class="mb-6">
+                        <label for="affiliation" class="block text-green-700 text-sm font-bold mb-2 text-left">
+                            Affiliation:
+                        </label>
+                        <input type="text" id="affiliation" name="affiliation"
+                               class="shadow appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                               required>
+                    </div>
+
+                    <div class="mb-4 text-left">
+                        <label class="block text-green-700 text-sm font-bold mb-2">
+                            Reason for Access:
+                        </label>
+                        <div id="reasonTagsContainer">
+                            <span class="reason-tag" data-reason="Academic Research">Academic Research</span>
+                            <span class="reason-tag" data-reason="Professional Development">Professional Development</span>
+                            <span class="reason-tag" data-reason="Personal Interest">Personal Interest</span>
+                            <span class="reason-tag" data-reason="Coursework/Study">Coursework/Study</span>
+                            <span class="reason-tag" data-reason="Writing Project">Writing Project</span>
+                            <span class="reason-tag" data-reason="Institutional Requirement">Institutional Requirement</span>
+                            <span class="reason-tag" data-reason="Other">Other</span>
+                        </div>
+                         <p id="reasonError" class="text-red-500 text-xs italic mt-2 hidden">Please select at least one reason.</p>
+                    </div>
+
+                    <div id="reasonDescriptionSection" class="mb-6 reason-description-hidden text-left">
+                        <label id="reasonDescriptionLabel" for="reasonDescription" class="block text-green-700 text-sm font-bold mb-2">
+                            Reason Details: </label>
+                        <textarea id="reasonDescription" name="reason_description" rows="4"
+                                  class="shadow appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                  placeholder="Provide details for your access request..."></textarea>
+                    </div>
+
+
+                    <div class="mb-6 flex items-start text-left">
+                        <input type="checkbox" id="consentCheckbox" name="consent" class="mr-2 mt-1" required>
+                        <label for="consentCheckbox" class="text-gray-700 text-sm">
+                            I agree to the terms and conditions and consent to the processing of my personal data for the purpose of accessing this document.
+                            <a href="#" id="openTermsModalLink" class="text-green-500 hover:text-green-700 underline">Read Terms and Conditions</a> </label>
+                    </div>
+
+                    <div class="flex items-center justify-center">
+                        <button type="submit"
+                                class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-md focus:outline-none focus:shadow-outline transition duration-300 ease-in-out">
+                            Submit Request
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="receiptSection" class="modal-section-hidden">
+                 <div class="polished-receipt">
+                    <div class="receipt-header">
+                        Access Request Receipt
+                    </div>
+
+                    <div class="receipt-unique-number">
+                        <p>Request Number:</p>
+                        <p id="receiptNumber"></p>
+                    </div>
+
+                    <div class="receipt-footer">
+                        <p>Thank you for your request.</p>
+                        <p>You will be notified via email regarding the status of your request.</p>
+                        <p>Contact us at <a href="mailto:info@yourarchiving system.com">info@yourarchiving system.com</a></p>
+                    </div>
+                </div>
+                <svg class="checkmark-circle" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                    <circle cx="26" cy="26" r="25" fill="none"/>
+                    <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                </svg>
+
+                <div class="flex items-center justify-center mt-6">
+                    <a id="emailServiceLink" href="#" target="_blank"
+                       class="inline-block bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-md focus:outline-none focus:shadow-outline transition duration-300 ease-in-out text-center">
+                        Open Email Service </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="termsModal" class="modal-overlay">
+        <div class="modal-content terms-modal-content"> <h2 class="text-xl font-semibold mb-4 text-center text-green-700">Terms and Conditions</h2>
+            <div class="text-gray-700 text-sm leading-relaxed">
+                <p class="mb-4">
+                    These Terms and Conditions govern your use of the document archiving system and the access request process. By submitting an access request, you agree to comply with these terms.
+                </p>
+                <h3 class="font-bold mb-2">1. Data Usage</h3>
+                <p class="mb-4">
+                    The personal data collected in the access request form (Full Name, Email, Affiliation, Reason for Access) will be used solely for the purpose of processing and managing your document access request. Your data will not be shared with third parties without your explicit consent, except as required by law.
+                </p>
+                 <h3 class="font-bold mb-2">2. Document Usage</h3>
+                <p class="mb-4">
+                    Access to full documents is granted based on the discretion of the system administrators. Approved access is for individual use related to the stated reason. Redistribution, reproduction, or commercial use of the documents without explicit permission is prohibited.
+                </p>
+                 <h3 class="font-bold mb-2">3. Request Processing</h3>
+                <p class="mb-4">
+                    Access requests will be reviewed by administrators. You will be notified via email regarding the outcome of your request. The unique request number provided is for your reference only and does not guarantee access.
+                </p>
+                 <h3 class="font-bold mb-2">4. Changes to Terms</h3>
+                <p class="mb-4">
+                    These terms and conditions may be updated from time to time. Continued use of the system and submission of access requests implies acceptance of any revised terms.
+                </p>
+                 <h3 class="font-bold mb-2">5. Contact</h3>
+                <p class="mb-4">
+                    If you have any questions regarding these terms or your access request, please contact us at info@yourarchiving system.com.
+                </p>
+                <p class="text-center mt-6 text-xs text-gray-500">
+                    Last updated: April 29, 2025
+                </p>
+                </div>
+             <div class="flex items-center justify-center mt-6">
+                <button id="agreeToTermsButton"
+                        class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-md focus:outline-none focus:shadow-outline transition duration-300 ease-in-out">
+                    I Agree
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // Get elements
+        const requestButton = document.getElementById('requestAccessButton');
+        const accessModal = document.getElementById('accessRequestModal');
+        const closeAccessModalButton = document.getElementById('closeAccessModalButton'); // Specific ID
+        const accessForm = document.getElementById('accessForm');
+        const formSection = document.getElementById('formSection'); // Get the form section container
+        const receiptSection = document.getElementById('receiptSection'); // Get the receipt section container
+        const receiptNumberElement = document.getElementById('receiptNumber');
+        const emailServiceLink = document.getElementById('emailServiceLink'); // Get the "Open Email Service" link
+        const reasonTagsContainer = document.getElementById('reasonTagsContainer'); // Get the reason tags container
+        const reasonTags = reasonTagsContainer.querySelectorAll('.reason-tag'); // Get all reason tags
+        const reasonDescriptionSection = document.getElementById('reasonDescriptionSection'); // Get the reason description section div
+        const reasonDescriptionLabel = document.getElementById('reasonDescriptionLabel'); // Get the reason description label
+        const reasonDescription = document.getElementById('reasonDescription'); // Get the reason description textarea
+        const reasonErrorElement = document.getElementById('reasonError'); // Get the reason error message element
+        const consentCheckbox = document.getElementById('consentCheckbox'); // Get the consent checkbox
+
+
+        // Get Terms and Conditions Modal elements
+        const openTermsModalLink = document.getElementById('openTermsModalLink'); // Get the "Read Terms and Conditions" link
+        const termsModal = document.getElementById('termsModal'); // Get the terms modal
+        // const closeTermsModalButton = document.getElementById('closeTermsModalButton'); // Removed close button reference
+        const agreeToTermsButton = document.getElementById('agreeToTermsButton'); // Get the "I Agree" button
+
+
+        // Array to store selected reasons
+        let selectedReasons = [];
+
+        // Function to open the access request modal
+        function openAccessModal() {
+            // Ensure form is visible and receipt is hidden when opening modal
+            formSection.classList.remove('modal-section-hidden');
+            receiptSection.classList.add('modal-section-hidden');
+            accessModal.classList.add('visible');
+
+            // Reset form fields and related elements
+            accessForm.reset();
+            selectedReasons = []; // Clear selected reasons array
+            reasonTags.forEach(tag => tag.classList.remove('selected')); // Remove selected class from all tags
+            reasonDescription.value = ''; // Clear the textarea
+            reasonDescriptionSection.classList.add('reason-description-hidden'); // Hide the description section
+            reasonDescriptionLabel.textContent = 'Reason Details:'; // Reset label text
+            reasonTagsContainer.classList.remove('highlight-error'); // Remove highlight on open
+            reasonErrorElement.classList.add('hidden'); // Hide error message on open
+            consentCheckbox.checked = false; // Ensure checkbox is unchecked on open
+
+            // No need to hide receipt-specific elements as they are removed from HTML
+        }
+
+        // Function to close the access request modal
+        function closeAccessModal() {
+            accessModal.classList.remove('visible');
+        }
+
+         // Function to open the terms and conditions modal
+        function openTermsModal(event) {
+            event.preventDefault(); // Prevent the default link behavior
+            termsModal.classList.add('visible');
+        }
+
+        // Function to close the terms and conditions modal
+        function closeTermsModal() {
+            termsModal.classList.remove('visible');
+        }
+
+
+        // Function to generate a simple unique number (for demonstration)
+        function generateUniqueNumber() {
+            // In a real application, this would come from the server after successful submission
+            return 'REQ-' + Date.now() + Math.floor(Math.random() * 1000);
+        }
+
+        // Function to determine email service URL and name based on email domain
+        function getEmailServiceInfo(email) {
+            const domain = email.substring(email.lastIndexOf('@') + 1).toLowerCase();
+            let url = '#'; // Default fallback URL
+            let serviceName = 'Email Service'; // Default fallback name
+
+            switch (domain) {
+                case 'gmail.com':
+                    url = 'https://mail.google.com/';
+                    serviceName = 'Gmail';
+                    break;
+                case 'yahoo.com':
+                case 'ymail.com':
+                    url = 'https://mail.yahoo.com/';
+                    serviceName = 'Yahoo Mail';
+                    break;
+                case 'outlook.com':
+                case 'hotmail.com':
+                    url = 'https://outlook.live.com/';
+                    serviceName = 'Outlook Mail';
+                    break;
+                // Treat all other domains as Outlook Mail
+                default:
+                    url = 'https://outlook.live.com/';
+                    serviceName = 'Outlook Mail';
+                    break;
+            }
+
+            return { url: url, name: serviceName };
+        }
+
+        // Function to capitalize the first letter of each word, respecting existing capitalization
+        function capitalizeWords(str) {
+            if (!str) return '';
+            return str.toLowerCase().split(' ').map(word => {
+                if (!word) return '';
+                // Check if the original word had internal caps (heuristic)
+                // This is a simple approach and might not catch all cases,
+                // but handles names like "MacTavish" if entered as such.
+                const originalWord = str.split(' ')[str.toLowerCase().split(' ').indexOf(word)];
+                 if (originalWord && /[A-Z]/.test(originalWord.substring(1))) {
+                    return originalWord; // Keep original capitalization if internal caps detected
+                 }
+                return word.charAt(0).toUpperCase() + word.slice(1);
+            }).join(' ');
+        }
+
+
+        // Add event listener to the request button to open the access modal
+        requestButton.addEventListener('click', openAccessModal);
+
+        // Add event listener to the close button in the access modal header
+        closeAccessModalButton.addEventListener('click', closeAccessModal);
+
+        // Add event listener to close the access modal if the user clicks outside the modal content
+        accessModal.addEventListener('click', (event) => {
+            if (event.target === accessModal) {
+                closeAccessModal();
+            }
+        });
+
+        // Optional: Close access modal with Escape key
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && accessModal.classList.contains('visible')) {
+                closeAccessModal();
+            }
+        });
+
+        // Add event listener to the "Read Terms and Conditions" link to open the terms modal
+        openTermsModalLink.addEventListener('click', openTermsModal);
+
+        // Removed event listener for the close button in the terms modal header
+        // Removed event listener to close the terms modal if the user clicks outside the modal content
+        // Removed optional keydown listener to close terms modal with Escape key
+
+
+        // Add event listener to the "I Agree" button in the terms modal
+        agreeToTermsButton.addEventListener('click', () => {
+            consentCheckbox.checked = true; // Tick the consent checkbox
+            closeTermsModal(); // Close the terms modal
+        });
+
+
+        // Add event listeners to each reason tag
+        reasonTags.forEach(tag => {
+            tag.addEventListener('click', () => {
+                const reason = tag.dataset.reason; // Get the reason from the data attribute
+
+                // Toggle the 'selected' class
+                tag.classList.toggle('selected');
+
+                // Update the selectedReasons array
+                if (tag.classList.contains('selected')) {
+                    if (!selectedReasons.includes(reason)) {
+                        selectedReasons.push(reason);
+                    }
+                } else {
+                    selectedReasons = selectedReasons.filter(r => r !== reason);
+                }
+
+                // Remove highlight and hide error message when a tag is clicked
+                reasonTagsContainer.classList.remove('highlight-error');
+                reasonErrorElement.classList.add('hidden');
+
+                // Show/hide the reason description section and update label based on 'Other' tag selection
+                if (selectedReasons.includes('Other')) {
+                    reasonDescriptionSection.classList.remove('reason-description-hidden');
+                    // Set max-height and opacity for transition
+                    reasonDescriptionSection.style.maxHeight = reasonDescription.scrollHeight + 'px';
+                    reasonDescriptionSection.style.opacity = 1;
+                    reasonDescriptionLabel.textContent = 'Why did you choose Other?'; // Change label text
+                } else {
+                    // Set max-height and opacity for transition
+                    reasonDescriptionSection.style.maxHeight = '0';
+                    reasonDescriptionSection.style.opacity = 0;
+                    // Use a small delay before adding the hidden class to allow transition
+                    setTimeout(() => {
+                         reasonDescriptionSection.classList.add('reason-description-hidden');
+                         reasonDescription.value = ''; // Clear textarea if 'Other' is unselected
+                         reasonDescriptionLabel.textContent = 'Reason Details:'; // Reset label text
+                    }, 300); // Match the transition duration
+                }
+            });
+        });
+
+
+        // Add event listener for form submission
+        accessForm.addEventListener('submit', (event) => {
+            event.preventDefault(); // Prevent the default form submission
+
+            // Basic validation: Ensure at least one reason is selected
+            if (selectedReasons.length === 0) {
+                reasonTagsContainer.classList.add('highlight-error'); // Add highlight
+                reasonErrorElement.classList.remove('hidden'); // Show error message
+                return; // Stop submission if no reason is selected
+            } else {
+                 reasonTagsContainer.classList.remove('highlight-error'); // Remove highlight if validation passes
+                 reasonErrorElement.classList.add('hidden'); // Hide error message if validation passes
+            }
+
+            // If 'Other' is selected, ensure the description is not empty
+            if (selectedReasons.includes('Other') && reasonDescription.value.trim() === '') {
+                 alert("Please provide details for your 'Other' reason.");
+                 reasonDescription.focus();
+                 return; // Stop submission if 'Other' is selected but description is empty
+            }
+
+             // Also validate that the consent checkbox is checked
+            if (!consentCheckbox.checked) {
+                alert("Please agree to the Terms and Conditions.");
+                // You might want to visually highlight the checkbox or terms link here
+                return; // Stop submission if consent is not given
+            }
+
+
+            // --- Data Processing and Capture (for backend) ---
+            // Get the submitted form data
+            const rawFullName = document.getElementById('full_name').value;
+            const rawEmail = document.getElementById('email').value;
+            const submittedAffiliation = document.getElementById('affiliation').value;
+            const submittedReasonDetails = reasonDescription.value; // Get the value from the textarea
+
+            // Process the name and email
+            const processedFullName = capitalizeWords(rawFullName);
+            const processedEmail = rawEmail.toLowerCase();
+
+            /*
+             * --- Backend Integration Point ---
+             *
+             * This is where you would typically send the form data to your backend server
+             * using a technology like the Fetch API or XMLHttpRequest.
+             *
+             * The backend would then:
+             * 1. Receive and validate the data (processedFullName, processedEmail, submittedAffiliation, selectedReasons, submittedReasonDetails).
+             * 2. Store the access request details in your database.
+             * 3. Generate a unique request number on the server-side.
+             * 4. Compose the email content for the receipt, including the unique number and potentially other relevant information.
+             * 5. Use an email sending library or service (e.g., SendGrid, Mailgun, or your server's mail function) to send the email to the processedEmail address.
+             * 6. Send a response back to this frontend JavaScript, ideally including the generated unique request number.
+             *
+             * Example using Fetch API (replace '/your-backend-endpoint' with your actual endpoint):
+             *
+             * fetch('/your-backend-endpoint', {
+             * method: 'POST',
+             * headers: {
+             * 'Content-Type': 'application/json',
+             * },
+             * body: JSON.stringify({
+             * fullName: processedFullName,
+             * email: processedEmail,
+             * affiliation: submittedAffiliation,
+             * reasons: selectedReasons,
+             * reasonDetails: submittedReasonDetails
+             * }),
+             * })
+             * .then(response => response.json()) // Assuming your backend returns JSON
+             * .then(data => {
+             * // Assuming the backend returns { success: true, requestNumber: 'REQ-XYZ' } on success
+             * if (data.success) {
+             * const uniqueNumber = data.requestNumber; // Use the unique number from the backend
+             * receiptNumberElement.textContent = uniqueNumber;
+             *
+             * // Get the submitted email (use processed email for email service link)
+             * const emailForLink = processedEmail;
+             *
+             * // Determine email service info (URL and name)
+             * const emailServiceInfo = getEmailServiceInfo(emailForLink);
+             *
+             * // Set the email service link href and text
+             * emailServiceLink.href = emailServiceInfo.url;
+             * emailServiceLink.textContent = `Open ${emailServiceInfo.name}`; // Updated button text
+             *
+             * // Hide the form and show the receipt within the modal
+             * formSection.classList.add('modal-section-hidden');
+             * receiptSection.classList.remove('modal-section-hidden');
+             *
+             * // Optionally reset the form fields after submission
+             * accessForm.reset();
+             * selectedReasons = [];
+             * reasonTags.forEach(tag => tag.classList.remove('selected'));
+             * reasonDescription.value = '';
+             * reasonDescriptionSection.classList.add('reason-description-hidden');
+             * reasonDescriptionLabel.textContent = 'Reason Details:';
+             * reasonTagsContainer.classList.remove('highlight-error');
+             * reasonErrorElement.classList.add('hidden');
+             *
+             * } else {
+             * // Handle backend errors (e.g., display an error message to the user)
+             * alert('Error submitting request: ' + (data.message || 'Unknown error'));
+             * }
+             * })
+             * .catch((error) => {
+             * console.error('Fetch error:', error);
+             * alert('An error occurred while submitting your request. Please try again.');
+             * });
+             *
+             * Note: The code below this comment block is the original simulation logic.
+             * Replace it entirely with your backend integration code when ready.
+             */
+
+
+            // --- Original Simulation Logic (Replace with Backend Integration) ---
+            // Simulate successful submission:
+            console.log("Form submitted!"); // Log to console for testing
+            console.log("Processed Full Name:", processedFullName);
+            console.log("Processed Email:", processedEmail);
+            console.log("Affiliation:", submittedAffiliation);
+            console.log("Selected Reasons:", selectedReasons); // Log the selected reasons
+            if (selectedReasons.includes('Other')) {
+                 console.log("Reason Details:", submittedReasonDetails);
+            }
+
+
+            // Generate and display the unique receipt number (Simulated)
+            const uniqueNumber = generateUniqueNumber(); // This should come from the backend
+            receiptNumberElement.textContent = uniqueNumber;
+
+            // Get the submitted email (use processed email for email service link)
+            const emailForLink = processedEmail;
+
+            // Determine email service info (URL and name)
+            const emailServiceInfo = getEmailServiceInfo(emailForLink);
+
+            // Set the email service link href and text
+            emailServiceLink.href = emailServiceInfo.url;
+            emailServiceLink.textContent = `Open ${emailServiceInfo.name}`; // Updated button text
+
+            // Hide the form and show the receipt within the modal
+            formSection.classList.add('modal-section-hidden');
+            receiptSection.classList.remove('modal-section-hidden');
+
+            // Optionally reset the form fields after submission
+            accessForm.reset();
+             // Also reset the reason tags and description and hide the section
+            selectedReasons = [];
+            reasonTags.forEach(tag => tag.classList.remove('selected'));
+            reasonDescription.value = '';
+            reasonDescriptionSection.classList.add('reason-description-hidden');
+            reasonDescriptionLabel.textContent = 'Reason Details:'; // Reset label text
+            reasonTagsContainer.classList.remove('highlight-error'); // Ensure highlight is removed after successful submission
+            reasonErrorElement.classList.add('hidden'); // Ensure error message is hidden after successful submission
+            // --- End Original Simulation Logic ---
+        });
+
+        // The emailServiceLink will handle the action, no need for a separate click listener to close the modal here.
+
+    </script>
+
+</body>
+</html>

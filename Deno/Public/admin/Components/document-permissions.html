@@ -441,9 +441,16 @@
         #modalDetailsContent hr { border-color: var(--light-green); }
         /* Modal Buttons */
         .modal-button {
-            font-weight: 600; padding: 0.6rem 1.25rem; border-radius: 0.375rem;
-            focus:outline-none focus:ring-2 focus:ring-offset-2; transition: all 0.2s ease;
+            font-weight: 600; 
+            padding: 0.6rem 1.25rem; 
+            border-radius: 0.375rem;
+            transition: all 0.2s ease;
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .modal-button:focus {
+            outline: none;
+            ring: 2px;
+            ring-offset: 2px;
         }
         .approve-button { background-color: var(--primary-green); color: white; border: 1px solid var(--primary-green); }
         .approve-button:hover { background-color: var(--dark-green); border-color: var(--dark-green); }
@@ -746,23 +753,23 @@
         // Define columns with their key, header text, and whether they are sortable/toggleable
         const columnDefinitions = {
             id: { header: 'Request ID', sortable: true, toggleable: true },
-            documentId: { header: 'Document ID', sortable: true, toggleable: true }, // Added Document ID
-            fullName: { header: 'Requester Name', sortable: true, toggleable: true },
+            document_id: { header: 'Document ID', sortable: true, toggleable: true }, // Database field name
+            full_name: { header: 'Requester Name', sortable: true, toggleable: true }, // Database field name
             email: { header: 'Email', sortable: false, toggleable: true },
             affiliation: { header: 'Affiliation', sortable: false, toggleable: true },
-            bookTitle: { header: 'Book Title', sortable: true, toggleable: true },
-            authorName: { header: 'Author', sortable: true, toggleable: true },
-            requestedAt: { header: 'Date Requested', sortable: true, format: formatDate, toggleable: true },
-            status: { header: 'Status', sortable: true, format: (val, req) => formatStatus(val, req), toggleable: false }, // Status always visible, handles dropdown
-            processedAt: { header: 'Processed At', sortable: true, format: formatDateTime, toggleable: true },
-            actions: { header: 'Actions', sortable: false, format: (val, req) => `<a href="${req.documentUrl || '#'}" target="_blank" class="view-doc-button" data-action="view" title="View Document">View</a>`, toggleable: false } // Actions always visible
+            book_title: { header: 'Book Title', sortable: true, toggleable: true }, // May come from document table
+            author_name: { header: 'Author', sortable: true, toggleable: true }, // May come from document table
+            created_at: { header: 'Date Requested', sortable: true, format: formatDate, toggleable: true }, // Database field name
+            status: { header: 'Status', sortable: true, format: (val, req) => formatStatus(val, req), toggleable: false }, // Status always visible
+            reviewed_at: { header: 'Processed At', sortable: true, format: formatDateTime, toggleable: true }, // Database field name
+            actions: { header: 'Actions', sortable: false, format: (val, req) => `<a href="${req.document_url || req.documentUrl || '#'}" target="_blank" class="view-doc-button" data-action="view" title="View Document">View</a>`, toggleable: false } // Actions always visible
         };
 
         // Define different column order presets
         const columnOrders = {
-            default: ['status', 'fullName', 'bookTitle'], // Only these 3 for default
-            requesterFirst: ['id', 'documentId', 'fullName', 'email', 'affiliation', 'bookTitle', 'authorName', 'requestedAt', 'status', 'processedAt', 'actions'], // Added documentId
-            bookFirst: ['id', 'documentId', 'bookTitle', 'authorName', 'fullName', 'email', 'affiliation', 'requestedAt', 'status', 'processedAt', 'actions'] // Added documentId
+            default: ['status', 'full_name', 'book_title'], // Only these 3 for default
+            requesterFirst: ['id', 'document_id', 'full_name', 'email', 'affiliation', 'book_title', 'author_name', 'created_at', 'status', 'reviewed_at', 'actions'], // Database field names
+            bookFirst: ['id', 'document_id', 'book_title', 'author_name', 'full_name', 'email', 'affiliation', 'created_at', 'status', 'reviewed_at', 'actions'] // Database field names
         };
 
         // --- Functions ---
@@ -786,15 +793,47 @@
 
 
         /** Loads requests, column order, and visible columns from localStorage or initializes defaults. */
-        function loadData() {
-            // CJ/kuys: Replace this section with an API call to fetch initial data from PostgreSQL
-            // Example: fetch('/api/requests?sort=requestedAt&dir=desc&limit=all')
-            //          .then(response => response.json())
-            //          .then(data => { requests = data.requests; /* ... rest of setup ... */ })
-            //          .catch(error => console.error('Error loading requests:', error));
+        async function loadData() {
+            try {
+                // Get user info from sessionStorage
+                const userInfo = JSON.parse(sessionStorage.getItem('userInfo') || '{}');
+                if (!userInfo.token) {
+                    throw new Error('No authentication token found. Please log in again.');
+                }
 
-            const storedRequests = localStorage.getItem(STORAGE_KEY);
-            if (storedRequests) { try { requests = JSON.parse(storedRequests); requests.forEach(req => { if (!req.bookTitle) req.bookTitle = 'Unknown Book'; if (!req.authorName) req.authorName = 'Unknown Author'; if (req.volume === undefined) req.volume = null; if (!req.processedAt) req.processedAt = null; if (!req.documentUrl) req.documentUrl = `#/view-doc/${req.id}`; if (!req.requestedAt) req.requestedAt = new Date(Date.now() - Math.random() * 10 * 86400000).toISOString(); if (!req.documentId) req.documentId = `DOC${Math.floor(Math.random() * 900) + 100}`; if (req.rejectionReason === undefined) req.rejectionReason = null; }); } catch (e) { console.error("Error parsing requests:", e); initializeMockData(); } } else { initializeMockData(); }
+                // Check if user is admin
+                if (!userInfo.role || userInfo.role.toLowerCase() !== 'admin') {
+                    throw new Error('You do not have permission to access this page. Admin access required.');
+                }
+
+                // Fetch requests from API
+                console.log('Fetching document requests...');
+                const response = await fetch('/api/document-requests', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${userInfo.token}`
+                    },
+                    credentials: 'include'
+                });
+                
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    throw new Error(`Failed to fetch requests: ${response.status} ${errorText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Received data:', data);
+                
+                if (!Array.isArray(data)) {
+                    console.error('Expected array but got:', typeof data);
+                    throw new Error('Invalid response format');
+                }
+                
+                requests = data;
 
             // Load column order preference (remains frontend logic)
             const storedOrder = localStorage.getItem(COLUMN_ORDER_KEY);
@@ -822,6 +861,19 @@
 
             renderColumnVisibilityControl(); // Populate checklist
             applyFiltersAndSort(); // Initial filter/sort and render
+            } catch (error) {
+                console.error('Error loading requests:', error);
+                showConfirmationMessage('Error loading requests. Please try again.', 'error');
+                // Show error in the UI with a login button
+                requestsContentContainer.innerHTML = `
+                    <div class="text-center text-red-600 py-4">
+                        <p>Error loading requests: ${error.message}</p>
+                        <p class="text-sm mt-2">Please check the console for more details.</p>
+                        <button onclick="window.location.href='/log-in.html'" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                            Log in again
+                        </button>
+                    </div>`;
+            }
          }
 
         /** Initializes mock data including requestedAt and documentId. */
@@ -1037,7 +1089,6 @@
                 });
             }
 
-
             // Generate Header Row based on calculated order
             columnsToRender.forEach(colKey => {
                 const colDef = columnDefinitions[colKey];
@@ -1084,18 +1135,18 @@
                         const td = document.createElement('td');
                         td.classList.add('px-6', 'py-4', 'whitespace-nowrap', 'text-sm');
 
-                        let cellContent = request[colKey] ?? 'N/A';
+                        let cellContent = getRequestData(request, colKey, 'N/A');
 
                         // Apply specific formatting or classes
                         if (colDef.format) {
-                            cellContent = colDef.format(request[colKey], request);
+                            cellContent = colDef.format(cellContent, request);
                             td.innerHTML = cellContent; // Use innerHTML for formatted content like status/actions
                         } else {
                             td.textContent = cellContent;
                         }
 
                         // Add styling based on column key
-                        if (colKey === 'id' || colKey === 'fullName' || colKey === 'documentId') { // Added documentId
+                        if (colKey === 'id' || colKey === 'full_name' || colKey === 'document_id') {
                             td.classList.add('font-medium', 'text-gray-900');
                         } else if (colKey === 'affiliation') {
                             td.classList.add('text-gray-500', 'wrap-text');
@@ -1105,11 +1156,10 @@
                             td.classList.add('text-gray-500');
                         }
                         // Apply truncation to book title cell
-                        if (colKey === 'bookTitle') {
+                        if (colKey === 'book_title') {
                             td.classList.add('truncate-cell');
-                            td.title = request.bookTitle || ''; // Add title attribute for full name on hover
+                            td.title = getRequestData(request, colKey, ''); // Add title attribute for full name on hover
                         }
-
 
                         tr.appendChild(td);
                     });
@@ -1138,11 +1188,12 @@
                 const tile = document.createElement('div');
                 tile.classList.add('tile-item');
                 tile.dataset.requestId = request.id;
-                const statusClass = `status-${request.status}`;
-                const statusText = request.status.charAt(0).toUpperCase() + request.status.slice(1);
+                const status = getRequestData(request, 'status', 'pending');
+                const statusClass = `status-${status}`;
+                const statusText = status.charAt(0).toUpperCase() + status.slice(1);
 
                 let statusOrActionHtml = '';
-                if (request.status === 'pending') {
+                if (status === 'pending') {
                     statusOrActionHtml = `
                         <select class="tile-action-dropdown status-pending" data-action="process" data-request-id="${request.id}">
                             <option value="" disabled selected>Pending</option>
@@ -1153,17 +1204,28 @@
                     statusOrActionHtml = `<span class="status-label ${statusClass}">${statusText}</span>`;
                 }
 
+                // Get title and author with our helper function
+                const bookTitle = getRequestData(request, 'book_title', 'N/A');
+                const authorName = getRequestData(request, 'author_name', 'Unknown');
+                const volume = getRequestData(request, 'volume', '');
+                const volumeText = volume ? `(Vol. ${volume})` : '';
+                const documentId = getRequestData(request, 'document_id', 'N/A');
+                const fullName = getRequestData(request, 'full_name', 'N/A');
+                const affiliation = getRequestData(request, 'affiliation', 'N/A');
+                const requestDate = getRequestData(request, 'created_at');
+
                 // Added title attribute to h3 for full title on hover
                 tile.innerHTML = `
                     <div class="tile-header">
                         <span class="tile-request-id">ID: ${request.id}</span>
-                        <h3 class="tile-title" title="${request.bookTitle || ''}">${request.bookTitle || 'N/A'} ${request.volume ? `(Vol. ${request.volume})` : ''}</h3>
-                        <p class="tile-author">by ${request.authorName || 'Unknown'}</p>
+                        <h3 class="tile-title" title="${bookTitle}">${bookTitle} ${volumeText}</h3>
+                        <p class="tile-author">by ${authorName}</p>
                     </div>
                     <div class="tile-body">
-                        <p><strong>Document ID:</strong> ${request.documentId || 'N/A'}</p> <p class="tile-requester"><strong>Requester:</strong> ${request.fullName || 'N/A'}</p>
-                        <p><strong>Affiliation:</strong> <span class="wrap-text">${request.affiliation || 'N/A'}</span></p>
-                        <p><strong>Requested:</strong> ${formatDate(request.requestedAt)}</p>
+                        <p><strong>Document ID:</strong> ${documentId}</p> 
+                        <p class="tile-requester"><strong>Requester:</strong> ${fullName}</p>
+                        <p><strong>Affiliation:</strong> <span class="wrap-text">${affiliation}</span></p>
+                        <p><strong>Requested:</strong> ${formatDate(requestDate)}</p>
                      </div>
                     <div class="tile-actions">
                         ${statusOrActionHtml}
@@ -1180,16 +1242,31 @@
             filteredAndSortedRequests.forEach(request => {
                 const listItem = document.createElement('li');
                 listItem.classList.add('list-item');
-                const statusClass = `status-${request.status}`;
-                const statusText = request.status.charAt(0).toUpperCase() + request.status.slice(1);
-                const volumeText = request.volume ? `<span class="list-volume">(Vol. ${request.volume})</span>` : '';
+                
+                const status = getRequestData(request, 'status', 'pending');
+                const statusClass = `status-${status}`;
+                const statusText = status.charAt(0).toUpperCase() + status.slice(1);
+                
+                // Get data with our helper function
+                const fullName = getRequestData(request, 'full_name', 'N/A');
+                const email = getRequestData(request, 'email', 'N/A');
+                const affiliation = getRequestData(request, 'affiliation', 'N/A');
+                const bookTitle = getRequestData(request, 'book_title', 'N/A');
+                const authorName = getRequestData(request, 'author_name', 'Unknown');
+                const volume = getRequestData(request, 'volume', '');
+                const volumeText = volume ? `<span class="list-volume">(Vol. ${volume})</span>` : '';
+                const documentId = getRequestData(request, 'document_id', 'N/A');
+                const requestDate = getRequestData(request, 'created_at');
+                const processedDate = getRequestData(request, 'reviewed_at');
+                const documentUrl = getRequestData(request, 'document_url', '#');
+                const reviewNotes = getRequestData(request, 'review_notes', '');
 
                 const summary = document.createElement('div');
                 summary.classList.add('list-item-summary');
                 summary.dataset.requestId = request.id;
 
                 let statusOrActionHtml = '';
-                if (request.status === 'pending') {
+                if (status === 'pending') {
                     statusOrActionHtml = `
                         <select class="list-action-dropdown status-pending" data-action="process" data-request-id="${request.id}">
                             <option value="" disabled selected>Pending</option>
@@ -1204,11 +1281,11 @@
                 summary.innerHTML = `
                     <div class="list-info">
                         <span class="list-request-id">ID: ${request.id}</span>
-                        <span class="list-requester-name" title="${request.fullName || ''}">${request.fullName || 'N/A'}</span>
-                        <span class="list-email" title="${request.email || ''}">${request.email || 'N/A'}</span>
-                        <span class="list-affiliation" title="${request.affiliation || ''}">${request.affiliation || 'N/A'}</span>
-                        <span class="list-book-title" title="${request.bookTitle || ''}">${request.bookTitle || 'N/A'} ${volumeText}</span>
-                        <span class="list-author">by ${request.authorName || 'N/A'}</span>
+                        <span class="list-requester-name" title="${fullName}">${fullName}</span>
+                        <span class="list-email" title="${email}">${email}</span>
+                        <span class="list-affiliation" title="${affiliation}">${affiliation}</span>
+                        <span class="list-book-title" title="${bookTitle}">${bookTitle} ${volumeText}</span>
+                        <span class="list-author">by ${authorName}</span>
                     </div>
                     <div class="list-actions">
                         ${statusOrActionHtml}
@@ -1217,24 +1294,45 @@
 
                 const details = document.createElement('div');
                 details.classList.add('list-item-details');
-                const reasonsHtml = request.reasons?.map(r => `<span class="reason-tag-display">${r}</span>`).join('') || 'N/A';
-                const reasonDetailsHtml = (request.reasons?.includes('Other') && request.reasonDetails) ? `<p><strong>Reason Details:</strong><span class="reason-details-text">${request.reasonDetails}</span></p>` : '';
-                const processedAtHtml = request.processedAt ? `<p><strong>Processed At:</strong> ${formatDateTime(request.processedAt)}</p>` : '';
+                
+                // Handle reasons (may be stored differently in DB)
+                let reasonsHtml = '';
+                if (Array.isArray(request.reasons)) {
+                    reasonsHtml = request.reasons.map(r => `<span class="reason-tag-display">${r}</span>`).join('');
+                } else if (request.reason) {
+                    reasonsHtml = `<span class="reason-tag-display">${request.reason}</span>`;
+                } else {
+                    reasonsHtml = 'N/A';
+                }
+                
+                // Handle reason details
+                const reasonDetails = getRequestData(request, 'reason_details', '');
+                const reasonDetailsHtml = ((Array.isArray(request.reasons) && request.reasons.includes('Other')) || 
+                                          request.reason === 'Other') && reasonDetails 
+                    ? `<p><strong>Reason Details:</strong><span class="reason-details-text">${reasonDetails}</span></p>` 
+                    : '';
+                    
+                const processedAtHtml = processedDate 
+                    ? `<p><strong>Processed At:</strong> ${formatDateTime(processedDate)}</p>` 
+                    : '';
+                    
                 // ADDED: Display rejection reason if status is rejected
-                const rejectionReasonHtml = (request.status === 'rejected' && request.rejectionReason)
-                    ? `<p class="rejection-reason-display"><strong>Rejection Reason:</strong><br>${request.rejectionReason}</p>`
+                const rejectionReasonHtml = (status === 'rejected' && reviewNotes)
+                    ? `<p class="rejection-reason-display"><strong>Rejection Reason:</strong><br>${reviewNotes}</p>`
                     : '';
 
                 details.innerHTML = `
-                    <p><strong>Requester Name:</strong> ${request.fullName || 'N/A'}</p>
-                    <p><strong>Email:</strong> ${request.email || 'N/A'}</p>
-                    <p><strong>Affiliation:</strong> ${request.affiliation || 'N/A'}</p>
-                    <p><strong>Date Requested:</strong> ${formatDateTime(request.requestedAt)}</p>
+                    <p><strong>Requester Name:</strong> ${fullName}</p>
+                    <p><strong>Email:</strong> ${email}</p>
+                    <p><strong>Affiliation:</strong> ${affiliation}</p>
+                    <p><strong>Date Requested:</strong> ${formatDateTime(requestDate)}</p>
                     <hr class="my-2 border-gray-200">
-                    <p><strong>Book Title:</strong> ${request.bookTitle || 'N/A'}</p>
-                    <p><strong>Author:</strong> ${request.authorName || 'N/A'}</p>
-                    ${request.volume ? `<p><strong>Volume:</strong> ${request.volume}</p>` : ''}
-                    <p><strong>Document ID:</strong> ${request.documentId || 'N/A'}</p> <div class="mt-2"> <a href="${request.documentUrl || '#'}" target="_blank" class="view-doc-button" data-action="view">View</a>
+                    <p><strong>Book Title:</strong> ${bookTitle}</p>
+                    <p><strong>Author:</strong> ${authorName}</p>
+                    ${volume ? `<p><strong>Volume:</strong> ${volume}</p>` : ''}
+                    <p><strong>Document ID:</strong> ${documentId}</p> 
+                    <div class="mt-2"> 
+                        <a href="${documentUrl}" target="_blank" class="view-doc-button" data-action="view">View</a>
                     </div>
                     <hr class="my-2 border-gray-200">
                     <div class="mb-2">
@@ -1242,7 +1340,9 @@
                         <div class="reason-tags-display">${reasonsHtml}</div>
                     </div>
                     ${reasonDetailsHtml}
-                    ${rejectionReasonHtml} ${request.processedAt ? '<hr class="my-2 border-gray-200">' : ''} ${processedAtHtml}
+                    ${rejectionReasonHtml} 
+                    ${processedDate ? '<hr class="my-2 border-gray-200">' : ''} 
+                    ${processedAtHtml}
                     `;
                 listItem.appendChild(summary);
                 listItem.appendChild(details);
@@ -1335,16 +1435,89 @@
 
         /** MODIFIED: Opens the details modal, adds Document ID, shows rejection reason. */
         function openDetailsModal(requestId) {
-            // CJ/kuys: If not all data is loaded initially, this might need an API call
-            // to fetch full details for the specific requestId.
-            // Example: fetch(`/api/requests/${requestId}`).then(...)
-            const request = requests.find(req => req.id === requestId); // Current frontend find
-            if (!request) { console.error("Req not found:", requestId); alert("Details not found."); return; }
-            detailRequestId.textContent = request.id; detailFullName.textContent = request.fullName || 'N/A'; detailEmail.textContent = request.email || 'N/A'; detailAffiliation.textContent = request.affiliation || 'N/A'; detailBookTitle.textContent = request.bookTitle || 'N/A'; detailAuthorName.textContent = request.authorName || 'N/A'; detailVolume.textContent = request.volume || 'N/A'; detailDocumentLink.href = request.documentUrl || '#';
-            detailRequestedAt.textContent = formatDateTime(request.requestedAt);
-            detailReasons.innerHTML = request.reasons?.map(r => `<span class="reason-tag-display">${r}</span>`).join('') || 'None'; if (request.reasons?.includes('Other') && request.reasonDetails) { detailReasonDetailsSection.classList.remove('hidden'); detailReasonDetails.value = request.reasonDetails; } else { detailReasonDetailsSection.classList.add('hidden'); detailReasonDetails.value = ''; }
-            const statusClass = `status-${request.status}`; const statusText = request.status.charAt(0).toUpperCase() + request.status.slice(1); detailStatus.className = `status-label ${statusClass}`; detailStatus.textContent = statusText; if (request.processedAt) { detailProcessedAt.classList.remove('hidden'); detailProcessedAt.querySelector('span').textContent = formatDateTime(request.processedAt); } else { detailProcessedAt.classList.add('hidden'); detailProcessedAt.querySelector('span').textContent = ''; }
-            modalActions.innerHTML = ''; if (request.status === 'pending') { modalActions.innerHTML = `<button class="approve-button modal-button">Approve</button><button class="reject-button modal-button">Reject</button>`; modalActions.querySelector('.approve-button').addEventListener('click', () => handleAction(requestId, 'approved')); modalActions.querySelector('.reject-button').addEventListener('click', () => handleAction(requestId, 'rejected')); } else { modalActions.innerHTML = `<p class="text-gray-600 font-medium">Request already ${request.status}.</p>`; }
+            // Convert the requestId to match the database format (might be a number or string)
+            const databaseId = typeof requestId === 'string' && !isNaN(requestId) ? parseInt(requestId) : requestId;
+            console.log("Looking for request with ID:", databaseId);
+            
+            // Find the request and be more flexible with the ID comparison
+            const request = requests.find(req => {
+                // Check for both number and string equality
+                return req.id == databaseId || 
+                       String(req.id) === String(databaseId);
+            });
+            
+            if (!request) { 
+                console.error("Request not found:", requestId, "Available IDs:", requests.map(r => r.id)); 
+                alert("Details not found."); 
+                return; 
+            }
+            
+            // Map database field names (snake_case) to frontend variables (camelCase) if needed
+            detailRequestId.textContent = request.id || 'N/A'; 
+            detailFullName.textContent = request.full_name || request.fullName || 'N/A'; 
+            detailEmail.textContent = request.email || 'N/A'; 
+            detailAffiliation.textContent = request.affiliation || 'N/A'; 
+            
+            // Handle book-related fields (may need to map from document data)
+            detailBookTitle.textContent = request.book_title || request.bookTitle || 'N/A'; 
+            detailAuthorName.textContent = request.author_name || request.authorName || 'N/A'; 
+            detailVolume.textContent = request.volume || 'N/A'; 
+            
+            // Handle URLs
+            detailDocumentLink.href = request.document_url || request.documentUrl || '#';
+            
+            // Handle date fields
+            const requestDate = request.created_at || request.requestedAt;
+            detailRequestedAt.textContent = requestDate ? formatDateTime(requestDate) : 'N/A';
+            
+            // Handle reasons (may be stored differently in DB)
+            if (Array.isArray(request.reasons)) {
+                detailReasons.innerHTML = request.reasons.map(r => `<span class="reason-tag-display">${r}</span>`).join('') || 'None';
+            } else if (request.reason) {
+                // Single reason string from DB
+                detailReasons.innerHTML = `<span class="reason-tag-display">${request.reason}</span>`;
+            } else {
+                detailReasons.innerHTML = 'None';
+            }
+            
+            // Handle reason details
+            const reasonDetails = request.reason_details || request.reasonDetails;
+            if ((Array.isArray(request.reasons) && request.reasons.includes('Other') && reasonDetails) || 
+                (request.reason === 'Other' && reasonDetails)) {
+                detailReasonDetailsSection.classList.remove('hidden');
+                detailReasonDetails.value = reasonDetails;
+            } else {
+                detailReasonDetailsSection.classList.add('hidden');
+                detailReasonDetails.value = '';
+            }
+            
+            // Handle status
+            const status = request.status || 'pending';
+            const statusClass = `status-${status}`; 
+            const statusText = status.charAt(0).toUpperCase() + status.slice(1); 
+            detailStatus.className = `status-label ${statusClass}`; 
+            detailStatus.textContent = statusText;
+            
+            // Handle processed date
+            const processedDate = request.reviewed_at || request.processedAt;
+            if (processedDate) {
+                detailProcessedAt.classList.remove('hidden');
+                detailProcessedAt.querySelector('span').textContent = formatDateTime(processedDate);
+            } else {
+                detailProcessedAt.classList.add('hidden');
+                detailProcessedAt.querySelector('span').textContent = '';
+            }
+            
+            // Set up action buttons
+            modalActions.innerHTML = '';
+            if (status === 'pending') {
+                modalActions.innerHTML = `<button class="approve-button modal-button">Approve</button><button class="reject-button modal-button">Reject</button>`;
+                modalActions.querySelector('.approve-button').addEventListener('click', () => handleAction(request.id, 'approved'));
+                modalActions.querySelector('.reject-button').addEventListener('click', () => handleAction(request.id, 'rejected'));
+            } else {
+                modalActions.innerHTML = `<p class="text-gray-600 font-medium">Request already ${status}.</p>`;
+            }
+            
             detailDocumentLink.classList.add('view-doc-button');
 
             // Add Document ID to modal
@@ -1352,7 +1525,7 @@
              if (existingDocIdP) existingDocIdP.remove();
             const docIdElement = document.createElement('p');
             docIdElement.id = 'modalDocIdP';
-            docIdElement.innerHTML = `<strong>Document ID:</strong> <span id="detailDocumentId">${request.documentId || 'N/A'}</span>`;
+            docIdElement.innerHTML = `<strong>Document ID:</strong> <span id="detailDocumentId">${request.document_id || request.documentId || 'N/A'}</span>`;
             const viewButtonDiv = detailDocumentLink.parentElement;
              if (viewButtonDiv) {
                 modalDetailsContent.insertBefore(docIdElement, viewButtonDiv);
@@ -1361,14 +1534,14 @@
              }
 
              // Show/Hide Rejection Reason
-             if (request.status === 'rejected' && request.rejectionReason) {
-                 detailRejectionReason.textContent = request.rejectionReason;
+            const rejectionReason = request.review_notes || request.rejectionReason;
+            if (status === 'rejected' && rejectionReason) {
+                detailRejectionReason.textContent = rejectionReason;
                  detailRejectionReasonSection.classList.remove('hidden');
              } else {
                  detailRejectionReasonSection.classList.add('hidden');
                  detailRejectionReason.textContent = '';
              }
-
 
             requestDetailsModal.classList.add('visible');
         }
@@ -1406,8 +1579,8 @@
          }
 
          /** MODIFIED: Handles submission of the rejection reason, closes main modal too. */
-         function submitRejection(event) {
-             event.preventDefault(); // Prevent default form submission
+         async function submitRejection(event) {
+            event.preventDefault();
              const requestId = rejectionRequestIdInput.value;
              const selectedTags = Array.from(reasonTagsContainer.querySelectorAll('.reason-tag.active'));
              const otherReasonText = rejectionOtherReasonText.value.trim();
@@ -1415,7 +1588,7 @@
 
              let reason = selectedTags
                              .map(tag => tag.dataset.reason)
-                             .filter(reasonText => reasonText !== 'Other') // Exclude 'Other' itself
+                .filter(reasonText => reasonText !== 'Other')
                              .join(', ');
 
              if (isOtherSelected) {
@@ -1424,146 +1597,252 @@
                      rejectionOtherReasonText.focus();
                      return;
                  }
-                 if (reason) { // Add comma if other tags were also selected
+                if (reason) {
                      reason += `, Other: ${otherReasonText}`;
                  } else {
                      reason = `Other: ${otherReasonText}`;
                  }
              }
 
-             if (!reason) { // No tags selected and Other wasn't used or was empty
+            if (!reason) {
                  alert("Please select at least one reason or specify 'Other'.");
                  return;
              }
 
-             // CJ/kuys: Replace this frontend logic with an API call to the backend.
-             // The API should update the status AND store the rejection reason.
-             // Example:
-             /*
-             fetch(`/api/requests/${requestId}/reject`, {
-                 method: 'PUT', // or POST
-                 headers: { 'Content-Type': 'application/json' },
-                 body: JSON.stringify({ reason: reason }) // Send the combined reason string
-             })
-             .then(response => {
-                 if (!response.ok) { throw new Error('Failed to reject request'); }
-                 return response.json();
-             })
-             .then(updatedRequest => {
-                  // Success: Trigger email, show confirmation, close modal, refresh
-                  sendNotificationEmail(updatedRequest, 'rejected'); // Pass reason if needed
-                  showConfirmationMessage(`Request ${requestId} rejected. Reason recorded.`, 'error'); // Use error type
-                  closeRejectionModal();
-                  closeDetailsModal(); // Also close the main details modal
-                  applyFiltersAndSort(); // Re-fetch data
-             })
-             .catch(error => {
-                 console.error('Error rejecting request:', error);
-                 alert(`Failed to reject request ${requestId}.`);
-             });
-             */
-
-             // --- Current Frontend Logic (To be replaced) ---
-             const requestIndex = requests.findIndex(req => req.id === requestId);
-             if (requestIndex !== -1 && requests[requestIndex].status === 'pending') {
-                 requests[requestIndex].status = 'rejected';
-                 requests[requestIndex].rejectionReason = reason; // Store the combined reason
-                 requests[requestIndex].processedAt = new Date().toISOString();
-                 saveRequests(); // This will be removed
-
-                 sendNotificationEmail(requests[requestIndex], 'rejected'); // Simulate email
-
-                 showConfirmationMessage(`Request ${requestId} rejected. Reason recorded.`, 'error'); // Use error type
-                 closeRejectionModal();
-                 closeDetailsModal(); // Also close the main details modal
-                 applyFiltersAndSort(); // Re-render
-             } else {
-                 alert("Action failed or request is not pending.");
-                 closeRejectionModal();
-             }
-             // --- End of Frontend Logic ---
-         }
-
-
-        /** MODIFIED: Handles Approve/Reject action, opens rejection modal if needed. */
-        function handleAction(requestId, action) {
-            if (action === 'rejected') {
-                // Open the rejection reason modal instead of processing directly
-                openRejectionModal(requestId);
-            } else if (action === 'approved') {
-                // Process approval directly (as before)
-                // CJ/kuys: Replace this frontend logic with an API call to the backend.
-                // The backend should update the request status in the PostgreSQL database.
-                // Example API call:
-                /*
-                fetch(`/api/requests/${requestId}/status`, {
-                    method: 'PUT', // or PATCH
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: action }) // Send the new status 'approved'
-                })
-                .then(response => { if (!response.ok) throw new Error('Failed to approve'); return response.json(); })
-                .then(updatedRequest => {
-                     sendNotificationEmail(updatedRequest, 'approved');
-                     showConfirmationMessage(`Request ${requestId} approved. Email notification sent.`, 'success'); // Use success type
-                     closeDetailsModal();
-                     applyFiltersAndSort(); // Re-fetch
-                })
-                .catch(error => { console.error('Error approving:', error); alert(`Failed to approve request ${requestId}.`); });
-                */
-
-                // --- Current Frontend Logic (To be replaced) ---
-                const requestIndex = requests.findIndex(req => req.id === requestId);
-                if (requestIndex !== -1 && requests[requestIndex].status === 'pending') {
-                    requests[requestIndex].status = 'approved';
-                    requests[requestIndex].rejectionReason = null; // Clear any previous reason
-                    requests[requestIndex].processedAt = new Date().toISOString();
-                    saveRequests(); // To be removed
-                    sendNotificationEmail(requests[requestIndex], 'approved'); // Simulate email
-                    showConfirmationMessage(`Request ${requestId} approved. Email notification sent.`, 'success'); // Use success type
-                    closeDetailsModal();
-                    applyFiltersAndSort(); // Re-render
-                } else {
-                    alert("Action failed or request is not pending.");
+            try {
+                // Get user info for authentication
+                const userInfo = JSON.parse(sessionStorage.getItem('userInfo') || '{}');
+                if (!userInfo.token) {
+                    throw new Error('No authentication token found. Please log in again.');
                 }
-                // --- End of Frontend Logic ---
+
+                // Send rejection through API
+                const response = await fetch(`/api/document-requests/${requestId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${userInfo.token}`
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        status: 'rejected',
+                        reviewedBy: userInfo.id || 'admin',
+                        reviewNotes: reason
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Failed to reject request: ${response.status} ${errorText}`);
+                }
+
+                // Update local state
+             const requestIndex = requests.findIndex(req => req.id === requestId);
+                if (requestIndex !== -1) {
+                 requests[requestIndex].status = 'rejected';
+                    requests[requestIndex].rejectionReason = reason;
+                 requests[requestIndex].processedAt = new Date().toISOString();
+
+                    // Get the request with all updated information
+                    const request = requests[requestIndex];
+                    await sendRejectionEmail(request, reason);
+                }
+
+                showConfirmationMessage(`Request ${requestId} rejected. Email notification sent.`, 'error');
+                 closeRejectionModal();
+                closeDetailsModal();
+                applyFiltersAndSort();
+            } catch (error) {
+                console.error('Error rejecting request:', error);
+                showConfirmationMessage('Failed to reject request. Please try again.', 'error');
+                
+                // If it's an authentication error, show login button
+                if (error.message.includes('authentication') || error.message.includes('permission')) {
+                    requestsContentContainer.innerHTML = `
+                        <div class="text-center text-red-600 py-4">
+                            <p>Error: ${error.message}</p>
+                            <button onclick="window.location.href='/log-in.html'" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                                Log in again
+                            </button>
+                        </div>`;
+                }
             }
         }
 
         /**
-         * MODIFIED: Placeholder for sending notification email (approval or rejection).
-         * Replace this with an API call to your backend endpoint.
-         * @param {object} request - The request object containing details.
-         * @param {string} type - 'approved' or 'rejected'.
+         * Sends a rejection email notification to the requester
+         * @param {Object} request - The rejected request object
+         * @param {string} reason - The rejection reason
+         */
+        async function sendRejectionEmail(request, reason) {
+            try {
+                // Get request details using our helper function
+                const fullName = getRequestData(request, 'full_name', 'User');
+                const email = getRequestData(request, 'email', '');
+                const bookTitle = getRequestData(request, 'book_title', 'Document');
+                
+                if (!email) {
+                    console.error('Cannot send rejection email: recipient email not found');
+                    return false;
+                }
+                
+                // Make API call to send the rejection email
+                const response = await fetch('/api/email/send-rejection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email,
+                        fullName,
+                        documentTitle: bookTitle,
+                        reason
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error(`Error sending rejection email: ${errorText}`);
+                    return false;
+                }
+                
+                console.log(`Rejection email sent to ${email} for document: ${bookTitle}`);
+                return true;
+            } catch (error) {
+                console.error('Error sending rejection email:', error);
+                return false;
+            }
+        }
+
+        /** MODIFIED: Handles Approve/Reject action, opens rejection modal if needed. */
+        async function handleAction(requestId, action) {
+            try {
+                // Get user info from sessionStorage
+                const userInfo = JSON.parse(sessionStorage.getItem('userInfo') || '{}');
+                if (!userInfo.token) {
+                    throw new Error('No authentication token found. Please log in again.');
+                }
+
+                // Check if user is admin
+                if (!userInfo.role || userInfo.role.toLowerCase() !== 'admin') {
+                    throw new Error('You do not have permission to perform this action. Admin access required.');
+                }
+
+            if (action === 'rejected') {
+                // Open the rejection reason modal instead of processing directly
+                openRejectionModal(requestId);
+            } else if (action === 'approved') {
+                    // Process approval through API
+                    const response = await fetch(`/api/document-requests/${requestId}/status`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${userInfo.token}`
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            status: 'approved',
+                            reviewedBy: userInfo.id || 'admin',
+                            reviewNotes: 'Approved by admin'
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Failed to approve request: ${response.status} ${errorText}`);
+                    }
+
+                    // Update local state
+                const requestIndex = requests.findIndex(req => req.id === requestId);
+                    if (requestIndex !== -1) {
+                    requests[requestIndex].status = 'approved';
+                        requests[requestIndex].rejectionReason = null;
+                    requests[requestIndex].processedAt = new Date().toISOString();
+                        
+                        // Get the request with all updated information
+                        const request = requests[requestIndex];
+                        await sendApprovalEmail(request);
+                    }
+
+                    showConfirmationMessage(`Request ${requestId} approved. Email notification sent.`, 'success');
+                    closeDetailsModal();
+                    applyFiltersAndSort();
+                }
+            } catch (error) {
+                console.error('Error handling request action:', error);
+                showConfirmationMessage(`Failed to ${action} request: ${error.message}`, 'error');
+                
+                // If it's an authentication error, show login button
+                if (error.message.includes('authentication') || error.message.includes('permission')) {
+                    requestsContentContainer.innerHTML = `
+                        <div class="text-center text-red-600 py-4">
+                            <p>Error: ${error.message}</p>
+                            <button onclick="window.location.href='/log-in.html'" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                                Log in again
+                            </button>
+                        </div>`;
+                }
+            }
+        }
+
+        /**
+         * Sends an approval email with the PDF document attached
+         * @param {Object} request - The approved request object
+         */
+        async function sendApprovalEmail(request) {
+            try {
+                console.log(`[DOCUMENT REQUEST] Starting email process for approval of request ID: ${request.id}`);
+                
+                // Get request details using our helper function
+                const fullName = getRequestData(request, 'full_name', 'User');
+                const email = getRequestData(request, 'email', '');
+                const bookTitle = getRequestData(request, 'book_title', 'Document');
+                const documentId = getRequestData(request, 'document_id', '');
+                
+                console.log(`[DOCUMENT REQUEST] Sending approval email for document "${bookTitle}" (ID: ${documentId}) to ${fullName} <${email}>`);
+                
+                if (!email) {
+                    console.error('Cannot send approval email: recipient email not found');
+                    return false;
+                }
+                
+                // Make API call to send the email with document attachment
+                console.log(`[DOCUMENT REQUEST] Calling email API to send document ID ${documentId} to ${email}`);
+                const response = await fetch('/api/email/send-approval', {
+                 method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email,
+                        fullName,
+                        documentTitle: bookTitle,
+                        documentId
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error(`Error sending approval email: ${errorText}`);
+                    return false;
+                }
+                
+                const result = await response.json();
+                console.log(`[DOCUMENT REQUEST] Email service response:`, result);
+                console.log(`[DOCUMENT REQUEST] ✅ Document "${bookTitle}" (ID: ${documentId}) successfully sent to ${email}`);
+                return true;
+            } catch (error) {
+                console.error('Error sending approval email:', error);
+                return false;
+            }
+        }
+
+        /**
+         * DEPRECATED: This function has been replaced by sendApprovalEmail and sendRejectionEmail
+         * which use the email API endpoints.
          */
         function sendNotificationEmail(request, type) {
-            // CJ/kuys: Implement API call to backend email service here.
-            // Send necessary details like recipient email, name, document title, status, and rejection reason (if applicable).
-            // Example:
-            /*
-            const emailData = {
-                recipientEmail: request.email,
-                recipientName: request.fullName,
-                documentTitle: request.bookTitle,
-                status: type,
-                rejectionReason: type === 'rejected' ? request.rejectionReason : null,
-                // Add document URL or access instructions if approved
-                documentUrl: type === 'approved' ? request.documentUrl : null
-            };
-             fetch('/api/email/send-notification', {
-                 method: 'POST',
-                 headers: { 'Content-Type': 'application/json' },
-                 body: JSON.stringify(emailData)
-             })
-             .then(response => {
-                 if (!response.ok) { console.error(`Failed to send ${type} email via API`); }
-                 else { console.log(`${type} email API call successful.`); }
-             })
-             .catch(error => console.error(`Error sending ${type} email:`, error));
-            */
-            console.log(`Simulating sending ${type} email to: ${request.email} for document: ${request.bookTitle}.`);
-            if (type === 'rejected' && request.rejectionReason) { // Check if reason exists
-                console.log(`   Reason: ${request.rejectionReason}`);
-            }
+            console.log(`This function is deprecated. Use sendApprovalEmail or sendRejectionEmail instead.`);
         }
 
 
@@ -1787,6 +2066,117 @@
              loadingMessage.style.display = 'none';
              loadData(); // Use loadData to load requests, column order, and visibility
         });
+
+        /** Handles rejection of a request with a reason. */
+        async function rejectRequest(requestId, reason) {
+            try {
+                // Get user info from sessionStorage
+                const userInfo = JSON.parse(sessionStorage.getItem('userInfo') || '{}');
+                if (!userInfo.token) {
+                    throw new Error('No authentication token found. Please log in again.');
+                }
+
+                // Check if user is admin
+                if (!userInfo.role || userInfo.role.toLowerCase() !== 'admin') {
+                    throw new Error('You do not have permission to perform this action. Admin access required.');
+                }
+
+                // Process rejection through API
+                const response = await fetch(`/api/document-requests/${requestId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${userInfo.token}`
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        status: 'rejected',
+                        reviewedBy: userInfo.id || 'admin',
+                        reviewNotes: reason || 'Rejected by admin'
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Failed to reject request: ${response.status} ${errorText}`);
+                }
+
+                // Update local state
+                const requestIndex = requests.findIndex(req => req.id === requestId);
+                if (requestIndex !== -1) {
+                    requests[requestIndex].status = 'rejected';
+                    requests[requestIndex].rejectionReason = reason;
+                    requests[requestIndex].processedAt = new Date().toISOString();
+                }
+
+                // Send notification email
+                sendNotificationEmail(requests[requestIndex], 'rejected');
+                showConfirmationMessage(`Request ${requestId} rejected. Email notification sent.`, 'success');
+                closeRejectionModal();
+                closeDetailsModal();
+                applyFiltersAndSort();
+            } catch (error) {
+                console.error('Error rejecting request:', error);
+                showConfirmationMessage('Failed to reject request. Please try again.', 'error');
+                
+                // If it's an authentication error, show login button
+                if (error.message.includes('authentication') || error.message.includes('permission')) {
+                    requestsContentContainer.innerHTML = `
+                        <div class="text-center text-red-600 py-4">
+                            <p>Error: ${error.message}</p>
+                            <button onclick="window.location.href='/log-in.html'" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                                Log in again
+                            </button>
+                        </div>`;
+                }
+            }
+        }
+
+        /** Helps get data from a request object, checking both snake_case (DB) and camelCase (frontend) naming */
+        function getRequestData(request, key, fallback = 'N/A') {
+            // First check for exact key match
+            if (request[key] !== undefined) {
+                return request[key];
+            }
+            
+            // Then check for snake_case to camelCase conversion (e.g., full_name → fullName)
+            const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+            if (request[camelKey] !== undefined) {
+                return request[camelKey];
+            }
+            
+            // Then check for camelCase to snake_case conversion (e.g., fullName → full_name)
+            const snakeKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+            if (request[snakeKey] !== undefined) {
+                return request[snakeKey];
+            }
+            
+            // Specific mappings for known fields
+            const knownMappings = {
+                'created_at': 'requestedAt',
+                'requestedAt': 'created_at',
+                'reviewed_at': 'processedAt',
+                'processedAt': 'reviewed_at',
+                'document_id': 'documentId',
+                'documentId': 'document_id',
+                'full_name': 'fullName',
+                'fullName': 'full_name',
+                'book_title': 'bookTitle',
+                'bookTitle': 'book_title',
+                'author_name': 'authorName',
+                'authorName': 'author_name',
+                'review_notes': 'rejectionReason',
+                'rejectionReason': 'review_notes'
+            };
+            
+            // Check the known mappings
+            if (knownMappings[key] && request[knownMappings[key]] !== undefined) {
+                return request[knownMappings[key]];
+            }
+            
+            // Default fallback
+            return fallback;
+        }
 
     </script>
     <script>

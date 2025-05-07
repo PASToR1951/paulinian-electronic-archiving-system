@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Viewer</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div id="documentContainer">
+        <!-- Document content will be loaded here -->
+    </div>
+
+    <!-- Include the document access script -->
+    <script src="/js/document-access.js"></script>
+    <script>
+        // Get document ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const documentId = urlParams.get('id');
+
+        if (!documentId) {
+            alert('No document ID provided');
+            window.location.href = '/';
+        }
+
+        // Check document access when page loads
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const hasAccess = await window.documentAccess.checkDocumentAccess(documentId);
+                
+                if (hasAccess) {
+                    // Load document content
+                    loadDocument(documentId);
+                }
+                // If no access, the request form will be shown automatically
+            } catch (error) {
+                console.error('Error checking document access:', error);
+                alert('Error checking document access. Please try again later.');
+            }
+        });
+
+        // Function to load document content
+        async function loadDocument(documentId) {
+            try {
+                const response = await fetch(`/api/documents/${documentId}`);
+                const document = await response.json();
+
+                // Update page title
+                document.title = document.title || 'Document Viewer';
+
+                // Load document content
+                const container = document.getElementById('documentContainer');
+                // Add your document content loading logic here
+            } catch (error) {
+                console.error('Error loading document:', error);
+                alert('Error loading document. Please try again later.');
+            }
+        }
+    </script>
+</body>
+</html> 

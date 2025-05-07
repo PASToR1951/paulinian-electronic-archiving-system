@@ -3208,3 +3208,29 @@ select:focus {
 #error-modal .modal-content h2 {
     color: #f44336;
 }
+
+/* Keywords Bubbles */
+.keywords-bubble {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    margin-right: 8px;
+    margin-bottom: 5px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.keywords-bubble:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+}
+
+.topics-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 5px;
+}

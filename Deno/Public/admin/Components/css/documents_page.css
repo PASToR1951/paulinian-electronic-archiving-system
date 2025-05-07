@@ -949,8 +949,8 @@ td:first-child {
     background-color: #fadbd8;
 }
 
-/* Research Agenda Bubbles */
-.research-agenda-bubble {
+/* Keywords Bubbles */
+.keywords-bubble {
     padding: 5px 12px;
     border-radius: 20px;
     font-size: 12px;
@@ -963,7 +963,7 @@ td:first-child {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.research-agenda-bubble:hover {
+.keywords-bubble:hover {
     transform: translateY(-2px);
     box-shadow: 0 3px 6px rgba(0,0,0,0.15);
 }

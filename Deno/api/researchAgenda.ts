@@ -15,17 +15,48 @@ export async function handleAddResearchAgendaItems(request: Request): Promise<Re
         });
       }
       
-      if (!body.agenda_items || !Array.isArray(body.agenda_items) || body.agenda_items.length === 0) {
+      // Check for all possible ways to provide agenda items
+      const hasAgendaItems = body.agenda_items && Array.isArray(body.agenda_items) && body.agenda_items.length > 0;
+      const hasAgendaNames = body.agenda_names && Array.isArray(body.agenda_names) && body.agenda_names.length > 0;
+      const hasAgendaIds = body.agenda_ids && Array.isArray(body.agenda_ids) && body.agenda_ids.length > 0;
+      
+      // If neither traditional agenda_items nor the new format is provided, return an error
+      if (!hasAgendaItems && !hasAgendaNames && !hasAgendaIds) {
         return new Response(JSON.stringify({ error: "At least one agenda item is required" }), {
           status: 400,
           headers: { "Content-Type": "application/json" }
         });
       }
       
-      const success = await ResearchAgendaModel.addItems(
-        parseInt(body.document_id),
-        body.agenda_items
-      );
+      let success = false;
+      
+      // Process based on available data
+      if (hasAgendaItems) {
+        // Traditional approach - simply add the agenda items by name
+        success = await ResearchAgendaModel.addItems(
+          parseInt(body.document_id),
+          body.agenda_items
+        );
+      } else {
+        // New approach - handle IDs and names separately
+        
+        // First handle IDs if present
+        if (hasAgendaIds) {
+          success = await ResearchAgendaModel.linkItemsToDocument(
+            parseInt(body.document_id),
+            body.agenda_ids.map((id: string) => parseInt(id))
+          );
+        }
+        
+        // Then handle names if present
+        if (hasAgendaNames) {
+          const result = await ResearchAgendaModel.linkItemsToDocumentByName(
+            parseInt(body.document_id),
+            body.agenda_names
+          );
+          success = result.success;
+        }
+      }
       
       if (success) {
         return new Response(JSON.stringify({ message: "Research agenda items added successfully" }), {
@@ -99,8 +130,7 @@ export async function handleCreateResearchAgendaItem(request: Request): Promise<
       }
       
       const result = await ResearchAgendaModel.createAgendaItem(
-        body.name,
-        body.description
+        body.name
       );
       
       if (result) {
@@ -210,4 +240,4 @@ export async function handleSearchResearchAgendaItems(request: Request): Promise
       headers: { "Content-Type": "application/json" }
     });
   }
-} 
+}

@@ -1,0 +1,2088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Header with Search Component</title>
+
+    <!-- Link to required fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome for icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+
+    <!-- Favicon links (optional but good practice) -->
+    <!-- Use standard placeholders instead of specific references -->
+    <link href="/images/favicon.png" rel="shortcut icon" type="image/x-icon"/>
+    <link href="/images/office-20of-20research-20-26-20publications.png" rel="apple-touch-icon"/>
+
+    <style>
+        /* --- START Base Styles & Variables --- */
+        :root {
+          /* Define necessary variables used in the header/search */
+          --white: #fffff5; /* Note: This is slightly off-white */
+          --true-white: #ffffff; /* Standard white */
+          --black: #1d1d1d;
+          --dark-grey: #33383f;
+          --light-grey: #99a4af;
+          --grey: #626a72;
+          --back-grey: #f5f6f7;
+          --button-green: #31923d;
+          --dim-grey: #495158;
+          --silver: #e7ecf0;
+          --soft-grey: #cbd5df;
+          --navbar-color: #ffeaaf; /* Used by original .nav-bar */
+          --link-blue-hover: #3b82f6; /* For search filters etc */
+          --link-blue-active: #2563eb; /* For search filters etc */
+          --focus-ring-blue: rgba(59, 130, 246, 0.3);
+        }
+
+        /* Basic Reset/Defaults needed by Webflow components */
+        html {
+          -webkit-text-size-adjust: 100%;
+          -ms-text-size-adjust: 100%;
+          font-family: sans-serif;
+        }
+
+        body {
+          margin: 0;
+          font-family: 'Inter', sans-serif; /* Ensure Inter is the base */
+          font-size: 16px; /* Match original */
+          line-height: 20px; /* Match original */
+          color: var(--black); /* Match original */
+          background-color: var(--white); /* Match original */
+        }
+
+        * {
+          box-sizing: border-box;
+        }
+
+        img {
+          vertical-align: middle;
+          max-width: 100%;
+          display: inline-block;
+          border: 0;
+        }
+
+        a {
+          background-color: transparent; /* Changed from #0000 */
+          color: var(--grey); /* Default link color */
+          text-decoration: none;
+          transition: color .2s;
+        }
+
+        a:active, a:hover {
+          outline: 0;
+        }
+
+        button {
+          background-color: transparent;
+          border: none;
+          padding: 0;
+          cursor: pointer;
+        }
+
+        /* Webflow Container */
+        .w-container {
+          max-width: 1230px; /* Adjusted based on .nav-container styles */
+          margin-left: auto;
+          margin-right: auto;
+        }
+        .w-container:before, .w-container:after {
+          content: " ";
+          grid-area: 1 / 1 / 2 / 2;
+          display: table;
+        }
+        .w-container:after {
+          clear: both;
+        }
+
+        /* Webflow Nav Specific Base */
+        .w-nav {
+          position: relative;
+          background: #ddd; /* Default Webflow background */
+          z-index: 1000;
+        }
+        .w-nav:before, .w-nav:after {
+          content: " "; display: table; grid-area: 1 / 1 / 2 / 2;
+        }
+        .w-nav:after { clear: both; }
+
+        .w-nav-brand {
+          position: relative; float: left; text-decoration: none; color: #333;
+        }
+        .w-nav-link {
+          position: relative; display: inline-block; vertical-align: top;
+          text-decoration: none; color: #222; padding: 20px; text-align: left;
+          margin-left: auto; margin-right: auto;
+        }
+        .w-nav-menu { position: relative; float: right; }
+        .w-nav-button {
+          position: relative; float: right; padding: 18px; font-size: 24px;
+          display: none; cursor: pointer; -webkit-user-select: none; user-select: none;
+          -webkit-tap-highlight-color: transparent; tap-highlight-color: transparent;
+        }
+        .w-nav-button:focus { outline: 0; }
+        .w-inline-block { max-width: 100%; display: inline-block; }
+        .w--current { /* Style for current links if needed */ }
+
+        /* --- END Base Styles & Variables --- */
+
+
+        /* --- START Header/Navbar Styles --- */
+        .nav-bar {
+          /* Overrides default .w-nav */
+          background-color: var(--navbar-color);
+          border-bottom: 1px solid var(--back-grey);
+          display: flex; /* Use flex directly */
+          flex-direction: row;
+          justify-content: space-between;
+          align-items: center;
+          width: 100%;
+          position: sticky; /* Make it sticky */
+          top: 0;
+          z-index: 200; /* Ensure it's above other page content */
+        }
+
+        .nav-container {
+          /* Overrides default .w-container specifics */
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          height: 70px; /* Explicit height */
+          padding: 10px 50px; /* Padding */
+        }
+
+        .logo-div {
+          flex: 0 0 auto; /* Don't grow or shrink, use base size */
+        }
+
+        .nav-logo {
+          /* Specific logo link styles */
+          display: flex; /* Use flex for potential alignment within */
+          transition: opacity .2s;
+        }
+        .nav-logo:hover {
+          opacity: .75;
+        }
+        .logo {
+          /* Specific image styles if needed */
+        }
+
+        .nav-content {
+          /* Overrides default .w-nav-menu */
+          flex: 1; /* Allow it to grow */
+          display: flex;
+          justify-content: space-between; /* Space out search and login */
+          align-items: center;
+          margin-left: 24px; /* Space from logo */
+        }
+
+        .nav-cta-button-container {
+          display: flex;
+          align-items: center;
+        }
+
+        /* Reusing .w-nav-link structure for consistency */
+        .nav-link.loginbtn {
+          display: inline-block; /* Ensure proper spacing/padding */
+          vertical-align: middle; /* Align with search bar */
+          background-color: var(--button-green);
+          color: var(--true-white); /* Use true white for buttons */
+          border-radius: 8px;
+          padding: 6px 20px; /* Adjusted padding */
+          font-size: 15px;
+          font-weight: 500;
+          line-height: 24px;
+          margin-left: 16px; /* Space from search bar */
+          box-shadow: 0 2px 0 0 var(--back-grey); /* Simpler shadow */
+          transition: box-shadow .2s, background-color .2s, transform .2s, color .2s;
+        }
+        .nav-link.loginbtn:hover {
+          background-color: var(--dark-grey);
+          color: var(--true-white);
+        }
+        .nav-link.loginbtn:active {
+          background-color: var(--grey);
+          box-shadow: 0 0 0 0 var(--silver);
+          transform: translate(0, 1px);
+        }
+
+        .menu-button {
+          /* Overrides default .w-nav-button */
+          display: none; /* Hidden by default, shown in media query */
+          justify-content: center;
+          align-items: center;
+          width: 56px;
+          height: 56px;
+          margin-right: -12px; /* Adjust positioning */
+        }
+        .menu-icon {
+          /* Styles for the icon image itself */
+          display: block; /* Prevents extra space below image */
+          width: 24px; /* Explicit size */
+          height: 24px;
+        }
+        /* --- END Header/Navbar Styles --- */
+
+
+        /* --- START Search Component Styles --- */
+        /* Ensure the search component and its children use the Inter font */
+        .search-component, .search-component input, .search-component select, .search-component button, .search-component span, .search-component div, .search-component label, .search-component p {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Reset filter for potential blur issues */
+        .search-component,
+        .search-component * {
+            filter: none !important;
+        }
+        /* Re-apply necessary opacity/visibility for elements meant to be hidden/faded */
+        .expandable-content { opacity: 0; visibility: hidden; } /* Added visibility */
+        .search-component.active .expandable-content { opacity: 1; visibility: visible; }
+        #searchResultsContainer { opacity: 0; visibility: hidden; }
+        #searchResultsContainer.visible { opacity: 1; visibility: visible; }
+        #searchPlaceholder.hidden { opacity: 0; display: none; } /* Added display none */
+        #searchPlaceholder { opacity: 1; display: block; } /* Added display block */
+
+        /* Main search component container */
+        .search-component {
+            width: 100%;
+            max-width: 30rem;
+            margin-left: auto; /* Center within nav-content */
+            margin-right: auto;
+            margin-bottom: 0;
+            position: relative;
+            z-index: 100;
+            transition: max-width 0.3s ease, top 0.3s ease, left 0.3s ease, transform 0.3s ease, width 0.3s ease;
+        }
+
+        /* Search box container */
+        .search-box {
+            background-color: var(--true-white); /* Use true white */
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+            transition: box-shadow 0.3s ease;
+            position: relative;
+            z-index: 5;
+        }
+
+        /* Wrapper for input field and icons */
+        .search-input-wrapper {
+            display: flex;
+            align-items: center;
+            padding: 0.6rem 0.9rem;
+            position: relative;
+            z-index: 6; /* Higher than search-box */
+            background-color: var(--true-white);
+            border-radius: 0.5rem;
+            transition: border-radius 0.3s ease, padding 0.3s ease, border-bottom 0.3s ease;
+            cursor: pointer;
+        }
+
+        /* Container for filters and trending searches */
+        .expandable-content {
+            max-height: 0;
+            overflow: hidden;
+            background-color: var(--true-white);
+            border-bottom-left-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
+            position: absolute;
+            width: 100%;
+            z-index: 5; /* Below input wrapper */
+             transition: max-height 0.3s ease-out, opacity 0.3s ease-out, visibility 0s linear 0.3s; /* Delay visibility change */
+        }
+        .search-component.active .expandable-content {
+            transition: max-height 0.3s ease-in, opacity 0.2s ease-in 0.1s, visibility 0s linear 0s; /* Visibility becomes immediate */
+        }
+
+
+        /* --- Active State Styles --- */
+        .search-component.active {
+            position: fixed;
+            top: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            max-width: 48rem;
+            width: 90%;
+            z-index: 1100; /* High z-index */
+        }
+
+        .search-component.active .search-box {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            overflow: visible; /* Allow results dropdown */
+        }
+
+        .search-component.active .search-input-wrapper {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 0.75rem 1rem;
+            cursor: text;
+        }
+
+        .search-component.active .expandable-content {
+            position: relative; /* Back in flow when active */
+            max-height: 500px;
+            /* opacity: 1; */ /* Controlled by override */
+            /* Transitions defined above */
+        }
+        /* --- End Active State Styles --- */
+
+        /* Search icon */
+        .search-icon {
+            width: 1.1rem; height: 1.1rem;
+            color: #9ca3af;
+            margin-right: 0.6rem;
+            flex-shrink: 0;
+            transition: width 0.3s ease, height 0.3s ease;
+        }
+        .search-component.active .search-icon {
+            width: 1.25rem; height: 1.25rem;
+        }
+
+        /* Search input field */
+        #searchInput {
+            width: 100%;
+            font-size: 0.9rem;
+            line-height: 1.4rem;
+            color: #374151;
+            background-color: transparent;
+            border: none;
+            outline: none;
+            padding: 0;
+            transition: font-size 0.3s ease;
+        }
+        .search-component.active #searchInput {
+            font-size: 1rem;
+        }
+        #searchInput::placeholder { color: #9ca3af; opacity: 1; }
+
+        /* Loading Spinner */
+        #loadingSpinner {
+            margin-left: 0.75rem;
+            display: none; /* Hidden by default */
+        }
+        #loadingSpinner.visible { display: inline-block; }
+        #loadingSpinner svg {
+            animation: spin 1s linear infinite;
+            height: 1.25rem; width: 1.25rem;
+            color: var(--link-blue-hover);
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Sample/Trending Searches */
+        .sample-searches {
+            padding: 0.5rem 1rem 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .sample-searches-label { font-size: 0.75rem; color: #6b7280; margin-right: 0.5rem; font-weight: 500; }
+        .sample-search-item {
+            font-size: 0.75rem;
+            color: var(--link-blue-hover);
+            background-color: #eff6ff;
+            padding: 0.25rem 0.6rem;
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+        .sample-search-item:hover { background-color: #dbeafe; color: var(--link-blue-active); }
+
+        /* Filters Container */
+        .filters-container {
+            padding: 0.75rem 1rem;
+            background-color: #f9fafb; /* Light gray */
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 0.75rem;
+        }
+        .filter-item { display: flex; flex-direction: column; }
+        .filter-item label { font-size: 0.7rem; font-weight: 500; color: #6b7280; margin-bottom: 0.25rem; }
+        .filter-item select {
+            width: 100%;
+            padding: 0.3rem 0.5rem; font-size: 0.8rem;
+            border: 1px solid #d1d5db; border-radius: 0.375rem;
+            background-color: var(--true-white);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%239ca3af%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.293%207.293a1%201%200%20011.414%200L10%2010.586l3.293-3.293a1%201%200%20111.414%201.414l-4%204a1%201%200%2001-1.414%200l-4-4a1%201%200%20010-1.414z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 1em 1em;
+            padding-right: 2rem;
+            cursor: pointer;
+        }
+        .filter-item select:focus {
+            outline: none;
+            border-color: var(--link-blue-hover);
+            box-shadow: 0 0 0 2px var(--focus-ring-blue);
+        }
+
+        /* Search Results Container */
+        #searchResultsContainer {
+            position: absolute;
+            top: calc(100% + 0.25rem);
+            left: 0;
+            right: 0;
+            width: 100%;
+            background-color: var(--true-white);
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e7eb;
+            z-index: 1090; /* Below active component, above others */
+            transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out, visibility 0s linear 0.2s; /* Delay visibility change */
+            transform: translateY(-5px);
+            pointer-events: none;
+            max-height: calc(80vh - 7rem); /* Adjusted max-height */
+            display: flex;
+            flex-direction: column;
+        }
+        #searchResultsContainer.visible {
+            /* opacity: 1; */ /* Controlled by override */
+            transform: translateY(0);
+            pointer-events: auto;
+            /* visibility: visible; */ /* Controlled by override */
+             transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out, visibility 0s linear 0s; /* Visibility becomes immediate */
+        }
+
+        /* Inner results div (scrollable) */
+        #searchResults {
+            overflow-y: auto;
+            padding: 0.5rem;
+            flex-grow: 1;
+        }
+        /* Placeholder text */
+        #searchPlaceholder { text-align: center; color: #6b7280; padding: 1rem; font-size: 0.875rem; }
+        /* #searchPlaceholder.hidden { display: none; } Already defined above */
+
+        /* Individual result item (link) */
+        .result-item {
+            display: block;
+            padding: 0.6rem 0.75rem;
+            border-radius: 0.375rem;
+            transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            margin-bottom: 0.25rem;
+        }
+        .result-item:last-child { margin-bottom: 0; }
+        .result-item:hover { background-color: #f3f4f6; } /* Light gray hover */
+
+        /* Result item content */
+        .result-title { font-weight: 600; color: #1f2937; margin-bottom: 0.15rem; font-size: 0.9rem; line-height: 1.3; }
+        .result-description { font-size: 0.8rem; line-height: 1.4; color: #4b5563; }
+        .result-meta { 
+            font-size: 0.7rem; 
+            color: #6b7280; 
+            margin-top: 0.25rem; 
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        /* Category icons in search results */
+        .result-item .category-icon {
+            width: 1.75rem;
+            height: 1.75rem;
+            margin-right: 0.5rem;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+        
+        /* Admin-style metadata for document results */
+        .category-badge {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.65rem;
+            font-weight: 600;
+            background-color: #e5e7eb;
+            color: #4b5563;
+            margin-right: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+        
+        .author-meta, .date-meta {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 0.75rem;
+            font-size: 0.7rem;
+            color: #6b7280;
+        }
+        
+        .author-meta i, .date-meta i {
+            margin-right: 0.25rem;
+            font-size: 0.7rem;
+            color: #9ca3af;
+        }
+        
+        /* Document result specific styles */
+        .document-result .result-title {
+            display: inline-block;
+            vertical-align: middle;
+            max-width: calc(100% - 2.5rem);
+        }
+        
+        .document-result .description-container {
+            padding-left: 2.25rem;
+        }
+
+        /* Error message */
+        .error-message { text-align: center; color: #ef4444; padding: 1rem; font-size: 0.875rem; }
+
+        /* Custom scrollbar */
+        #searchResults::-webkit-scrollbar { width: 6px; }
+        #searchResults::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        #searchResults::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        #searchResults::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Highlighted text */
+        .highlight {
+            background-color: rgba(250, 204, 21, 0.3); /* Light yellow */
+            font-weight: 600;
+            padding: 0 2px;
+            border-radius: 3px;
+            color: inherit;
+        }
+        /* --- END Search Component Styles --- */
+
+        /* -- Search Result Type Styles -- */
+        .result-type {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 500;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 6px;
+        }
+
+        .result-type.author {
+            background-color: #e1f5fe;
+            color: #0277bd;
+        }
+
+        .author-result .result-title::before {
+            content: '👤 ';
+            margin-right: 4px;
+        }
+
+        .document-result {
+            position: relative;
+        }
+
+        .document-result .result-meta {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        
+        
+
+        /* Hover states */
+        .author-result:hover {
+            background-color: #f0f7ff !important; /* Light blue hover */
+        }
+
+        .document-result:hover {
+            background-color: #f5f5f5 !important; /* Light gray hover */
+        }
+        /* -- End Search Result Type Styles -- */
+
+        /* --- START Responsive Styles --- */
+
+        /* Tablet */
+        @media screen and (max-width: 991px) {
+          .w-container { max-width: 728px; }
+          .nav-container { padding-left: 30px; padding-right: 30px; }
+          .nav-content {
+              /* Styles for when the menu is collapsed (hidden) */
+              display: none; /* Hide the main nav content by default */
+              position: absolute; /* Position it absolutely for overlay effect */
+              top: 100%; /* Position below the navbar */
+              left: 0;
+              right: 0;
+              background: var(--true-white); /* White background for dropdown */
+              border-top: 1px solid var(--silver);
+              padding: 20px;
+              flex-direction: column; /* Stack items vertically */
+              align-items: stretch; /* Stretch items like search/button */
+              text-align: center;
+              box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Add shadow */
+          }
+          /* Style for open menu state - TARGET THE PARENT .w-nav */
+          .w-nav[data-nav-menu-open="true"] .nav-content {
+              display: flex !important; /* Force display when open */
+          }
+
+          .nav-content .search-component { /* Styles for search within open mobile menu */
+              margin-left: auto;
+              margin-right: auto;
+              margin-bottom: 15px;
+              max-width: 90%;
+          }
+           .nav-content .nav-cta-button-container {
+              margin-top: 15px;
+           }
+           .nav-content .nav-link.loginbtn {
+               display: block; /* Make button full width */
+               width: auto; /* Allow padding to determine width */
+               max-width: 200px; /* Optional max width */
+               margin-left: auto;
+               margin-right: auto;
+           }
+
+          .menu-button { display: flex; /* Show mobile menu button */ }
+
+          /* Adjust active search position on tablet */
+          .search-component.active { top: 10%; }
+          #searchResultsContainer { max-height: calc(85vh - 6rem); }
+        }
+
+        /* Mobile Landscape */
+        @media screen and (max-width: 767px) {
+          .w-container { max-width: none; } /* Full width */
+          .nav-container { height: 64px; padding: 8px 20px; }
+          .logo img { max-width: 200px; height: auto; } /* Adjust logo size */
+          .menu-button { width: 48px; height: 48px; margin-right: -5px; }
+          .nav-content { padding: 15px; } /* Adjust padding for open menu */
+
+          /* Adjust active search position */
+          .search-component.active { top: 5%; max-width: 95%; width: 95%; }
+          #searchResultsContainer { max-height: calc(90vh - 5rem); }
+          .filters-container { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); } /* Smaller min width */
+        }
+
+        /* Mobile Portrait */
+        @media screen and (max-width: 479px) {
+          .nav-container { padding: 5px 15px; height: 60px; }
+          .logo img { max-width: 180px; }
+          .nav-link.loginbtn { padding: 6px 15px; font-size: 14px; }
+          .nav-content { padding: 10px; } /* Adjust padding for open menu */
+
+          /* Adjust active search position */
+          .search-component.active { top: 2%; max-width: 96%; width: 96%; }
+          #searchInput { font-size: 0.85rem; }
+          .search-component.active #searchInput { font-size: 0.95rem; }
+          .search-input-wrapper { padding: 0.5rem 0.7rem; }
+          .search-component.active .search-input-wrapper { padding: 0.6rem 0.8rem; }
+          #searchResultsContainer { max-height: calc(90vh - 4rem); }
+          .result-title { font-size: 0.85rem; }
+          .result-description { font-size: 0.75rem; }
+          .filters-container { grid-template-columns: 1fr; } /* Stack filters */
+        }
+        /* --- END Responsive Styles --- */
+
+        /* --- START User Dropdown Styles --- */
+        .user-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .user-dropdown-toggle {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            background-color: var(--button-green);
+            color: var(--true-white);
+            border: none;
+            outline: none;
+            border-radius: 8px;
+            padding: 6px 16px;
+            transition: background-color 0.2s ease;
+            font-size: 15px;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .user-dropdown-toggle:hover,
+        .user-dropdown-toggle:focus {
+            background-color: #268733;
+            color: var(--true-white);
+        }
+
+        .user-dropdown-menu {
+            position: absolute;
+            top: calc(100% + 5px);
+            right: 0;
+            width: 180px;
+            background-color: var(--true-white);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            margin-top: 8px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s;
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .user-dropdown-menu.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0s;
+        }
+
+        .dropdown-item {
+            display: block;
+            padding: 10px 16px;
+            color: var(--dark-grey);
+            text-decoration: none;
+            font-size: 14px;
+            transition: background-color 0.2s ease;
+            text-align: left;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f7f7f7;
+            color: var(--button-green);
+        }
+
+        #logoutBtn {
+            color: #e53e3e;
+        }
+
+        #logoutBtn:hover {
+            background-color: #fff5f5;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            margin: 4px 0;
+            background-color: #e7ecf0;
+        }
+
+        /* Mobile adjustments for user dropdown */
+        @media screen and (max-width: 767px) {
+            .user-dropdown-menu {
+                position: fixed;
+                top: auto;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%) translateY(20px);
+                width: 85%;
+                max-width: 300px;
+                border-radius: 12px;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            }
+            
+            .user-dropdown-menu.show {
+                transform: translateX(-50%) translateY(0);
+            }
+            
+            .dropdown-item {
+                padding: 14px 20px;
+                font-size: 16px;
+                text-align: center;
+            }
+            
+            .dropdown-divider {
+                margin: 8px 0;
+            }
+        }
+        /* --- END User Dropdown Styles --- */
+
+        /* --- START Compiled Document Styles --- */
+        .compiled-document-container {
+            position: relative;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+        }
+
+        .cursor-pointer {
+            cursor: pointer;
+        }
+
+        .document-actions {
+            margin-top: 6px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .view-document-btn {
+            font-size: 0.75rem;
+            color: #3b82f6;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background-color: rgba(59, 130, 246, 0.1);
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .view-document-btn:hover {
+            background-color: rgba(59, 130, 246, 0.2);
+            color: #2563eb;
+        }
+
+        .view-document-btn i {
+            font-size: 0.7rem;
+            margin-right: 4px;
+        }
+
+        .compiled-document-children {
+            margin-left: 25px;
+            margin-top: 5px;
+            padding-left: 10px;
+            border-left: 2px solid #e5e7eb;
+            display: none;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            max-height: 0;
+            overflow: hidden;
+        }
+
+        .compiled-document-children.expanded {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+            max-height: 500px;
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, max-height 0.5s ease-in-out;
+        }
+
+        .expand-collapse-btn {
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            position: absolute;
+            left: -12px;
+            top: 12px;
+            color: #6b7280;
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 50%;
+            transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+            z-index: 5;
+        }
+
+        .expand-collapse-btn:hover {
+            background-color: #f3f4f6;
+            color: #4b5563;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .expand-collapse-btn svg {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.3s ease;
+        }
+
+        .expand-collapse-btn.expanded svg {
+            transform: rotate(90deg);
+        }
+
+        .child-document {
+            position: relative;
+            transition: background-color 0.2s ease;
+            margin-bottom: 3px;
+            border-radius: 4px;
+            padding: 8px 10px;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .child-document:before {
+            content: '';
+            position: absolute;
+            left: -10px;
+            top: 50%;
+            width: 8px;
+            height: 2px;
+            background-color: #e5e7eb;
+        }
+
+        .child-document:hover {
+            background-color: #f9fafb;
+        }
+
+        .child-document:active {
+            background-color: #f3f4f6;
+        }
+
+        .child-content {
+            flex: 1;
+        }
+
+        .child-title {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #31923d;
+            margin-bottom: 2px;
+            line-height: 1.3;
+        }
+
+        .child-meta {
+            font-size: 0.75rem;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 3px;
+        }
+
+        .date-separator {
+            margin: 0 5px;
+            color: #d1d5db;
+        }
+
+        .compiled-label {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.7rem;
+            color: #6b7280;
+            background-color: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .compiled-label i {
+            margin-right: 4px;
+            font-size: 0.7rem;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .loading-children {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            color: #6b7280;
+            font-size: 0.8rem;
+        }
+
+        .loading-children svg {
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+            width: 16px;
+            height: 16px;
+        }
+        /* --- END Compiled Document Styles --- */
+    </style>
+</head>
+<body class="body">
+
+    <!-- Use <header> tag for semantic meaning -->
+    <!-- NOTE: data-collapse, data-animation etc. are for Webflow's JS. -->
+    <!-- They won't work without it, but don't hurt to leave for structure. -->
+    <header data-collapse="medium" data-animation="default" data-duration="400" data-easing="ease" data-easing2="ease" role="banner" class="nav-bar w-nav">
+        <div class="nav-container w-container">
+            <div class="logo-div">
+                <!-- Updated logo path with forward slash to make it absolute -->
+                <a href="/" aria-current="page" class="nav-logo w-inline-block w--current" aria-label="Homepage">
+                    <img width="250" height="80" alt="Office of Research & Publications Logo" src="/images/office-20of-20research-20-26-20publications.png" id="logo" class="logo"/>
+                </a>
+            </div>
+            <!-- Use <nav> tag for the main navigation content -->
+            <!-- This nav-content is hidden by default on smaller screens by CSS -->
+            <nav role="navigation" class="nav-content w-nav-menu">
+
+                <!-- === Search Component Start === -->
+                <div class="search-component" id="searchComponent">
+                    <div class="search-box">
+                        <div class="search-input-wrapper" id="searchInputWrapper">
+                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="search-icon" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                            </svg>
+                            <input type="text" id="searchInput" placeholder="Search PeAS..." autocomplete="off" aria-label="Search PeAS"/>
+                            <div id="loadingSpinner" aria-label="Loading search results" role="status">
+                                <!-- Spinner SVG -->
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <div class="expandable-content">
+                            <div class="sample-searches" id="sampleSearchesContainer">
+                                <span class="sample-searches-label">Trending</span>
+                                <!-- Static sample search items -->
+                                <span class="sample-search-item" data-query="Paulinian">Paulinian</span>
+                                <span class="sample-search-item" data-query="Education">Education</span>
+                                <span class="sample-search-item" data-query="Community">Community</span>
+                                <span class="sample-search-item" data-query="Research">Research</span>
+                            </div>
+
+                            <div class="filters-container">
+                                <div class="filter-item">
+                                    <label for="categoryFilter">Category</label>
+                                    <select id="categoryFilter">
+                                        <option value="">All</option>
+                                        <option value="Thesis">Thesis</option>
+                                        <option value="Synergy">Synergy</option>
+                                        <option value="Confluence">Confluence</option>
+                                        <option value="Dissertation">Dissertation</option>
+                                    </select>
+                                </div>
+                                <div class="filter-item">
+                                    <label for="authorFilter">Author</label>
+                                    <select id="authorFilter">
+                                        <option value="">All</option>
+                                        <!-- Author options populated by JS -->
+                                    </select>
+                                </div>
+                                <div class="filter-item">
+                                    <label for="agendaFilter">Agenda</label>
+                                    <select id="agendaFilter">
+                                        <option value="">All</option>
+                                         <!-- Agenda options populated by JS -->
+                                    </select>
+                                </div>
+                                <div class="filter-item">
+                                    <label for="yearFilter">Year</label>
+                                    <select id="yearFilter">
+                                        <option value="">All</option>
+                                         <!-- Year options populated by JS -->
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search Results Container -->
+                    <div id="searchResultsContainer">
+                         <div id="searchResults" aria-live="polite">
+                             <p id="searchPlaceholder">Start typing or apply filters...</p>
+                             <!-- Results populated by JS -->
+                         </div>
+                    </div>
+                </div>
+                <!-- === Search Component End === -->
+
+                <div class="nav-cta-button-container">
+                    <!-- User not logged in: show login button -->
+                    <div id="loginContainer">
+                        <a href="/log-in.html" class="nav-link loginbtn">Login</a>
+                    </div>
+                    
+                    <!-- User logged in: show user dropdown -->
+                    <div id="userDropdownContainer" style="display: none;">
+                        <div class="user-dropdown">
+                            <button id="userDropdownBtn" class="nav-link loginbtn user-dropdown-toggle">
+                                <span id="userName">User Name</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-left: 8px;">
+                                    <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+                                </svg>
+                            </button>
+                            <div id="userDropdownMenu" class="user-dropdown-menu">
+                                <a href="/profile.html" class="dropdown-item">Profile</a>
+                                <a href="/settings.html" class="dropdown-item">Settings</a>
+                                <div class="dropdown-divider"></div>
+                                <a href="#" id="logoutBtn" class="dropdown-item">Logout</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Mobile Menu Button -->
+            <!-- Add aria-controls="nav-content" if your toggle JS uses it -->
+            <button class="menu-button w-nav-button" aria-label="Open menu" aria-haspopup="true" aria-expanded="false">
+                <!-- Use Font Awesome icon instead of image for better reliability -->
+                <i class="fas fa-bars menu-icon" aria-hidden="true"></i>
+            </button>
+        </div>
+    </header>
+
+    
+
+    <!-- JavaScript for Search Functionality -->
+    <script>
+        // Create a global function that can be called after the component loads
+        window.initializeSearchComponent = function() {
+                const DEBOUNCE_DELAY = 300;
+
+            // --- API Endpoints ---
+            const API = {
+                documents: '/api/documents',
+                authors: '/api/authors/all',
+                categories: '/api/categories',
+                researchAgenda: '/api/research-agenda'
+            };
+                // ------------------------------------------------------------
+
+                // --- DOM Element References ---
+                const searchInput = document.getElementById('searchInput');
+                const searchInputWrapper = document.getElementById('searchInputWrapper');
+                const searchResultsContainer = document.getElementById('searchResultsContainer');
+                const searchResultsDiv = document.getElementById('searchResults');
+                const searchPlaceholder = document.getElementById('searchPlaceholder');
+                const loadingSpinner = document.getElementById('loadingSpinner');
+                const sampleSearchesContainer = document.getElementById('sampleSearchesContainer');
+                const categoryFilter = document.getElementById('categoryFilter');
+                const authorFilter = document.getElementById('authorFilter');
+                const agendaFilter = document.getElementById('agendaFilter');
+                const yearFilter = document.getElementById('yearFilter');
+                const searchComponent = document.getElementById('searchComponent');
+                const expandableContent = document.querySelector('.expandable-content');
+                // ------------------------------------------------------------
+
+                // --- Utility Functions ---
+            function populateSelectWithOptions(selectElement, data, field, valueField, sortDescending = false) {
+                    if (!selectElement || !data || data.length === 0) return;
+                    while (selectElement.options.length > 1) { selectElement.remove(1); } // Clear existing options
+                
+                // If data is already an array of values (like years)
+                if (typeof data[0] === 'string' || typeof data[0] === 'number') {
+                    const uniqueValues = [...new Set(data)];
+                    uniqueValues.sort((a, b) => {
+                        const numA = Number(a); const numB = Number(b);
+                        if (!isNaN(numA) && !isNaN(numB)) return sortDescending ? numB - numA : numA - numB;
+                        return String(a).localeCompare(String(b));
+                    });
+                    
+                    uniqueValues.forEach(value => {
+                        const option = document.createElement('option');
+                        option.value = value; 
+                        option.textContent = value;
+                        selectElement.appendChild(option);
+                    });
+                    return;
+                }
+                
+                // If data is an array of objects
+                const uniqueItems = [];
+                const uniqueValues = new Set();
+                
+                data.forEach(item => {
+                    const displayValue = item[field];
+                    const actualValue = valueField ? item[valueField] : displayValue;
+                    
+                    if (displayValue && !uniqueValues.has(displayValue)) {
+                        uniqueValues.add(displayValue);
+                        uniqueItems.push({ display: displayValue, value: actualValue });
+                    }
+                });
+                
+                uniqueItems.sort((a, b) => {
+                    const numA = Number(a.display); const numB = Number(b.display);
+                    if (!isNaN(numA) && !isNaN(numB)) return sortDescending ? numB - numA : numA - numB;
+                    return String(a.display).localeCompare(String(b.display));
+                });
+                
+                uniqueItems.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.value;
+                    option.textContent = item.display;
+                        selectElement.appendChild(option);
+                    });
+                }
+
+                function highlightText(text, query) {
+                    if (!query || !text) return text || '';
+                    try {
+                        const escapedQuery = query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                        const regex = new RegExp(`(${escapedQuery})`, 'gi');
+                        return text.replace(regex, '<span class="highlight">$1</span>');
+                    } catch (e) { console.error("Regex error during highlighting:", e); return text; }
+                }
+
+                let debounceTimer;
+                function debounce(func, delay) {
+                    return function(...args) {
+                        clearTimeout(debounceTimer);
+                        debounceTimer = setTimeout(() => { func.apply(this, args); }, delay);
+                    };
+                }
+
+            // Extract years from publication_date (assumes format YYYY-MM-DD or similar)
+            function extractYearsFromDocuments(documents) {
+                const years = new Set();
+                documents.forEach(doc => {
+                    // Try to get the year from publication_date
+                    if (doc.publication_date) {
+                        const year = new Date(doc.publication_date).getFullYear();
+                        if (!isNaN(year)) {
+                            years.add(year.toString());
+                        }
+                    }
+                    
+                    // Also consider start_year and end_year if available
+                    if (doc.start_year) {
+                        years.add(doc.start_year.toString());
+                    }
+                    if (doc.end_year) {
+                        years.add(doc.end_year.toString());
+                    }
+                });
+                return Array.from(years).sort((a, b) => b - a); // Sort descending
+            }
+            // ------------------------------------------------------------
+
+            // --- Data Fetching ---
+            // Fetch categories
+            async function fetchCategories() {
+                try {
+                    const response = await fetch(API.categories);
+                    if (!response.ok) throw new Error(`Failed to fetch categories: ${response.status}`);
+                    const data = await response.json();
+                    return data.categories || [];
+                } catch (error) {
+                    console.error('Error fetching categories:', error);
+                    return [];
+                }
+            }
+            
+            // Fetch authors
+            async function fetchAuthors() {
+                try {
+                    const response = await fetch(API.authors);
+                    if (!response.ok) throw new Error(`Failed to fetch authors: ${response.status}`);
+                    const data = await response.json();
+                    
+                    // Store authors in a global variable for search
+                    window.searchAuthors = data.authors || [];
+                    
+                    return data.authors || [];
+                } catch (error) {
+                    console.error('Error fetching authors:', error);
+                    return [];
+                }
+            }
+            
+            // Fetch research agenda items
+            async function fetchResearchAgendaItems() {
+                try {
+                    const response = await fetch(API.researchAgenda);
+                    if (!response.ok) throw new Error(`Failed to fetch research agenda: ${response.status}`);
+                    const data = await response.json();
+                    return data.items || [];
+                } catch (error) {
+                    console.error('Error fetching research agenda items:', error);
+                    return [];
+                }
+            }
+            
+            // Fetch documents with search and filters
+            async function fetchDocuments(params) {
+                if (loadingSpinner) loadingSpinner.classList.add('visible');
+                
+                try {
+                    const url = new URL(API.documents, window.location.origin);
+                    
+                    // Add search and filter parameters
+                    if (params.search) url.searchParams.append('search', params.search);
+                    if (params.category) url.searchParams.append('category', params.category);
+                    if (params.author) url.searchParams.append('author', params.author);
+                    if (params.year) url.searchParams.append('year', params.year);
+                    if (params.researchAgenda) url.searchParams.append('agenda', params.researchAgenda);
+                    
+                    // Add pagination (default to page 1, limit 10)
+                    url.searchParams.append('page', params.page || 1);
+                    url.searchParams.append('limit', params.limit || 10);
+                    
+                    console.log('Fetching documents with URL:', url.toString());
+                    
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`Failed to fetch documents: ${response.status}`);
+                    
+                    const data = await response.json();
+                    return data.documents || [];
+                } catch (error) {
+                    console.error('Error fetching documents:', error);
+                    return [];
+                } finally {
+                    if (loadingSpinner) loadingSpinner.classList.remove('visible');
+                }
+            }
+            
+            // Initialize filter options
+            async function initializeFilters() {
+                try {
+                    // Fetch initial data to populate filters
+                    const [categories, authors] = await Promise.all([
+                        fetchCategories(),
+                        fetchAuthors()
+                    ]);
+                    
+                    // Populate category filter
+                    if (categoryFilter && categories.length > 0) {
+                        populateSelectWithOptions(categoryFilter, categories, 'name', 'id');
+                    }
+                    
+                    // Populate author filter
+                    if (authorFilter && authors.length > 0) {
+                        populateSelectWithOptions(authorFilter, authors, 'full_name', 'id');
+                    }
+                    
+                    // We'll fetch years from documents later, as we need to search first
+                    
+                    console.log('Filters initialized with:', {
+                        categories: categories.length,
+                        authors: authors.length
+                    });
+                } catch (error) {
+                    console.error('Error initializing filters:', error);
+                }
+            }
+                // ------------------------------------------------------------
+
+                // --- Core Search Logic ---
+            const performSearch = async () => {
+                    const query = searchInput ? searchInput.value.trim() : "";
+                    const selectedCategory = categoryFilter ? categoryFilter.value : "";
+                    const selectedAuthor = authorFilter ? authorFilter.value : "";
+                    const selectedAgenda = agendaFilter ? agendaFilter.value : "";
+                    const selectedYear = yearFilter ? yearFilter.value : "";
+                    const isActiveSearch = query.length > 0 || selectedCategory || selectedAuthor || selectedAgenda || selectedYear;
+
+                    if (isActiveSearch) {
+                        if (searchPlaceholder) searchPlaceholder.classList.add('hidden');
+                        if (loadingSpinner) loadingSpinner.classList.add('visible');
+                        if (searchResultsContainer) searchResultsContainer.classList.add('visible');
+                        if (searchResultsDiv) searchResultsDiv.innerHTML = '';
+                    
+                    try {
+                        // Fetch documents based on search and filters
+                        const documents = await fetchDocuments({
+                            search: query,
+                            category: selectedCategory,
+                            author: selectedAuthor,
+                            year: selectedYear,
+                            researchAgenda: selectedAgenda,
+                            limit: 20 // Show more results in search
+                        });
+                        
+                        // Format results for display
+                        const formattedHits = documents.map(doc => {
+                            // Add debugging for author info
+                            console.log(`Document ${doc.id} author data:`, {
+                                author_names: doc.author_names,
+                                authors: doc.authors,
+                                rawDoc: doc
+                            });
+                            
+                            // Try different ways to get author names
+                            let authorNames = '';
+                            if (doc.author_names && doc.author_names.length > 0) {
+                                authorNames = doc.author_names.join(', ');
+                            } else if (doc.authors && Array.isArray(doc.authors)) {
+                                authorNames = doc.authors.map(a => a.full_name || `Author ${a.id}`).join(', ');
+                            }
+                            
+                            return {
+                                id: doc.id,
+                                title: doc.title,
+                                description: doc.abstract || doc.description || '',
+                                url: `/pages/open-doc.html?id=${doc.id}`,
+                                type: 'document',
+                                category: doc.category_name || doc.document_type || '',
+                                author: authorNames,
+                                year: new Date(doc.publication_date).getFullYear() || doc.start_year || '',
+                                // Add full publication date for more detailed display
+                                publicationDate: doc.publication_date ? new Date(doc.publication_date).toLocaleDateString('en-US', {
+                                    year: 'numeric', 
+                                    month: 'short', 
+                                    day: 'numeric'
+                                }) : '',
+                                // Include the is_compiled flag so we can identify compiled documents
+                                is_compiled: doc.is_compiled || false,
+                                child_count: doc.child_count || 0,
+                                _formatted: {
+                                    title: highlightText(doc.title, query),
+                                    description: highlightText(doc.abstract || doc.description || '', query),
+                                    category: doc.category_name || doc.document_type || '',
+                                    author: authorNames,
+                                    year: new Date(doc.publication_date).getFullYear() || doc.start_year || '',
+                                    publicationDate: doc.publication_date ? new Date(doc.publication_date).toLocaleDateString('en-US', {
+                                        year: 'numeric', 
+                                        month: 'short', 
+                                        day: 'numeric'
+                                    }) : '',
+                                    url: `/pages/open-doc.html?id=${doc.id}`,
+                                    type: 'document',
+                                    is_compiled: doc.is_compiled || false,
+                                    child_count: doc.child_count || 0
+                                }
+                            };
+                        });
+                        
+                        // Add author results if we have authors
+                        let authorHits = [];
+                        if (window.searchAuthors && window.searchAuthors.length > 0 && query) {
+                            const lowerQuery = query.toLowerCase();
+                            const matchingAuthors = window.searchAuthors.filter(author => 
+                                (author.full_name && author.full_name.toLowerCase().includes(lowerQuery)) ||
+                                (author.first_name && author.first_name.toLowerCase().includes(lowerQuery)) ||
+                                (author.last_name && author.last_name.toLowerCase().includes(lowerQuery)) ||
+                                (author.middle_name && author.middle_name.toLowerCase().includes(lowerQuery))
+                            ).slice(0, 5); // Limit to top 5 author matches
+                            
+                            authorHits = matchingAuthors.map(author => ({
+                                id: author.id,
+                                title: author.full_name || `${author.first_name || ''} ${author.middle_name || ''} ${author.last_name || ''}`.trim(),
+                                description: author.description || `Author with ${author.worksCount || 0} works`,
+                                url: `/pages/authorprofile.html?id=${author.id}`,
+                                type: 'author',
+                                category: 'Author',
+                                _formatted: {
+                                    title: highlightText(author.full_name || `${author.first_name || ''} ${author.middle_name || ''} ${author.last_name || ''}`.trim(), query),
+                                    description: highlightText(author.description || `Author with ${author.worksCount || 0} works`, query),
+                                    category: 'Author',
+                                    url: `/pages/authorprofile.html?id=${author.id}`,
+                                    type: 'author'
+                                }
+                            }));
+                        }
+                        
+                        // Combine and display all results
+                        const allResults = [...authorHits, ...formattedHits];
+                        displayResults(allResults, query, isActiveSearch);
+                        
+                        // If this is a first search, populate year filter from results
+                        if (yearFilter && yearFilter.options.length <= 1 && documents.length > 0) {
+                            const years = extractYearsFromDocuments(documents);
+                            populateSelectWithOptions(yearFilter, years);
+                        }
+                    } catch (error) {
+                        console.error('Error during search:', error);
+                        if (searchResultsDiv) {
+                            searchResultsDiv.innerHTML = `<p class="error-message">An error occurred during search. Please try again.</p>`;
+                        }
+                    } finally {
+                        if (loadingSpinner) loadingSpinner.classList.remove('visible');
+                    }
+                    } else {
+                        if (searchComponent && searchComponent.classList.contains('active')) {
+                            if (searchResultsContainer) searchResultsContainer.classList.add('visible');
+                            if (loadingSpinner) loadingSpinner.classList.remove('visible');
+                            if (searchResultsDiv) searchResultsDiv.innerHTML = '';
+                            if (searchPlaceholder && searchResultsDiv) {
+                                searchResultsDiv.appendChild(searchPlaceholder);
+                                searchPlaceholder.classList.remove('hidden');
+                            }
+                        } else {
+                            if (searchResultsContainer) searchResultsContainer.classList.remove('visible');
+                            if (loadingSpinner) loadingSpinner.classList.remove('visible');
+                            if (searchResultsDiv) searchResultsDiv.innerHTML = '';
+                            if (searchPlaceholder) searchPlaceholder.classList.add('hidden');
+                        }
+                    }
+                };
+
+                // Function to get the appropriate category icon path
+                function getCategoryIconPath(category) {
+                    if (!category) return '/Components/icons/category-icons/default_category_icon.png';
+                    
+                    // Normalize the category name (lowercase, remove special chars)
+                    const normalizedCategory = category.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    
+                    // Map to corresponding icon file
+                    switch(normalizedCategory) {
+                        case 'thesis':
+                            return '/Components/icons/category-icons/thesis.png';
+                        case 'dissertation':
+                            return '/Components/icons/category-icons/dissertation.png';
+                        case 'confluence':
+                            return '/Components/icons/category-icons/confluence.png';
+                        case 'synergy':
+                            return '/Components/icons/category-icons/synergy.png';
+                        default:
+                            return '/Components/icons/category-icons/default_category_icon.png';
+                    }
+                }
+
+                const displayResults = (hits, query, isActiveSearch) => {
+                    if (!searchResultsDiv) return;
+                    searchResultsDiv.innerHTML = '';
+
+                    if (isActiveSearch && hits.length === 0) {
+                        let message = `No results found${query ? ` for "${query}"` : ""}`;
+                        const activeFilters = [categoryFilter?.value, authorFilter?.value, agendaFilter?.value, yearFilter?.value].filter(Boolean);
+                        if (activeFilters.length > 0) message += " with the selected filters.";
+                        else if (!query) message = "No results match the selected filters.";
+                        else message += ".";
+                        searchResultsDiv.innerHTML = `<p class="error-message">${message}</p>`;
+                        if (searchPlaceholder) searchPlaceholder.classList.add('hidden');
+                        return;
+                    } else if (!isActiveSearch && searchComponent && searchComponent.classList.contains('active')) {
+                        if (searchPlaceholder) { searchResultsDiv.appendChild(searchPlaceholder); searchPlaceholder.classList.remove('hidden'); }
+                        return;
+                    } else if (hits.length > 0) {
+                        if (searchPlaceholder) searchPlaceholder.classList.add('hidden');
+                    }
+
+                    // Render each search result
+                    hits.forEach(hit => {
+                        // Handle author results the same way
+                        if (hit.type === 'author') {
+                            createAuthorResultElement(hit);
+                            return;
+                        }
+                        
+                        // For document results, check if it's a compiled document
+                        const isCompiled = hit.is_compiled === true;
+                        const hasChildren = hit.child_count > 0;
+                        
+                        if (isCompiled && hasChildren) {
+                            // Create a special container for compiled documents with children
+                            createCompiledDocumentElement(hit);
+                        } else {
+                            // Regular document result
+                            createDocumentResultElement(hit);
+                        }
+                    });
+                    
+                    // Add event listeners to expand/collapse buttons
+                    addExpandCollapseListeners();
+                };
+                
+                // Function to create an author result element
+                function createAuthorResultElement(hit) {
+                    const resultElement = document.createElement('a');
+                    resultElement.href = hit.url || '#';
+                    resultElement.classList.add('result-item', 'author-result');
+                    resultElement.dataset.resultType = 'author';
+                    resultElement.target = "_self";
+                    resultElement.rel = "noopener";
+                    
+                    const formattedHit = hit._formatted || hit;
+                    const title = formattedHit.title || 'No Name Provided';
+                    let description = formattedHit.description || '';
+                    
+                    // Truncate description if necessary
+                    const maxDescLength = 120;
+                    if (description.length > maxDescLength) {
+                        let cutOff = description.lastIndexOf(' ', maxDescLength);
+                        if (cutOff === -1 || cutOff < maxDescLength * 0.7) cutOff = maxDescLength;
+                        description = description.substring(0, cutOff);
+                        const openHighlight = description.lastIndexOf('<span class="highlight">');
+                        const closeHighlight = description.lastIndexOf('</span>');
+                        if (openHighlight > closeHighlight) description += '</span>';
+                        description += '...';
+                    }
+                    
+                    resultElement.innerHTML = `
+                        <div class="result-title">${title}</div>
+                        <div class="result-description">${description}</div>
+                        <div class="result-meta"><span class="result-type author">Author</span></div>
+                    `;
+                    
+                    searchResultsDiv.appendChild(resultElement);
+                }
+                
+                // Function to create a regular document result element
+                function createDocumentResultElement(hit) {
+                    const resultElement = document.createElement('a');
+                    resultElement.href = hit.url || '#';
+                    resultElement.classList.add('result-item', 'document-result');
+                    resultElement.dataset.resultType = 'document';
+                    resultElement.dataset.documentId = hit.id;
+                    resultElement.target = "_self";
+                    resultElement.rel = "noopener";
+                    
+                    const formattedHit = hit._formatted || hit;
+                    const title = formattedHit.title || 'No Title Provided';
+                    let description = formattedHit.description || '';
+                    
+                    // Truncate description if necessary
+                    const maxDescLength = 120;
+                    if (description.length > maxDescLength) {
+                        let cutOff = description.lastIndexOf(' ', maxDescLength);
+                        if (cutOff === -1 || cutOff < maxDescLength * 0.7) cutOff = maxDescLength;
+                        description = description.substring(0, cutOff);
+                        const openHighlight = description.lastIndexOf('<span class="highlight">');
+                        const closeHighlight = description.lastIndexOf('</span>');
+                        if (openHighlight > closeHighlight) description += '</span>';
+                        description += '...';
+                    }
+                    
+                    // Create metadata display
+                    const metaParts = [];
+                    
+                    // Add author names with icon
+                    if (formattedHit.author) {
+                        metaParts.push(`<span class="author-meta"><i class="fas fa-user" aria-hidden="true"></i> ${formattedHit.author}</span>`);
+                    }
+                    
+                    // Add publication date with icon
+                    if (formattedHit.publicationDate) {
+                        metaParts.push(`<span class="date-meta"><i class="fas fa-calendar-alt" aria-hidden="true"></i> ${formattedHit.publicationDate}</span>`);
+                    } else if (formattedHit.year) {
+                        metaParts.push(`<span class="date-meta"><i class="fas fa-calendar-alt" aria-hidden="true"></i> ${formattedHit.year}</span>`);
+                    }
+                    
+                    const metaInfo = metaParts.join(' ');
+                    
+                    // Get category icon
+                    const categoryIconPath = getCategoryIconPath(formattedHit.category);
+                    
+                    resultElement.innerHTML = `
+                        <div>
+                            <div class="flex items-center mb-1">
+                                <img src="${categoryIconPath}" alt="${formattedHit.category || 'Document'}" class="category-icon" />
+                                <div class="result-title">${title}</div>
+                            </div>
+                            <div class="description-container">
+                                <div class="result-description">${description}</div>
+                                ${metaInfo ? `<div class="result-meta">${metaInfo}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                    
+                    searchResultsDiv.appendChild(resultElement);
+                }
+                
+                // Function to create a compiled document element with expandable children
+                function createCompiledDocumentElement(hit) {
+                    const formattedHit = hit._formatted || hit;
+                    const title = formattedHit.title || 'No Title Provided';
+                    let description = formattedHit.description || '';
+                    
+                    // Truncate description if necessary
+                    const maxDescLength = 120;
+                    if (description.length > maxDescLength) {
+                        let cutOff = description.lastIndexOf(' ', maxDescLength);
+                        if (cutOff === -1 || cutOff < maxDescLength * 0.7) cutOff = maxDescLength;
+                        description = description.substring(0, cutOff);
+                        const openHighlight = description.lastIndexOf('<span class="highlight">');
+                        const closeHighlight = description.lastIndexOf('</span>');
+                        if (openHighlight > closeHighlight) description += '</span>';
+                        description += '...';
+                    }
+                    
+                    // Create metadata display
+                    const metaParts = [];
+                    
+                    // Add author names with icon
+                    if (formattedHit.author) {
+                        metaParts.push(`<span class="author-meta"><i class="fas fa-user" aria-hidden="true"></i> ${formattedHit.author}</span>`);
+                    }
+                    
+                    // Add publication date with icon
+                    if (formattedHit.publicationDate) {
+                        metaParts.push(`<span class="date-meta"><i class="fas fa-calendar-alt" aria-hidden="true"></i> ${formattedHit.publicationDate}</span>`);
+                    } else if (formattedHit.year) {
+                        metaParts.push(`<span class="date-meta"><i class="fas fa-calendar-alt" aria-hidden="true"></i> ${formattedHit.year}</span>`);
+                    }
+                    
+                    const metaInfo = metaParts.join(' ');
+                    
+                    // Get category icon
+                    const categoryIconPath = getCategoryIconPath(formattedHit.category);
+                    
+                    // Create container for the compiled document
+                    const container = document.createElement('div');
+                    container.classList.add('compiled-document-container', 'position-relative');
+                    container.dataset.documentId = hit.id;
+                    
+                    // Create the expand/collapse button
+                    const expandBtn = document.createElement('button');
+                    expandBtn.type = 'button';
+                    expandBtn.className = 'expand-collapse-btn';
+                    expandBtn.setAttribute('aria-label', `Expand ${title} to view child documents`);
+                    expandBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    `;
+                    container.appendChild(expandBtn);
+                    
+                    // Create the main result item (as a div instead of a link)
+                    const resultElement = document.createElement('div');
+                    resultElement.classList.add('result-item', 'document-result', 'mb-0', 'cursor-pointer');
+                    resultElement.dataset.resultType = 'document';
+                    resultElement.dataset.isCompiled = 'true';
+                    resultElement.dataset.documentId = hit.id;
+                    
+                    resultElement.innerHTML = `
+                        <div>
+                            <div class="flex items-center mb-1">
+                                <img src="${categoryIconPath}" alt="${formattedHit.category || 'Document'}" class="category-icon" />
+                                <div class="result-title">${title}
+                                    <span class="compiled-label"><i class="fas fa-folder-open"></i> Compiled</span>
+                                </div>
+                            </div>
+                            <div class="description-container">
+                                <div class="result-description">${description}</div>
+                                ${metaInfo ? `<div class="result-meta">${metaInfo}</div>` : ''}
+                                <div class="document-actions">
+                                    <a href="${hit.url || '#'}" class="view-document-btn" target="_self" rel="noopener">
+                                        <i class="fas fa-external-link-alt"></i> View Document
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    container.appendChild(resultElement);
+                    
+                    // Create the children container
+                    const childrenContainer = document.createElement('div');
+                    childrenContainer.classList.add('compiled-document-children');
+                    childrenContainer.dataset.loaded = 'false';
+                    childrenContainer.innerHTML = `
+                        <div class="loading-children">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Loading child documents...
+                        </div>
+                    `;
+                    container.appendChild(childrenContainer);
+                    
+                    // Add click handlers
+                    // 1. Click on the expand/collapse button
+                    expandBtn.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        handleExpandCollapseClick({
+                            preventDefault: () => {},
+                            stopPropagation: () => {},
+                            currentTarget: expandBtn
+                        });
+                    });
+                    
+                    // 2. Click on the result item itself
+                    resultElement.addEventListener('click', (event) => {
+                        // Ignore if clicked on the view document button
+                        if (event.target.closest('.view-document-btn')) {
+                            return;
+                        }
+                        
+                        event.preventDefault();
+                        event.stopPropagation();
+                        handleExpandCollapseClick({
+                            preventDefault: () => {},
+                            stopPropagation: () => {},
+                            currentTarget: expandBtn
+                        });
+                    });
+                    
+                    // Add to search results
+                    searchResultsDiv.appendChild(container);
+                }
+                
+                // Add event listeners to the expand/collapse buttons
+                function addExpandCollapseListeners() {
+                    const expandButtons = document.querySelectorAll('.expand-collapse-btn');
+                    expandButtons.forEach(btn => {
+                        // Remove existing listeners if re-adding
+                        btn.removeEventListener('click', handleExpandCollapseClick);
+                        
+                        // Add fresh listener
+                        btn.addEventListener('click', handleExpandCollapseClick);
+                    });
+                }
+                
+                // Handle click on expand/collapse button
+                async function handleExpandCollapseClick(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    const btn = event.currentTarget;
+                    const container = btn.closest('.compiled-document-container');
+                    const childrenContainer = container.querySelector('.compiled-document-children');
+                    const documentId = container.dataset.documentId;
+                    
+                    // Toggle expanded state
+                    const isExpanded = btn.classList.contains('expanded');
+                    
+                    if (isExpanded) {
+                        // Collapse
+                        btn.classList.remove('expanded');
+                        childrenContainer.classList.remove('expanded');
+                        btn.setAttribute('aria-label', `Expand to view child documents`);
+                    } else {
+                        // Expand
+                        btn.classList.add('expanded');
+                        childrenContainer.classList.add('expanded');
+                        btn.setAttribute('aria-label', `Collapse child documents`);
+                        
+                        // Check if we need to load the children
+                        const childrenLoaded = childrenContainer.dataset.loaded === 'true';
+                        
+                        if (!childrenLoaded) {
+                            try {
+                                // Fetch child documents
+                                const response = await fetch(`/api/documents/${documentId}/children`);
+                                if (!response.ok) throw new Error('Failed to load child documents');
+                                
+                                const data = await response.json();
+                                if (!data.documents || !Array.isArray(data.documents)) {
+                                    throw new Error('Invalid response format');
+                                }
+                                
+                                // Clear loading indicator
+                                childrenContainer.innerHTML = '';
+                                
+                                // Add child documents
+                                if (data.documents.length === 0) {
+                                    childrenContainer.innerHTML = `<div class="text-gray-500 py-2 px-3 text-sm">No child documents found.</div>`;
+                                } else {
+                                    data.documents.forEach(childDoc => {
+                                        // Create child document element
+                                        const childElement = document.createElement('a');
+                                        childElement.href = `/pages/open-doc.html?id=${childDoc.id}`;
+                                        childElement.classList.add('child-document', 'block');
+                                        childElement.target = "_self";
+                                        childElement.rel = "noopener";
+                                        childElement.innerHTML = `
+                                            <div class="flex items-start">
+                                                <img src="${getCategoryIconPath(childDoc.document_type)}" 
+                                                     alt="${childDoc.document_type || 'Document'}" 
+                                                     class="category-icon mr-2 mt-0.5" style="width: 1.25rem; height: 1.25rem;" />
+                                                <div class="child-content">
+                                                    <div class="child-title">${childDoc.title}</div>
+                                                    ${childDoc.author_names ? 
+                                                        `<div class="child-meta">
+                                                            <i class="fas fa-user text-gray-400 mr-1"></i> 
+                                                            ${childDoc.author_names.join(', ')}
+                                                            ${childDoc.publication_date ? 
+                                                                `<span class="date-separator">•</span>
+                                                                <i class="fas fa-calendar-alt text-gray-400 mr-1"></i>
+                                                                ${new Date(childDoc.publication_date).toLocaleDateString('en-US', {
+                                                                    year: 'numeric',
+                                                                    month: 'short'
+                                                                })}` : ''}
+                                                        </div>` : ''}
+                                                </div>
+                                            </div>
+                                        `;
+                                        // Add click event listener to ensure navigation
+                                        childElement.addEventListener('click', function(e) {
+                                            // Let the default link behavior handle navigation
+                                            // This ensures the browser navigates to the href value
+                                            window.location.href = this.href;
+                                        });
+                                        childrenContainer.appendChild(childElement);
+                                    });
+                                }
+                                
+                                // Mark as loaded
+                                childrenContainer.dataset.loaded = 'true';
+                                
+                            } catch (error) {
+                                console.error('Error loading child documents:', error);
+                                childrenContainer.innerHTML = `
+                                    <div class="text-red-500 py-2 px-3 text-sm">
+                                        Failed to load child documents. 
+                                        <button class="retry-load-btn text-blue-500 hover:underline ml-2">Retry</button>
+                                    </div>
+                                `;
+                                
+                                // Add retry button listener
+                                const retryBtn = childrenContainer.querySelector('.retry-load-btn');
+                                if (retryBtn) {
+                                    retryBtn.addEventListener('click', (e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        childrenContainer.dataset.loaded = 'false';
+                                        childrenContainer.innerHTML = `
+                                            <div class="loading-children">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Loading child documents...
+                                            </div>
+                                        `;
+                                        handleExpandCollapseClick({
+                                            preventDefault: () => {},
+                                            stopPropagation: () => {},
+                                            currentTarget: btn
+                                        });
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // --- Component State Management ---
+                function activateSearch() {
+                    if (searchComponent && !searchComponent.classList.contains('active')) {
+                        searchComponent.classList.add('active');
+                        if (searchInput) { setTimeout(() => searchInput.focus(), 50); }
+                        performSearch();
+                    }
+                }
+
+                function deactivateSearch() {
+                    if (searchComponent && searchComponent.classList.contains('active')) {
+                        searchComponent.classList.remove('active');
+                        if (searchResultsContainer) { searchResultsContainer.classList.remove('visible'); }
+                        if (searchInput) { searchInput.blur(); }
+                    }
+                }
+                // ------------------------------------------------------------
+
+                // --- Event Listeners ---
+                const debouncedSearch = debounce(performSearch, DEBOUNCE_DELAY);
+                if (searchInput) {
+                    searchInput.addEventListener('input', debouncedSearch);
+                    searchInput.addEventListener('focus', () => { if (!searchComponent.classList.contains('active')) { activateSearch(); } });
+                }
+                [categoryFilter, authorFilter, agendaFilter, yearFilter].forEach(filter => { if (filter) { filter.addEventListener('change', performSearch); } });
+                if (searchInputWrapper) { searchInputWrapper.addEventListener('click', (event) => { if (!searchComponent.classList.contains('active')) { activateSearch(); } event.stopPropagation(); }); }
+                if (sampleSearchesContainer) { sampleSearchesContainer.addEventListener('click', (event) => { if (event.target.classList.contains('sample-search-item')) { const query = event.target.dataset.query; if (query && searchInput) { searchInput.value = query; performSearch(); if (!searchComponent.classList.contains('active')) { activateSearch(); } else { searchInput.focus(); } } event.stopPropagation(); } }); }
+                document.addEventListener('click', (event) => { if (searchComponent && !searchComponent.contains(event.target)) { if (searchComponent.classList.contains('active')) { deactivateSearch(); } } });
+                if (searchResultsContainer) { searchResultsContainer.addEventListener('click', (event) => event.stopPropagation()); }
+                if (expandableContent) { expandableContent.addEventListener('click', (event) => event.stopPropagation()); }
+                document.addEventListener('keydown', (event) => { if (event.key === 'Escape') { if (searchComponent && searchComponent.classList.contains('active')) { deactivateSearch(); } } });
+                // ------------------------------------------------------------
+
+                // --- Initialization ---
+                function initializeComponentState() {
+                    if (searchResultsContainer) searchResultsContainer.classList.remove('visible');
+                    if (loadingSpinner) loadingSpinner.classList.remove('visible');
+                    if (searchComponent) searchComponent.classList.remove('active');
+                    if (searchPlaceholder) searchPlaceholder.classList.add('hidden');
+                    if (searchResultsDiv) searchResultsDiv.innerHTML = '';
+                }
+            
+            // Initialize filters and component state
+                initializeFilters();
+                initializeComponentState();
+        };
+
+        // Run immediately if DOM is already loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', window.initializeSearchComponent);
+        } else {
+            window.initializeSearchComponent();
+        }
+
+        // User Authentication and Dropdown Functionality
+        function initializeUserDropdown() {
+            const userDropdownBtn = document.getElementById('userDropdownBtn');
+            const userDropdownMenu = document.getElementById('userDropdownMenu');
+            const loginContainer = document.getElementById('loginContainer');
+            const userDropdownContainer = document.getElementById('userDropdownContainer');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const userName = document.getElementById('userName');
+
+            // Check if user is logged in
+            function checkUserLoggedIn() {
+                // Get user info from localStorage or sessionStorage
+                // Modify this to match how your existing login.js stores user data
+                let userInfo = null;
+                try {
+                    userInfo = JSON.parse(localStorage.getItem('userInfo')) || 
+                              JSON.parse(sessionStorage.getItem('userInfo')) || 
+                              JSON.parse(localStorage.getItem('user')) || 
+                              JSON.parse(sessionStorage.getItem('user'));
+                } catch (e) {
+                    console.log('No user info found or invalid format');
+                }
+                
+                if (userInfo && (userInfo.isLoggedIn || userInfo.token || userInfo.id)) {
+                    // User is logged in
+                    loginContainer.style.display = 'none';
+                    userDropdownContainer.style.display = 'block';
+                    
+                    // Set user name (adapt to your user object structure)
+                    if (userInfo.name || userInfo.username || userInfo.fullName) {
+                        userName.textContent = userInfo.name || userInfo.username || userInfo.fullName;
+                    } else {
+                        userName.textContent = userInfo.email || 'User';
+                    }
+                    
+                    // Check user role (adapt to your role structure)
+                    if (userInfo.role && userInfo.role !== 'user') {
+                        // Add role indicator for admin or other roles
+                        userName.textContent += ` (${userInfo.role})`;
+                    }
+                } else {
+                    // User is not logged in
+                    loginContainer.style.display = 'block';
+                    userDropdownContainer.style.display = 'none';
+                }
+            }
+
+            // Toggle dropdown menu
+            if (userDropdownBtn) {
+                userDropdownBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    userDropdownMenu.classList.toggle('show');
+                });
+            }
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (userDropdownBtn && !userDropdownBtn.contains(e.target) && 
+                    userDropdownMenu && !userDropdownMenu.contains(e.target)) {
+                    userDropdownMenu.classList.remove('show');
+                }
+            });
+
+            // Handle logout
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // This should be compatible with your existing logout functionality
+                    // Check if window.logout function exists from your login.js
+                    if (typeof window.logout === 'function') {
+                        window.logout();
+                    } else {
+                        // Fallback logout if no existing function
+                        localStorage.removeItem('userInfo');
+                        localStorage.removeItem('user');
+                        sessionStorage.removeItem('userInfo');
+                        sessionStorage.removeItem('user');
+                        
+                        // Update UI
+                        loginContainer.style.display = 'block';
+                        userDropdownContainer.style.display = 'none';
+                        
+                        // Close dropdown
+                        userDropdownMenu.classList.remove('show');
+                        
+                        // Redirect to home or login page
+                        window.location.href = '/log-in.html';
+                    }
+                });
+            }
+
+            // Check login status on load
+            checkUserLoggedIn();
+
+            // Recheck when localStorage/sessionStorage changes
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'userInfo' || e.key === 'user') {
+                    checkUserLoggedIn();
+                }
+            });
+        }
+
+        // Initialize user dropdown functionality
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeUserDropdown);
+        } else {
+            initializeUserDropdown();
+        }
+    </script>
+    <!-- Add jQuery from a reliable CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="/Components/js/login.js"></script>
+</body>
+</html>
